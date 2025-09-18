@@ -25,51 +25,60 @@ const Button: React.FC<ButtonProps> = ({
 }) => {
   // Size styles
   const sizeStyles = {
-    sm: 'py-2 px-3',
-    md: 'py-3 px-4',
-    lg: 'py-4 px-6',
+    sm: { paddingVertical: 8, paddingHorizontal: 12 },
+    md: { paddingVertical: 12, paddingHorizontal: 16 },
+    lg: { paddingVertical: 16, paddingHorizontal: 24 },
   };
   
   // Text size styles
   const textSizeStyles = {
-    sm: 'text-sm',
-    md: 'text-base',
-    lg: 'text-lg',
+    sm: { fontSize: 14 },
+    md: { fontSize: 16 },
+    lg: { fontSize: 18 },
   };
   
-  // Variant styles
-  const getButtonStyles = () => {
+  // Get button style based on variant
+  const getButtonStyle = () => {
+    const baseStyle = {
+      borderRadius: 8,
+    };
+    
     switch (variant) {
-      case 'primary':
-        return 'rounded-lg';
       case 'secondary':
-        return 'rounded-lg bg-gray-800';
+        return {
+          ...baseStyle,
+          backgroundColor: '#1F2937', // gray-800
+        };
       case 'outline':
-        return 'rounded-lg border border-primary';
+        return {
+          ...baseStyle,
+          borderWidth: 1,
+          borderColor: colors.primary,
+        };
       default:
-        return 'rounded-lg';
+        return baseStyle;
     }
   };
   
-  // Text color based on variant
+  // Get text color based on variant
   const getTextColor = () => {
     switch (variant) {
       case 'outline':
-        return 'text-primary';
+        return colors.primary;
       default:
-        return 'text-white';
+        return 'white';
     }
   };
-  
-  // Width style
-  const widthStyle = fullWidth ? 'w-full' : '';
   
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={isLoading}
       activeOpacity={0.8}
-      className={`${widthStyle} overflow-hidden ${rest.className || ''}`}
+      style={[
+        { overflow: 'hidden' },
+        fullWidth ? { width: '100%' } : {},
+      ]}
       {...rest}
     >
       {variant === 'primary' ? (
@@ -77,14 +86,22 @@ const Button: React.FC<ButtonProps> = ({
           colors={[colors.gradientStart, colors.gradientEnd]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          className={`${getButtonStyles()} ${sizeStyles[size]} items-center justify-center flex-row`}
+          style={[
+            getButtonStyle(),
+            sizeStyles[size],
+            { alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }
+          ]}
         >
           {isLoading ? (
             <ActivityIndicator size="small" color="white" />
           ) : (
             <>
               {icon && <>{icon}</>}
-              <Text className={`${textSizeStyles[size]} font-medium ${getTextColor()} ${icon ? 'ml-2' : ''}`}>
+              <Text style={[
+                textSizeStyles[size],
+                { color: getTextColor(), fontWeight: '500' },
+                icon ? { marginLeft: 8 } : {}
+              ]}>
                 {title}
               </Text>
             </>
@@ -95,7 +112,11 @@ const Button: React.FC<ButtonProps> = ({
           onPress={onPress}
           disabled={isLoading}
           activeOpacity={0.8}
-          className={`${getButtonStyles()} ${sizeStyles[size]} items-center justify-center flex-row`}
+          style={[
+            getButtonStyle(),
+            sizeStyles[size],
+            { alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }
+          ]}
           {...rest}
         >
           {isLoading ? (
@@ -103,7 +124,11 @@ const Button: React.FC<ButtonProps> = ({
           ) : (
             <>
               {icon && <>{icon}</>}
-              <Text className={`${textSizeStyles[size]} font-medium ${getTextColor()} ${icon ? 'ml-2' : ''}`}>
+              <Text style={[
+                textSizeStyles[size],
+                { color: getTextColor(), fontWeight: '500' },
+                icon ? { marginLeft: 8 } : {}
+              ]}>
                 {title}
               </Text>
             </>

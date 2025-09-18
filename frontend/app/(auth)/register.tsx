@@ -60,19 +60,19 @@ export default function Register() {
   return (
     <LinearGradient
       colors={[colors.gradientStart, colors.gradientEnd]}
-      className="flex-1"
+      style={{ flex: 1 }}
     >
-      <SafeAreaView className="flex-1">
+      <SafeAreaView style={{ flex: 1 }}>
         <ScrollView
-          contentContainerClassName="flex-grow p-6"
+          contentContainerStyle={{ flexGrow: 1, padding: 24 }}
           keyboardShouldPersistTaps="handled"
         >
-          <View className="items-center mb-8">
-            <Text className="text-white text-3xl font-bold">Streamora</Text>
-            <Text className="text-gray-300 text-lg mt-2">Create your account</Text>
+          <View style={{ alignItems: 'center', marginBottom: 32 }}>
+            <Text style={{ color: 'white', fontSize: 24, fontWeight: 'bold' }}>Streamora</Text>
+            <Text style={{ color: '#9CA3AF', fontSize: 16, marginTop: 8 }}>Create your account</Text>
           </View>
           
-          <View className="mb-6">
+          <View style={{ marginBottom: 24 }}>
             <Input
               label="Full Name"
               placeholder="Enter your full name"
@@ -122,11 +122,11 @@ export default function Register() {
             fullWidth
           />
           
-          <View className="flex-row justify-center mt-6">
-            <Text className="text-gray-300">Already have an account? </Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 24 }}>
+            <Text style={{ color: '#9CA3AF' }}>Already have an account? </Text>
             <Link href="/(auth)/login" asChild>
               <TouchableOpacity>
-                <Text className="text-primary font-medium">Sign In</Text>
+                <Text style={{ color: colors.primary, fontWeight: '500' }}>Sign In</Text>
               </TouchableOpacity>
             </Link>
           </View>

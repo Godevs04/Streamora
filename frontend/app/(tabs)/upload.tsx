@@ -119,41 +119,48 @@ export default function Upload() {
   return (
     <LinearGradient
       colors={[colors.gradientStart, colors.gradientEnd]}
-      className="flex-1"
+      style={{ flex: 1 }}
     >
-      <SafeAreaView className="flex-1">
+      <SafeAreaView style={{ flex: 1 }}>
         <ScrollView
-          contentContainerClassName="p-4"
+          contentContainerStyle={{ padding: 16 }}
           keyboardShouldPersistTaps="handled"
         >
-          <Text className="text-white text-xl font-bold mb-6">Upload New Video</Text>
+          <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold', marginBottom: 24 }}>Upload New Video</Text>
           
           <TouchableOpacity
             onPress={pickVideo}
-            className="bg-gray-800 rounded-lg p-4 items-center justify-center mb-6"
-            style={{ height: 200 }}
+            style={{ 
+              backgroundColor: '#1F2937', 
+              borderRadius: 8, 
+              padding: 16, 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              marginBottom: 24,
+              height: 200 
+            }}
           >
             {videoUri ? (
-              <View className="w-full h-full items-center justify-center">
+              <View style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="checkmark-circle" size={48} color={colors.success} />
-                <Text className="text-white mt-2">Video Selected</Text>
-                <Text className="text-gray-400 text-sm mt-1">Tap to change</Text>
+                <Text style={{ color: 'white', marginTop: 8 }}>Video Selected</Text>
+                <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>Tap to change</Text>
               </View>
             ) : (
-              <View className="items-center justify-center">
+              <View style={{ alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="cloud-upload-outline" size={48} color={colors.primary} />
-                <Text className="text-white mt-2">Select Video</Text>
-                <Text className="text-gray-400 text-sm mt-1">
+                <Text style={{ color: 'white', marginTop: 8 }}>Select Video</Text>
+                <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
                   Max {config.UPLOAD.MAX_VIDEO_DURATION}s, {config.UPLOAD.MAX_VIDEO_SIZE / (1024 * 1024)}MB
                 </Text>
               </View>
             )}
           </TouchableOpacity>
           
-          <View className="mb-4">
-            <Text className="text-white mb-1">Title *</Text>
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{ color: 'white', marginBottom: 4 }}>Title *</Text>
             <TextInput
-              className="bg-gray-800 text-white p-3 rounded-lg"
+              style={{ backgroundColor: '#1F2937', color: 'white', padding: 12, borderRadius: 8 }}
               placeholder="Enter video title"
               placeholderTextColor={colors.gray}
               value={title}
@@ -162,10 +169,10 @@ export default function Upload() {
             />
           </View>
           
-          <View className="mb-4">
-            <Text className="text-white mb-1">Description</Text>
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{ color: 'white', marginBottom: 4 }}>Description</Text>
             <TextInput
-              className="bg-gray-800 text-white p-3 rounded-lg"
+              style={{ backgroundColor: '#1F2937', color: 'white', padding: 12, borderRadius: 8 }}
               placeholder="Enter video description"
               placeholderTextColor={colors.gray}
               value={description}
@@ -177,10 +184,10 @@ export default function Upload() {
             />
           </View>
           
-          <View className="mb-6">
-            <Text className="text-white mb-1">Tags (comma-separated)</Text>
+          <View style={{ marginBottom: 24 }}>
+            <Text style={{ color: 'white', marginBottom: 4 }}>Tags (comma-separated)</Text>
             <TextInput
-              className="bg-gray-800 text-white p-3 rounded-lg"
+              style={{ backgroundColor: '#1F2937', color: 'white', padding: 12, borderRadius: 8 }}
               placeholder="e.g. music, tutorial, vlog"
               placeholderTextColor={colors.gray}
               value={tags}

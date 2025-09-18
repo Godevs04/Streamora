@@ -92,14 +92,14 @@ export default function Profile() {
   
   if (!user) {
     return (
-      <View className="flex-1 items-center justify-center bg-black">
-        <Text className="text-white">Please log in to view your profile</Text>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'black' }}>
+        <Text style={{ color: 'white' }}>Please log in to view your profile</Text>
         <Button
           title="Go to Login"
           onPress={() => router.replace('/(auth)/login')}
           variant="primary"
           size="md"
-          className="mt-4"
+          style={{ marginTop: 16 }}
         />
       </View>
     );
@@ -108,37 +108,37 @@ export default function Profile() {
   return (
     <LinearGradient
       colors={[colors.gradientStart, colors.gradientEnd]}
-      className="flex-1"
+      style={{ flex: 1 }}
     >
-      <SafeAreaView className="flex-1">
-        <ScrollView contentContainerClassName="pb-6">
-          <View className="p-4 items-center">
+      <SafeAreaView style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+          <View style={{ padding: 16, alignItems: 'center' }}>
             <TouchableOpacity onPress={handleChangeAvatar}>
-              <View className="relative">
+              <View style={{ position: 'relative' }}>
                 <Avatar uri={user.avatarUrl} name={user.name} size="xl" />
-                <View className="absolute bottom-0 right-0 bg-primary rounded-full p-1">
+                <View style={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: colors.primary, borderRadius: 999, padding: 4 }}>
                   <Icon name="camera" size={16} color="white" />
                 </View>
               </View>
             </TouchableOpacity>
             
-            <Text className="text-white text-xl font-bold mt-4">{user.name}</Text>
+            <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold', marginTop: 16 }}>{user.name}</Text>
             
             {user.username && (
-              <Text className="text-gray-300 text-base">@{user.username}</Text>
+              <Text style={{ color: '#9CA3AF', fontSize: 16 }}>@{user.username}</Text>
             )}
             
             {user.bio && (
-              <Text className="text-gray-300 text-center mt-2 px-10">{user.bio}</Text>
+              <Text style={{ color: '#9CA3AF', textAlign: 'center', marginTop: 8, paddingHorizontal: 40 }}>{user.bio}</Text>
             )}
             
-            <View className="flex-row mt-6">
+            <View style={{ flexDirection: 'row', marginTop: 24 }}>
               <Button
                 title="Edit Profile"
                 onPress={handleEditProfile}
                 variant="outline"
                 size="sm"
-                className="mr-2"
+                style={{ marginRight: 8 }}
               />
               <Button
                 title="Logout"
@@ -149,11 +149,11 @@ export default function Profile() {
             </View>
           </View>
           
-          <View className="mt-6">
-            <Text className="text-white text-lg font-bold px-4 mb-2">Your Videos</Text>
+          <View style={{ marginTop: 24 }}>
+            <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', paddingHorizontal: 16, marginBottom: 8 }}>Your Videos</Text>
             
             {isLoading ? (
-              <View className="py-10 items-center">
+              <View style={{ paddingVertical: 40, alignItems: 'center' }}>
                 <ActivityIndicator size="large" color={colors.primary} />
               </View>
             ) : videos.length > 0 ? (
@@ -163,13 +163,13 @@ export default function Profile() {
                 renderItem={({ item }) => <VideoCard video={item} variant="compact" />}
                 numColumns={2}
                 scrollEnabled={false}
-                contentContainerClassName="px-2"
+                contentContainerStyle={{ paddingHorizontal: 8 }}
               />
             ) : (
-              <View className="py-10 items-center">
+              <View style={{ paddingVertical: 40, alignItems: 'center' }}>
                 <Icon name="videocam-outline" size={48} color={colors.gray} />
-                <Text className="text-white text-base mt-4">No videos yet</Text>
-                <Text className="text-gray-400 text-sm mt-1">
+                <Text style={{ color: 'white', fontSize: 16, marginTop: 16 }}>No videos yet</Text>
+                <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
                   Upload your first video to get started
                 </Text>
                 <Button
@@ -177,7 +177,7 @@ export default function Profile() {
                   onPress={() => router.push('/(tabs)/upload')}
                   variant="primary"
                   size="sm"
-                  className="mt-4"
+                  style={{ marginTop: 16 }}
                 />
               </View>
             )}

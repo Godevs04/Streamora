@@ -69,7 +69,7 @@ export default function Home() {
     if (!isLoading) return null;
     
     return (
-      <View className="py-4">
+      <View style={{ paddingVertical: 16 }}>
         <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
@@ -79,9 +79,9 @@ export default function Home() {
     if (isLoading) return null;
     
     return (
-      <View className="flex-1 items-center justify-center py-10">
-        <Text className="text-white text-lg">No videos found</Text>
-        <Text className="text-gray-400 text-sm mt-2">Pull down to refresh</Text>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 40 }}>
+        <Text style={{ color: 'white', fontSize: 18 }}>No videos found</Text>
+        <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 8 }}>Pull down to refresh</Text>
       </View>
     );
   };
@@ -89,14 +89,14 @@ export default function Home() {
   return (
     <LinearGradient
       colors={[colors.gradientStart, colors.gradientEnd]}
-      className="flex-1"
+      style={{ flex: 1 }}
     >
-      <SafeAreaView className="flex-1">
+      <SafeAreaView style={{ flex: 1 }}>
         <FlatList
           data={videos}
           keyExtractor={(item) => item._id}
           renderItem={({ item }) => <VideoCard video={item} />}
-          contentContainerClassName="px-4 py-2"
+          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={renderEmpty}
           ListFooterComponent={renderFooter}

@@ -66,23 +66,45 @@ const useAuthStore = create<AuthState>((set, get) => ({
   checkAuth: async () => {
     set({ isLoading: true });
     try {
+      // First, quickly set isLoading to false to ensure UI renders
+      setTimeout(() => {
+        if (get().isLoading) {
+          console.log('Forcing loading state to false to prevent UI blocking');
+          set({ isLoading: false });
+        }
+      }, 2000);
+      
       const token = await SecureStore.getItemAsync(config.STORAGE.AUTH_TOKEN);
       
       if (!token) {
+        console.log('No token found, user is not authenticated');
         set({ isLoading: false, isAuthenticated: false });
         return false;
       }
       
-      set({ token });
+      // Set token but don't wait for API response to show UI
+      set({ token, isLoading: false });
       
-      const response = await getMe();
-      const { user } = response.data;
-      
-      set({ user, isAuthenticated: true, isLoading: false });
-      return true;
+      // Try to get user data in background
+      try {
+        console.log('Attempting to fetch user data...');
+        const response = await getMe();
+        const { user } = response.data;
+        
+        console.log('User authenticated successfully');
+        set({ user, isAuthenticated: true });
+        return true;
+      } catch (apiError) {
+        console.error('API error during authentication:', apiError);
+        // API error - clear token and continue
+        await get().setToken(null);
+        set({ user: null, isAuthenticated: false });
+        return false;
+      }
     } catch (error) {
-      await get().setToken(null);
-      set({ user: null, isAuthenticated: false, isLoading: false });
+      console.error('Error during auth check:', error);
+      // Handle any other errors
+      set({ user: null, token: null, isAuthenticated: false, isLoading: false });
       return false;
     }
   },

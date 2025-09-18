@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { ActivityIndicator, View, StyleSheet, Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
@@ -6,15 +7,21 @@ import { useColorScheme } from 'react-native';
 import { useFonts } from 'expo-font';
 import { SplashScreen } from 'expo-router';
 import * as Notifications from 'expo-notifications';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { LinearGradient } from 'expo-linear-gradient';
 import useAuthStore from '../store/useAuthStore';
 import { 
   registerDeviceForNotifications, 
   addNotificationListener, 
   addNotificationResponseListener 
 } from '../utils/notifications';
+import ErrorBoundary from '../components/ErrorBoundary';
+import colors from '../constants/colors';
 
 // Prevent auto-hiding splash screen
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(err => {
+  console.warn("Error preventing splash screen hide:", err);
+});
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -25,22 +32,53 @@ export default function RootLayout() {
   const { checkAuth, isLoading, isAuthenticated } = useAuthStore();
   
   // Notification response listener ref
-  const notificationListener = useRef<Notifications.Subscription>();
-  const responseListener = useRef<Notifications.Subscription>();
+  const notificationListener = useRef<Notifications.Subscription | null>(null);
+  const responseListener = useRef<Notifications.Subscription | null>(null);
+  
+  // Force UI to render after a short timeout
+  const [forceRender, setForceRender] = React.useState(false);
+  
+  // Immediately start a timer to force UI rendering
+  React.useEffect(() => {
+    console.log("Starting force render timer");
+    const timer = setTimeout(() => {
+      console.log("Force rendering UI");
+      setForceRender(true);
+      
+      // Also hide splash screen after a delay
+      setTimeout(() => {
+        console.log("Hiding splash screen");
+        SplashScreen.hideAsync().catch(err => {
+          console.warn("Error hiding splash screen:", err);
+        });
+      }, 500);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, []);
   
   useEffect(() => {
     const initApp = async () => {
-      // Check if user is authenticated
-      await checkAuth();
-      
-      // Hide splash screen when fonts are loaded and auth check is complete
-      if (fontsLoaded) {
-        SplashScreen.hideAsync();
+      try {
+        // Check if user is authenticated
+        await checkAuth();
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        // Continue even if auth check fails
+      } finally {
+        // Hide splash screen when fonts are loaded, regardless of auth status
+        if (fontsLoaded || forceRender) {
+          try {
+            await SplashScreen.hideAsync();
+          } catch (error) {
+            console.error('Failed to hide splash screen:', error);
+          }
+        }
       }
     };
     
     initApp();
-  }, [fontsLoaded]);
+  }, [fontsLoaded, forceRender]);
   
   // Set up notification listeners when authenticated
   useEffect(() => {
@@ -49,11 +87,11 @@ export default function RootLayout() {
       registerDeviceForNotifications();
       
       // Set up notification listeners
-      notificationListener.current = addNotificationListener(notification => {
+      notificationListener.current = addNotificationListener((notification) => {
         console.log('Notification received:', notification);
       });
       
-      responseListener.current = addNotificationResponseListener(response => {
+      responseListener.current = addNotificationResponseListener((response) => {
         console.log('Notification response:', response);
         // Handle notification response (e.g., navigate to specific screen)
       });
@@ -61,60 +99,78 @@ export default function RootLayout() {
       // Clean up listeners on unmount
       return () => {
         if (notificationListener.current) {
-          Notifications.removeNotificationSubscription(notificationListener.current);
+          notificationListener.current.remove();
         }
         
         if (responseListener.current) {
-          Notifications.removeNotificationSubscription(responseListener.current);
+          responseListener.current.remove();
         }
       };
     }
   }, [isAuthenticated]);
   
-  // If fonts are still loading or auth check is in progress, keep splash screen visible
-  if (!fontsLoaded || isLoading) {
-    return null;
-  }
-  
+  // Always render UI, but show loading indicator if needed
   return (
-    <SafeAreaProvider>
-      <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: '#000000',
-          },
-          headerTintColor: '#FFFFFF',
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
-          contentStyle: {
-            backgroundColor: '#000000',
-          },
-        }}
-      >
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="(auth)/login"
-          options={{
-            title: 'Login',
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="(auth)/register"
-          options={{
-            title: 'Register',
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="(tabs)"
-          options={{
-            headerShown: false,
-          }}
-        />
-      </Stack>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <StatusBar style="light" />
+          {(!fontsLoaded || isLoading) && !forceRender ? (
+            <LinearGradient
+              colors={[colors.gradientStart || '#2563eb', colors.gradientEnd || '#000000']}
+              style={styles.container}
+            >
+              <ActivityIndicator size="large" color="#FFFFFF" />
+              <Text style={{ color: 'white', marginTop: 20 }}>Loading Streamora...</Text>
+            </LinearGradient>
+          ) : (
+            <Stack
+              screenOptions={{
+                headerStyle: {
+                  backgroundColor: '#000000',
+                },
+                headerTintColor: '#FFFFFF',
+                headerTitleStyle: {
+                  fontWeight: 'bold',
+                },
+                contentStyle: {
+                  backgroundColor: '#000000',
+                },
+              }}
+            >
+              <Stack.Screen name="index" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="(auth)/login"
+                options={{
+                  title: 'Login',
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="(auth)/register"
+                options={{
+                  title: 'Register',
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="(tabs)"
+                options={{
+                  headerShown: false,
+                }}
+              />
+            </Stack>
+          )}
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});

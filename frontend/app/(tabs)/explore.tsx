@@ -50,10 +50,10 @@ export default function Explore() {
     
     if (!hasSearched) {
       return (
-        <View className="flex-1 items-center justify-center py-10">
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 40 }}>
           <Icon name="search" size={48} color={colors.gray} />
-          <Text className="text-white text-lg mt-4">Search for videos</Text>
-          <Text className="text-gray-400 text-sm mt-2 text-center px-10">
+          <Text style={{ color: 'white', fontSize: 18, marginTop: 16 }}>Search for videos</Text>
+          <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 8, textAlign: 'center', paddingHorizontal: 40 }}>
             Enter keywords to find videos by title, description, or tags
           </Text>
         </View>
@@ -61,10 +61,10 @@ export default function Explore() {
     }
     
     return (
-      <View className="flex-1 items-center justify-center py-10">
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 40 }}>
         <Icon name="alert-circle-outline" size={48} color={colors.gray} />
-        <Text className="text-white text-lg mt-4">No results found</Text>
-        <Text className="text-gray-400 text-sm mt-2">
+        <Text style={{ color: 'white', fontSize: 18, marginTop: 16 }}>No results found</Text>
+        <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 8 }}>
           Try different keywords or check spelling
         </Text>
       </View>
@@ -74,14 +74,14 @@ export default function Explore() {
   return (
     <LinearGradient
       colors={[colors.gradientStart, colors.gradientEnd]}
-      className="flex-1"
+      style={{ flex: 1 }}
     >
-      <SafeAreaView className="flex-1">
-        <View className="px-4 py-2">
-          <View className="flex-row items-center bg-gray-800 rounded-lg px-3 py-2">
+      <SafeAreaView style={{ flex: 1 }}>
+        <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#1F2937', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 }}>
             <Icon name="search" size={20} color={colors.gray} />
             <TextInput
-              className="flex-1 text-white text-base ml-2"
+              style={{ flex: 1, color: 'white', fontSize: 16, marginLeft: 8 }}
               placeholder="Search videos..."
               placeholderTextColor={colors.gray}
               value={searchQuery}
@@ -101,16 +101,16 @@ export default function Explore() {
         </View>
         
         {isLoading ? (
-          <View className="flex-1 items-center justify-center">
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text className="text-white mt-4">Searching...</Text>
+            <Text style={{ color: 'white', marginTop: 16 }}>Searching...</Text>
           </View>
         ) : (
           <FlatList
             data={videos}
             keyExtractor={(item) => item._id}
             renderItem={({ item }) => <VideoCard video={item} />}
-            contentContainerClassName="px-4 py-2"
+            contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}
             numColumns={1}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={renderEmpty}

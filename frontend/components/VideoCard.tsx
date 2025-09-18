@@ -46,10 +46,10 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default' }) => 
     <TouchableOpacity
       onPress={handlePress}
       activeOpacity={0.9}
-      className={`mb-4 ${variant === 'compact' ? 'mx-1' : ''}`}
+      style={{ marginBottom: 16, ...(variant === 'compact' ? { marginHorizontal: 4 } : {}) }}
     >
       {/* Thumbnail */}
-      <View style={{ width, height }} className="rounded-lg overflow-hidden bg-gray-800">
+      <View style={{ width, height, borderRadius: 8, overflow: 'hidden', backgroundColor: '#1F2937' }}>
         <Image
           source={{ uri: video.thumbnailUrl }}
           style={{ width, height }}
@@ -57,44 +57,44 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default' }) => 
         />
         
         {/* Duration badge (if available) */}
-        <View className="absolute bottom-2 right-2 bg-black bg-opacity-70 px-1 rounded">
-          <Text className="text-white text-xs">
+        <View style={{ position: 'absolute', bottom: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 4, borderRadius: 4 }}>
+          <Text style={{ color: 'white', fontSize: 12 }}>
             {formatCount(video.views)} views
           </Text>
         </View>
       </View>
       
       {/* Video info */}
-      <View className={`flex-row mt-2 ${variant === 'compact' ? 'pr-2' : ''}`}>
+      <View style={{ flexDirection: 'row', marginTop: 8, ...(variant === 'compact' ? { paddingRight: 8 } : {}) }}>
         {variant === 'default' && (
-          <TouchableOpacity onPress={handleProfilePress} className="mr-3">
+          <TouchableOpacity onPress={handleProfilePress} style={{ marginRight: 12 }}>
             <Avatar uri={video.owner.avatarUrl} name={video.owner.name} size="sm" />
           </TouchableOpacity>
         )}
         
-        <View className="flex-1">
-          <Text numberOfLines={2} className="text-white font-medium">
+        <View style={{ flex: 1 }}>
+          <Text numberOfLines={2} style={{ color: 'white', fontWeight: '500' }}>
             {video.title}
           </Text>
           
-          <View className="flex-row items-center mt-1">
-            <Text className="text-gray-400 text-xs">
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+            <Text style={{ color: '#9CA3AF', fontSize: 12 }}>
               {video.owner.name}
             </Text>
-            <Text className="text-gray-400 text-xs mx-1">•</Text>
-            <Text className="text-gray-400 text-xs">
+            <Text style={{ color: '#9CA3AF', fontSize: 12, marginHorizontal: 4 }}>•</Text>
+            <Text style={{ color: '#9CA3AF', fontSize: 12 }}>
               {formatRelativeTime(video.createdAt)}
             </Text>
           </View>
           
           {variant === 'default' && (
-            <View className="flex-row items-center mt-1">
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
               <Icon name="heart" size={12} color="#F87171" />
-              <Text className="text-gray-400 text-xs ml-1">
+              <Text style={{ color: '#9CA3AF', fontSize: 12, marginLeft: 4 }}>
                 {formatCount(video.likesCount)}
               </Text>
-              <Icon name="chatbubble" size={12} color="#9CA3AF" className="ml-3" />
-              <Text className="text-gray-400 text-xs ml-1">
+              <Icon name="chatbubble" size={12} color="#9CA3AF" style={{ marginLeft: 12 }} />
+              <Text style={{ color: '#9CA3AF', fontSize: 12, marginLeft: 4 }}>
                 {video.comments ? formatCount(video.comments.length) : '0'}
               </Text>
             </View>

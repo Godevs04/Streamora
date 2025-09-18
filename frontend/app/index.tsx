@@ -6,17 +6,28 @@ import colors from '../constants/colors';
 
 export default function Index() {
   const { isAuthenticated, isLoading } = useAuthStore();
+  const [showRedirect, setShowRedirect] = React.useState(false);
   
-  if (isLoading) {
+  // Force redirect after 1 second regardless of loading state
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowRedirect(true);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
+  if (isLoading && !showRedirect) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Loading...</Text>
+        <Text style={styles.loadingText}>Loading Streamora...</Text>
       </View>
     );
   }
   
   // Redirect based on authentication status
+  // Default to login if authentication is still pending
   return isAuthenticated ? <Redirect href="/(tabs)/home" /> : <Redirect href="/(auth)/login" />;
 }
 

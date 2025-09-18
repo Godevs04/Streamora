@@ -47,19 +47,19 @@ export default function Login() {
   return (
     <LinearGradient
       colors={[colors.gradientStart, colors.gradientEnd]}
-      className="flex-1"
+      style={{ flex: 1 }}
     >
-      <SafeAreaView className="flex-1">
+      <SafeAreaView style={{ flex: 1 }}>
         <ScrollView
-          contentContainerClassName="flex-grow p-6 justify-center"
+          contentContainerStyle={{ flexGrow: 1, padding: 24, justifyContent: 'center' }}
           keyboardShouldPersistTaps="handled"
         >
-          <View className="items-center mb-10">
-            <Text className="text-white text-3xl font-bold">Streamora</Text>
-            <Text className="text-gray-300 text-lg mt-2">Sign in to your account</Text>
+          <View style={{ alignItems: 'center', marginBottom: 40 }}>
+            <Text style={{ color: 'white', fontSize: 24, fontWeight: 'bold' }}>Streamora</Text>
+            <Text style={{ color: '#9CA3AF', fontSize: 16, marginTop: 8 }}>Sign in to your account</Text>
           </View>
           
-          <View className="mb-6">
+          <View style={{ marginBottom: 24 }}>
             <Input
               label="Email"
               placeholder="Enter your email"
@@ -90,11 +90,11 @@ export default function Login() {
             fullWidth
           />
           
-          <View className="flex-row justify-center mt-6">
-            <Text className="text-gray-300">Don't have an account? </Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 24 }}>
+            <Text style={{ color: '#9CA3AF' }}>Don't have an account? </Text>
             <Link href="/(auth)/register" asChild>
               <TouchableOpacity>
-                <Text className="text-primary font-medium">Sign Up</Text>
+                <Text style={{ color: colors.primary, fontWeight: '500' }}>Sign Up</Text>
               </TouchableOpacity>
             </Link>
           </View>
