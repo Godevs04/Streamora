@@ -1,16 +1,48 @@
+/**
+ * YouTube-inspired color palette for Streamora
+ */
 export default {
-  primary: '#2563eb',
-  secondary: '#000000',
+  // Primary colors
+  primary: '#FF0000',       // YouTube Red
+  secondary: '#212121',     // Dark background
   white: '#FFFFFF',
-  lightGray: '#F5F5F5',
-  gray: '#9CA3AF',
-  darkGray: '#4B5563',
-  error: '#EF4444',
-  success: '#10B981',
-  warning: '#F59E0B',
-  info: '#3B82F6',
+  black: '#000000',
+  
+  // UI colors
+  background: {
+    primary: '#0F0F0F',     // Main background
+    secondary: '#212121',   // Cards, modals
+    tertiary: '#272727',    // Buttons, inputs
+  },
+  
+  // Text colors
+  text: {
+    primary: '#FFFFFF',     // Main text
+    secondary: '#AAAAAA',   // Secondary text
+    tertiary: '#717171',    // Disabled text
+  },
+  
+  // Accent colors
+  blue: '#3EA6FF',          // YouTube Blue
+  red: '#FF0000',           // YouTube Red
+  
+  // Utility colors
+  gray: '#909090',
+  lightGray: '#AAAAAA',
+  darkGray: '#717171',
+  error: '#F44336',
+  success: '#4CAF50',
+  warning: '#FF9800',
+  info: '#2196F3',
   
   // Gradient colors
-  gradientStart: '#2563eb', // Blue
-  gradientEnd: '#000000',   // Black
+  gradientStart: '#0F0F0F',  // Dark background
+  gradientEnd: '#000000',    // Black
+  
+  // Button colors
+  button: {
+    primary: '#FF0000',     // YouTube Red
+    secondary: '#3EA6FF',   // YouTube Blue
+    disabled: '#717171',
+  },
 };

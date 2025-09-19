@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, RefreshControl, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import VideoCard from '../../components/VideoCard';
-import { getVideos } from '../../services/videos';
+import AuthRequiredWrapper from '../../components/AuthRequiredWrapper';
+import { getDummyVideos } from '../../services/dummyData';
 import { Video } from '../../types';
 import colors from '../../constants/colors';
 
@@ -11,37 +13,19 @@ export default function Home() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  
+
   const fetchVideos = async (refresh = false) => {
     try {
-      const currentPage = refresh ? 1 : page;
-      
       if (refresh) {
         setIsRefreshing(true);
-      } else if (isLoading) {
-        // Do nothing, already loading
-      } else {
+      } else if (!isLoading) {
         setIsLoading(true);
       }
+
+      // Use dummy data service instead of API call
+      const fetchedVideos = getDummyVideos();
       
-      const response = await getVideos({
-        page: currentPage,
-        limit: 20,
-        sort: 'recent',
-      });
-      
-      const { data: fetchedVideos, meta } = response;
-      
-      if (refresh) {
-        setVideos(fetchedVideos);
-      } else {
-        setVideos((prevVideos) => [...prevVideos, ...fetchedVideos]);
-      }
-      
-      setPage(currentPage + 1);
-      setHasMore(meta.page < meta.totalPages);
+      setVideos(fetchedVideos);
     } catch (error) {
       console.error('Error fetching videos:', error);
     } finally {
@@ -49,69 +33,103 @@ export default function Home() {
       setIsRefreshing(false);
     }
   };
-  
+
   useEffect(() => {
     fetchVideos();
   }, []);
-  
+
   const handleRefresh = () => {
-    setPage(1);
     fetchVideos(true);
   };
-  
-  const handleLoadMore = () => {
-    if (!isLoading && hasMore) {
-      fetchVideos();
-    }
-  };
-  
+
   const renderFooter = () => {
     if (!isLoading) return null;
     
     return (
-      <View className="py-4">
+      <View style={styles.footerContainer}>
         <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
   };
-  
+
   const renderEmpty = () => {
     if (isLoading) return null;
     
     return (
-      <View className="flex-1 items-center justify-center py-10">
-        <Text className="text-white text-lg">No videos found</Text>
-        <Text className="text-gray-400 text-sm mt-2">Pull down to refresh</Text>
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>No videos found</Text>
+        <Text style={styles.emptySubText}>Pull down to refresh</Text>
       </View>
     );
   };
-  
+
   return (
-    <LinearGradient
-      colors={[colors.gradientStart, colors.gradientEnd]}
-      className="flex-1"
-    >
-      <SafeAreaView className="flex-1">
-        <FlatList
-          data={videos}
-          keyExtractor={(item) => item._id}
-          renderItem={({ item }) => <VideoCard video={item} />}
-          contentContainerClassName="px-4 py-2"
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={renderEmpty}
-          ListFooterComponent={renderFooter}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.5}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-              tintColor={colors.primary}
-              colors={[colors.primary]}
+    <AuthRequiredWrapper>
+      {(showAuthModal) => (
+        <LinearGradient
+          colors={[colors.gradientStart, colors.gradientEnd]}
+          style={styles.container}
+        >
+          <SafeAreaView style={styles.safeArea}>
+            <FlatList
+              data={videos}
+              keyExtractor={(item) => item._id}
+              renderItem={({ item }) => (
+                <VideoCard 
+                  video={item} 
+                  showAuthModal={(intent) => Boolean(showAuthModal(intent))} 
+                />
+              )}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+              ListEmptyComponent={renderEmpty}
+              ListFooterComponent={renderFooter}
+              refreshControl={
+                <RefreshControl
+                  refreshing={isRefreshing}
+                  onRefresh={handleRefresh}
+                  tintColor={colors.primary}
+                  colors={[colors.primary]}
+                />
+              }
             />
-          }
-        />
-      </SafeAreaView>
-    </LinearGradient>
+          </SafeAreaView>
+        </LinearGradient>
+      )}
+    </AuthRequiredWrapper>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  safeArea: {
+    flex: 1,
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    paddingBottom: 80, // Add extra padding at bottom for tab bar
+  },
+  footerContainer: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  emptySubText: {
+    color: '#9CA3AF',
+    fontSize: 14,
+    marginTop: 8,
+  },
+});

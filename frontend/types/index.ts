@@ -81,16 +81,24 @@ export interface PaginationParams {
   sort?: 'recent' | 'popular';
 }
 
+export interface PreviousIntent {
+  type: 'like' | 'dislike' | 'subscribe' | 'post' | 'profile' | 'shorts' | 'comment' | 'share';
+  data?: any;
+  screen?: string;
+}
+
 export interface AuthState {
   user: User | null;
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  previousIntent: PreviousIntent | null;
   setUser: (user: User | null) => void;
   setToken: (token: string | null) => void;
   setIsLoading: (isLoading: boolean) => void;
-  login: (credentials: LoginCredentials) => Promise<void>;
-  register: (credentials: RegisterCredentials) => Promise<void>;
+  setPreviousIntent: (intent: PreviousIntent | null) => void;
+  login: (credentials: LoginCredentials) => Promise<PreviousIntent | null>;
+  register: (credentials: RegisterCredentials) => Promise<PreviousIntent | null>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<boolean>;
 }

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import useAuthStore from '../../store/useAuthStore';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
@@ -35,7 +35,33 @@ export default function Login() {
     if (!validateForm()) return;
     
     try {
-      await login({ email, password });
+      const previousIntent = await login({ email, password });
+      console.log('Login successful');
+      
+      // If there was a previous intent, handle it
+      if (previousIntent) {
+        console.log('Returning to previous intent:', previousIntent);
+        
+        // Handle different intent types
+        switch (previousIntent.type) {
+          case 'profile':
+            router.replace('/(tabs)/profile');
+            break;
+          case 'post':
+            router.replace('/(tabs)/upload');
+            break;
+          case 'shorts':
+            router.replace('/(tabs)/upload');
+            break;
+          default:
+            // For like, subscribe, comment intents, go back to home
+            router.replace('/(tabs)/home');
+        }
+      } else {
+        // Default navigation to home
+        console.log('No previous intent, navigating to home');
+        router.replace('/(tabs)/home');
+      }
     } catch (error: any) {
       Alert.alert(
         'Login Failed',
@@ -47,19 +73,19 @@ export default function Login() {
   return (
     <LinearGradient
       colors={[colors.gradientStart, colors.gradientEnd]}
-      className="flex-1"
+      style={{ flex: 1 }}
     >
-      <SafeAreaView className="flex-1">
+      <SafeAreaView style={{ flex: 1 }}>
         <ScrollView
-          contentContainerClassName="flex-grow p-6 justify-center"
+          contentContainerStyle={{ flexGrow: 1, padding: 24, justifyContent: 'center' }}
           keyboardShouldPersistTaps="handled"
         >
-          <View className="items-center mb-10">
-            <Text className="text-white text-3xl font-bold">Streamora</Text>
-            <Text className="text-gray-300 text-lg mt-2">Sign in to your account</Text>
+          <View style={{ alignItems: 'center', marginBottom: 40 }}>
+            <Text style={{ color: 'white', fontSize: 24, fontWeight: 'bold' }}>Streamora</Text>
+            <Text style={{ color: '#9CA3AF', fontSize: 16, marginTop: 8 }}>Sign in to your account</Text>
           </View>
           
-          <View className="mb-6">
+          <View style={{ marginBottom: 24 }}>
             <Input
               label="Email"
               placeholder="Enter your email"
@@ -90,11 +116,11 @@ export default function Login() {
             fullWidth
           />
           
-          <View className="flex-row justify-center mt-6">
-            <Text className="text-gray-300">Don't have an account? </Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 24 }}>
+            <Text style={{ color: '#9CA3AF' }}>Don't have an account? </Text>
             <Link href="/(auth)/register" asChild>
               <TouchableOpacity>
-                <Text className="text-primary font-medium">Sign Up</Text>
+                <Text style={{ color: colors.primary, fontWeight: '500' }}>Sign Up</Text>
               </TouchableOpacity>
             </Link>
           </View>

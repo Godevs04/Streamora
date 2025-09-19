@@ -15,22 +15,22 @@ const Avatar: React.FC<AvatarProps> = ({
   name = '',
   showInitials = true,
 }) => {
-  // Size styles
+  // Size styles (in pixels)
   const sizeStyles = {
-    xs: 'w-6 h-6',
-    sm: 'w-8 h-8',
-    md: 'w-10 h-10',
-    lg: 'w-16 h-16',
-    xl: 'w-24 h-24',
+    xs: { width: 24, height: 24 },
+    sm: { width: 32, height: 32 },
+    md: { width: 40, height: 40 },
+    lg: { width: 64, height: 64 },
+    xl: { width: 96, height: 96 },
   };
   
   // Font size styles
   const fontSizeStyles = {
-    xs: 'text-xs',
-    sm: 'text-sm',
-    md: 'text-base',
-    lg: 'text-xl',
-    xl: 'text-2xl',
+    xs: { fontSize: 12 },
+    sm: { fontSize: 14 },
+    md: { fontSize: 16 },
+    lg: { fontSize: 20 },
+    xl: { fontSize: 24 },
   };
   
   // Get initials from name
@@ -46,15 +46,27 @@ const Avatar: React.FC<AvatarProps> = ({
   };
   
   return (
-    <View className={`${sizeStyles[size]} rounded-full overflow-hidden bg-gray-700 items-center justify-center`}>
+    <View style={[
+      sizeStyles[size],
+      { 
+        borderRadius: 9999,
+        overflow: 'hidden',
+        backgroundColor: '#4B5563', // gray-700
+        alignItems: 'center',
+        justifyContent: 'center'
+      }
+    ]}>
       {uri ? (
         <Image
           source={{ uri }}
-          className="w-full h-full"
+          style={{ width: '100%', height: '100%' }}
           resizeMode="cover"
         />
       ) : showInitials ? (
-        <Text className={`${fontSizeStyles[size]} font-bold text-white`}>
+        <Text style={[
+          fontSizeStyles[size],
+          { fontWeight: 'bold', color: 'white' }
+        ]}>
           {getInitials()}
         </Text>
       ) : null}

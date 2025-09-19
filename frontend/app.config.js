@@ -33,6 +33,11 @@ module.exports = {
     }
   },
   plugins: [
-    "expo-notifications"
-  ]
+    "expo-notifications",
+    "expo-router"
+  ],
+  scheme: "streamora", // Add scheme for deep linking
+  experiments: {
+    tsconfigPaths: true
+  }
 };

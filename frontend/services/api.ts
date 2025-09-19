@@ -33,6 +33,18 @@ api.interceptors.response.use(
     return response.data;
   },
   (error) => {
+    console.error('API Error:', error);
+    
+    // Handle network errors
+    if (!error.response) {
+      return Promise.reject({
+        message: 'Network error. Please check your internet connection.',
+        status: 0,
+        errors: [],
+        isNetworkError: true
+      });
+    }
+    
     const customError = {
       message: error.response?.data?.message || 'Something went wrong',
       status: error.response?.status || 500,

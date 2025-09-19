@@ -31,24 +31,38 @@ const Input: React.FC<InputProps> = ({
   
   // Border color based on state
   const getBorderColor = () => {
-    if (error) return 'border-error';
-    if (isFocused) return 'border-primary';
-    return 'border-gray-300';
+    if (error) return colors.error;
+    if (isFocused) return colors.primary;
+    return '#4B5563'; // gray-300
   };
   
   return (
-    <View className="mb-4">
+    <View style={{ marginBottom: 16 }}>
       {label && (
-        <Text className="text-white mb-1 text-sm font-medium">{label}</Text>
+        <Text style={{ color: 'white', marginBottom: 4, fontSize: 14, fontWeight: '500' }}>{label}</Text>
       )}
       
-      <View className={`flex-row items-center border rounded-lg px-3 py-2 bg-gray-800 ${getBorderColor()}`}>
+      <View style={{ 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        borderWidth: 1, 
+        borderColor: getBorderColor(), 
+        borderRadius: 8, 
+        paddingHorizontal: 12, 
+        paddingVertical: 8, 
+        backgroundColor: '#1F2937' // gray-800
+      }}>
         {leftIcon && (
-          <Icon name={leftIcon} size={20} color={isFocused ? colors.primary : colors.gray} className="mr-2" />
+          <Icon 
+            name={leftIcon} 
+            size={20} 
+            color={isFocused ? colors.primary : colors.gray} 
+            style={{ marginRight: 8 }} 
+          />
         )}
         
         <TextInput
-          className="flex-1 text-white text-base"
+          style={{ flex: 1, color: 'white', fontSize: 16 }}
           placeholderTextColor={colors.gray}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
@@ -72,7 +86,7 @@ const Input: React.FC<InputProps> = ({
       </View>
       
       {error && (
-        <Text className="text-error text-xs mt-1">{error}</Text>
+        <Text style={{ color: colors.error, fontSize: 12, marginTop: 4 }}>{error}</Text>
       )}
     </View>
   );

@@ -40,10 +40,19 @@ if (!fs.existsSync(uploadsDir)) {
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+// Enable CORS with all options
 app.use(cors({
-  origin: process.env.CLIENT_URL,
-  credentials: true
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization']
 }));
+
+// Log all incoming requests for debugging
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+});
 
 // Logging middleware in development
 if (process.env.NODE_ENV !== 'production') {
@@ -60,9 +69,22 @@ app.use('/api/videos', videoRoutes);
 app.use('/api', commentRoutes); // Using /api prefix for nested routes
 app.use('/api/notifications', notificationRoutes);
 
-// Health check route
+// Health check route - accessible without auth
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'Server is running' });
+  console.log('Health check endpoint accessed');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.status(200).json({ 
+    status: 'ok', 
+    message: 'Server is running',
+    timestamp: new Date().toISOString(),
+    headers: req.headers,
+    env: {
+      NODE_ENV: process.env.NODE_ENV || 'development',
+      PORT: process.env.PORT || 5000
+    }
+  });
 });
 
 // Root route
@@ -71,6 +93,20 @@ app.get('/', (req, res) => {
     message: 'Welcome to Streamora API',
     version: '1.0.0',
     documentation: `${process.env.CLIENT_URL}/api-docs`
+  });
+});
+
+// CORS test route
+app.get('/cors-test', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.status(200).json({ 
+    success: true, 
+    message: 'CORS is working!',
+    timestamp: new Date().toISOString(),
+    ip: req.ip,
+    headers: req.headers
   });
 });
 
@@ -86,7 +122,7 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 // Start server
-const PORT = process.env.PORT || 5000;
+const PORT = 5001; // Changed from 5000 to avoid conflicts
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
