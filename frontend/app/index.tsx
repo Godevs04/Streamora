@@ -26,9 +26,9 @@ export default function Index() {
     );
   }
   
-  // Redirect based on authentication status
-  // Default to login if authentication is still pending
-  return isAuthenticated ? <Redirect href="/(tabs)/home" /> : <Redirect href="/(auth)/login" />;
+  // Always redirect to home page
+  // Auth checks will be handled by the AuthRequiredWrapper components
+  return <Redirect href="/(tabs)/home" />;
 }
 
 const styles = StyleSheet.create({

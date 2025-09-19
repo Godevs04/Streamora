@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
-import { AuthState, LoginCredentials, RegisterCredentials, User } from '../types';
+import { AuthState, LoginCredentials, PreviousIntent, RegisterCredentials, User } from '../types';
 import config from '../constants/config';
 import { login as loginApi, register as registerApi, getMe } from '../services/auth';
 
@@ -9,6 +9,7 @@ const useAuthStore = create<AuthState>((set, get) => ({
   token: null,
   isLoading: false,
   isAuthenticated: false,
+  previousIntent: null,
   
   setUser: (user: User | null) => set({ user, isAuthenticated: !!user }),
   
@@ -24,6 +25,8 @@ const useAuthStore = create<AuthState>((set, get) => ({
   
   setIsLoading: (isLoading: boolean) => set({ isLoading }),
   
+  setPreviousIntent: (previousIntent: PreviousIntent | null) => set({ previousIntent }),
+  
   login: async (credentials: LoginCredentials) => {
     set({ isLoading: true });
     try {
@@ -32,6 +35,9 @@ const useAuthStore = create<AuthState>((set, get) => ({
       
       await get().setToken(token);
       set({ user, isAuthenticated: true, isLoading: false });
+      
+      // Return the previous intent for navigation after login
+      return get().previousIntent;
     } catch (error) {
       set({ isLoading: false });
       throw error;
@@ -46,6 +52,9 @@ const useAuthStore = create<AuthState>((set, get) => ({
       
       await get().setToken(token);
       set({ user, isAuthenticated: true, isLoading: false });
+      
+      // Return the previous intent for navigation after registration
+      return get().previousIntent;
     } catch (error) {
       set({ isLoading: false });
       throw error;

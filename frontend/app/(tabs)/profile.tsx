@@ -8,8 +8,9 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import Avatar from '../../components/Avatar';
 import VideoCard from '../../components/VideoCard';
 import Button from '../../components/Button';
+import AuthRequiredWrapper from '../../components/AuthRequiredWrapper';
 import useAuthStore from '../../store/useAuthStore';
-import { getVideos } from '../../services/videos';
+import { getDummyVideos } from '../../services/dummyData';
 import { Video } from '../../types';
 import colors from '../../constants/colors';
 
@@ -28,16 +29,9 @@ export default function Profile() {
     setIsLoading(true);
     
     try {
-      // In a real app, you would have a getUserVideos endpoint
-      // For now, we'll just filter by owner using the existing endpoint
-      const response = await getVideos({
-        page: 1,
-        limit: 50,
-      });
-      
-      // Client-side filtering as a fallback
-      // In a real app, this would be done on the server
-      const userVideos = response.data.filter(video => video.owner._id === user._id);
+      // Get dummy videos and filter by the current user
+      const allVideos = getDummyVideos();
+      const userVideos = allVideos.filter(video => video.owner._id === user._id);
       
       setVideos(userVideos);
     } catch (error) {
@@ -90,100 +84,96 @@ export default function Profile() {
     }
   };
   
-  if (!user) {
-    return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'black' }}>
-        <Text style={{ color: 'white' }}>Please log in to view your profile</Text>
-        <Button
-          title="Go to Login"
-          onPress={() => router.replace('/(auth)/login')}
-          variant="primary"
-          size="md"
-          style={{ marginTop: 16 }}
-        />
-      </View>
-    );
-  }
+  // AuthRequiredWrapper will handle authentication check
   
   return (
-    <LinearGradient
-      colors={[colors.gradientStart, colors.gradientEnd]}
-      style={{ flex: 1 }}
-    >
-      <SafeAreaView style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
-          <View style={{ padding: 16, alignItems: 'center' }}>
-            <TouchableOpacity onPress={handleChangeAvatar}>
-              <View style={{ position: 'relative' }}>
-                <Avatar uri={user.avatarUrl} name={user.name} size="xl" />
-                <View style={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: colors.primary, borderRadius: 999, padding: 4 }}>
-                  <Icon name="camera" size={16} color="white" />
+    <AuthRequiredWrapper>
+      {(showAuthModal) => (
+        <LinearGradient
+          colors={[colors.gradientStart, colors.gradientEnd]}
+          style={{ flex: 1 }}
+        >
+          <SafeAreaView style={{ flex: 1 }}>
+            <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+              <View style={{ padding: 16, alignItems: 'center' }}>
+                <TouchableOpacity onPress={handleChangeAvatar}>
+                  <View style={{ position: 'relative' }}>
+                    <Avatar uri={user?.avatarUrl} name={user?.name || ''} size="xl" />
+                    <View style={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: colors.primary, borderRadius: 999, padding: 4 }}>
+                      <Icon name="camera" size={16} color="white" />
+                    </View>
+                  </View>
+                </TouchableOpacity>
+                
+                <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold', marginTop: 16 }}>{user?.name}</Text>
+                
+                {user?.username && (
+                  <Text style={{ color: '#9CA3AF', fontSize: 16 }}>@{user.username}</Text>
+                )}
+                
+                {user?.bio && (
+                  <Text style={{ color: '#9CA3AF', textAlign: 'center', marginTop: 8, paddingHorizontal: 40 }}>{user.bio}</Text>
+                )}
+                
+                <View style={{ flexDirection: 'row', marginTop: 24 }}>
+                  <Button
+                    title="Edit Profile"
+                    onPress={handleEditProfile}
+                    variant="outline"
+                    size="sm"
+                    style={{ marginRight: 8 }}
+                  />
+                  <Button
+                    title="Logout"
+                    onPress={handleLogout}
+                    variant="secondary"
+                    size="sm"
+                  />
                 </View>
               </View>
-            </TouchableOpacity>
-            
-            <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold', marginTop: 16 }}>{user.name}</Text>
-            
-            {user.username && (
-              <Text style={{ color: '#9CA3AF', fontSize: 16 }}>@{user.username}</Text>
-            )}
-            
-            {user.bio && (
-              <Text style={{ color: '#9CA3AF', textAlign: 'center', marginTop: 8, paddingHorizontal: 40 }}>{user.bio}</Text>
-            )}
-            
-            <View style={{ flexDirection: 'row', marginTop: 24 }}>
-              <Button
-                title="Edit Profile"
-                onPress={handleEditProfile}
-                variant="outline"
-                size="sm"
-                style={{ marginRight: 8 }}
-              />
-              <Button
-                title="Logout"
-                onPress={handleLogout}
-                variant="secondary"
-                size="sm"
-              />
-            </View>
-          </View>
-          
-          <View style={{ marginTop: 24 }}>
-            <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', paddingHorizontal: 16, marginBottom: 8 }}>Your Videos</Text>
-            
-            {isLoading ? (
-              <View style={{ paddingVertical: 40, alignItems: 'center' }}>
-                <ActivityIndicator size="large" color={colors.primary} />
+              
+              <View style={{ marginTop: 24 }}>
+                <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', paddingHorizontal: 16, marginBottom: 8 }}>Your Videos</Text>
+                
+                {isLoading ? (
+                  <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                  </View>
+                ) : videos.length > 0 ? (
+                  <FlatList
+                    data={videos}
+                    keyExtractor={(item) => item._id}
+                    renderItem={({ item }) => <VideoCard video={item} variant="compact" showAuthModal={(intent) => Boolean(showAuthModal(intent))} />}
+                    numColumns={2}
+                    scrollEnabled={false}
+                    contentContainerStyle={{ paddingHorizontal: 8 }}
+                  />
+                ) : (
+                  <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+                    <Icon name="videocam-outline" size={48} color={colors.gray} />
+                    <Text style={{ color: 'white', fontSize: 16, marginTop: 16 }}>No videos yet</Text>
+                    <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
+                      Upload your first video to get started
+                    </Text>
+                    <Button
+                      title="Upload Video"
+                      onPress={() => {
+                        const isAuthenticated = Boolean(showAuthModal({ type: 'post' }));
+                        if (isAuthenticated) {
+                          router.push('/(tabs)/upload');
+                        }
+                      }}
+                      variant="primary"
+                      size="sm"
+                      style={{ marginTop: 16 }}
+                    />
+                  </View>
+                )}
               </View>
-            ) : videos.length > 0 ? (
-              <FlatList
-                data={videos}
-                keyExtractor={(item) => item._id}
-                renderItem={({ item }) => <VideoCard video={item} variant="compact" />}
-                numColumns={2}
-                scrollEnabled={false}
-                contentContainerStyle={{ paddingHorizontal: 8 }}
-              />
-            ) : (
-              <View style={{ paddingVertical: 40, alignItems: 'center' }}>
-                <Icon name="videocam-outline" size={48} color={colors.gray} />
-                <Text style={{ color: 'white', fontSize: 16, marginTop: 16 }}>No videos yet</Text>
-                <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
-                  Upload your first video to get started
-                </Text>
-                <Button
-                  title="Upload Video"
-                  onPress={() => router.push('/(tabs)/upload')}
-                  variant="primary"
-                  size="sm"
-                  style={{ marginTop: 16 }}
-                />
-              </View>
-            )}
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    </LinearGradient>
+            </ScrollView>
+          </SafeAreaView>
+        </LinearGradient>
+      )}
+    </AuthRequiredWrapper>
   );
 }

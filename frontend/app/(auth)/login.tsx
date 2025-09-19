@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import useAuthStore from '../../store/useAuthStore';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
@@ -35,7 +35,33 @@ export default function Login() {
     if (!validateForm()) return;
     
     try {
-      await login({ email, password });
+      const previousIntent = await login({ email, password });
+      console.log('Login successful');
+      
+      // If there was a previous intent, handle it
+      if (previousIntent) {
+        console.log('Returning to previous intent:', previousIntent);
+        
+        // Handle different intent types
+        switch (previousIntent.type) {
+          case 'profile':
+            router.replace('/(tabs)/profile');
+            break;
+          case 'post':
+            router.replace('/(tabs)/upload');
+            break;
+          case 'shorts':
+            router.replace('/(tabs)/upload');
+            break;
+          default:
+            // For like, subscribe, comment intents, go back to home
+            router.replace('/(tabs)/home');
+        }
+      } else {
+        // Default navigation to home
+        console.log('No previous intent, navigating to home');
+        router.replace('/(tabs)/home');
+      }
     } catch (error: any) {
       Alert.alert(
         'Login Failed',

@@ -3,7 +3,8 @@ import { View, Text, FlatList, ActivityIndicator, RefreshControl } from 'react-n
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import VideoCard from '../../components/VideoCard';
-import { getVideos } from '../../services/videos';
+import AuthRequiredWrapper from '../../components/AuthRequiredWrapper';
+import { getDummyVideos } from '../../services/dummyData';
 import { Video } from '../../types';
 import colors from '../../constants/colors';
 
@@ -11,37 +12,19 @@ export default function Home() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  
+
   const fetchVideos = async (refresh = false) => {
     try {
-      const currentPage = refresh ? 1 : page;
-      
       if (refresh) {
         setIsRefreshing(true);
-      } else if (isLoading) {
-        // Do nothing, already loading
-      } else {
+      } else if (!isLoading) {
         setIsLoading(true);
       }
+
+      // Use dummy data service instead of API call
+      const fetchedVideos = getDummyVideos();
       
-      const response = await getVideos({
-        page: currentPage,
-        limit: 20,
-        sort: 'recent',
-      });
-      
-      const { data: fetchedVideos, meta } = response;
-      
-      if (refresh) {
-        setVideos(fetchedVideos);
-      } else {
-        setVideos((prevVideos) => [...prevVideos, ...fetchedVideos]);
-      }
-      
-      setPage(currentPage + 1);
-      setHasMore(meta.page < meta.totalPages);
+      setVideos(fetchedVideos);
     } catch (error) {
       console.error('Error fetching videos:', error);
     } finally {
@@ -49,22 +32,15 @@ export default function Home() {
       setIsRefreshing(false);
     }
   };
-  
+
   useEffect(() => {
     fetchVideos();
   }, []);
-  
+
   const handleRefresh = () => {
-    setPage(1);
     fetchVideos(true);
   };
-  
-  const handleLoadMore = () => {
-    if (!isLoading && hasMore) {
-      fetchVideos();
-    }
-  };
-  
+
   const renderFooter = () => {
     if (!isLoading) return null;
     
@@ -74,7 +50,7 @@ export default function Home() {
       </View>
     );
   };
-  
+
   const renderEmpty = () => {
     if (isLoading) return null;
     
@@ -85,33 +61,40 @@ export default function Home() {
       </View>
     );
   };
-  
+
   return (
-    <LinearGradient
-      colors={[colors.gradientStart, colors.gradientEnd]}
-      style={{ flex: 1 }}
-    >
-      <SafeAreaView style={{ flex: 1 }}>
-        <FlatList
-          data={videos}
-          keyExtractor={(item) => item._id}
-          renderItem={({ item }) => <VideoCard video={item} />}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={renderEmpty}
-          ListFooterComponent={renderFooter}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.5}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-              tintColor={colors.primary}
-              colors={[colors.primary]}
+    <AuthRequiredWrapper>
+      {(showAuthModal) => (
+        <LinearGradient
+          colors={[colors.gradientStart, colors.gradientEnd]}
+          style={{ flex: 1 }}
+        >
+          <SafeAreaView style={{ flex: 1 }}>
+            <FlatList
+              data={videos}
+              keyExtractor={(item) => item._id}
+              renderItem={({ item }) => (
+                <VideoCard 
+                  video={item} 
+                  showAuthModal={(intent) => Boolean(showAuthModal(intent))} 
+                />
+              )}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}
+              showsVerticalScrollIndicator={false}
+              ListEmptyComponent={renderEmpty}
+              ListFooterComponent={renderFooter}
+              refreshControl={
+                <RefreshControl
+                  refreshing={isRefreshing}
+                  onRefresh={handleRefresh}
+                  tintColor={colors.primary}
+                  colors={[colors.primary]}
+                />
+              }
             />
-          }
-        />
-      </SafeAreaView>
-    </LinearGradient>
+          </SafeAreaView>
+        </LinearGradient>
+      )}
+    </AuthRequiredWrapper>
   );
 }
