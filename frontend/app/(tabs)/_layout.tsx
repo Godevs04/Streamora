@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { Tabs } from 'expo-router/tabs';
-import { Pressable } from 'react-native';
+import { Pressable, StyleSheet, View, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { BlurView } from 'expo-blur';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { APP_ICONS } from '../../utils/iconLoader';
 import colors from '../../constants/colors';
 import useAuthStore from '../../store/useAuthStore';
 import LoginPromptModal from '../../components/LoginPromptModal';
@@ -11,6 +14,9 @@ export default function TabsLayout() {
   const { isAuthenticated } = useAuthStore();
   const [modalVisible, setModalVisible] = useState(false);
   const [currentIntent, setCurrentIntent] = useState<{ type: 'post' | 'profile' }>({ type: 'post' });
+  const insets = useSafeAreaInsets();
+  
+  // Icons are now preloaded in the app's root layout
 
   const handleAuthRequiredTab = (tabType: 'post' | 'profile') => {
     if (!isAuthenticated) {
@@ -20,7 +26,16 @@ export default function TabsLayout() {
     }
     
     // If authenticated, navigate to the tab
-    router.navigate(`/(tabs)/${tabType}`);
+    // Use replace instead of navigate to avoid the origin error
+    try {
+      if (tabType === 'post') {
+        router.push('/(tabs)/upload');
+      } else {
+        router.push(`/(tabs)/${tabType}`);
+      }
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
   };
 
   return (
@@ -28,26 +43,60 @@ export default function TabsLayout() {
       <Tabs
         screenOptions={{
           tabBarStyle: {
-            backgroundColor: '#000000',
-            borderTopColor: '#222222',
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            elevation: 0,
+            height: 50 + insets.bottom,
+            paddingBottom: insets.bottom,
+            backgroundColor: '#0F0F0F', // YouTube's dark background
+            borderTopWidth: 0,
           },
-          tabBarActiveTintColor: colors.primary,
-          tabBarInactiveTintColor: '#9CA3AF',
+          tabBarActiveTintColor: '#FFFFFF', // White for active items like YouTube
+          tabBarInactiveTintColor: '#909090', // YouTube's inactive gray
+          tabBarShowLabel: true,
+          tabBarLabelStyle: {
+            fontSize: 10,
+            fontWeight: '400',
+            marginBottom: 0,
+          },
+          tabBarIconStyle: {
+            marginTop: 0,
+          },
           headerStyle: {
-            backgroundColor: '#000000',
+            backgroundColor: '#0F0F0F', // YouTube's dark background
+            shadowColor: 'transparent',
+            elevation: 0,
+            borderBottomWidth: 0,
+            height: 60,
           },
           headerTintColor: '#FFFFFF',
           headerTitleStyle: {
             fontWeight: 'bold',
+            fontSize: 20,
           },
+          headerTitleAlign: 'left',
+          headerShadowVisible: false,
         }}
       >
         <Tabs.Screen
           name="home"
           options={{
             title: 'Home',
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="home" color={color} size={size} />
+            tabBarIcon: ({ color, size, focused }) => (
+              <Ionicons name={(focused ? APP_ICONS.HOME_FILLED : APP_ICONS.HOME) as any} color={color} size={size} />
+            ),
+            headerTitle: 'Streamora',
+            headerRight: () => (
+              <View style={styles.headerRightContainer}>
+                <TouchableOpacity style={styles.headerIconButton}>
+                  <Ionicons name={APP_ICONS.SEARCH as any} size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.headerIconButton}>
+                  <Ionicons name={APP_ICONS.NOTIFICATIONS as any} size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
             ),
           }}
         />
@@ -56,8 +105,8 @@ export default function TabsLayout() {
           name="explore"
           options={{
             title: 'Explore',
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="compass" color={color} size={size} />
+            tabBarIcon: ({ color, size, focused }) => (
+              <Ionicons name={(focused ? APP_ICONS.EXPLORE_FILLED : APP_ICONS.EXPLORE) as any} color={color} size={size} />
             ),
           }}
         />
@@ -66,14 +115,16 @@ export default function TabsLayout() {
           name="upload"
           options={{
             title: 'Post',
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="add-circle" color={color} size={size} />
+            tabBarIcon: ({ color, size, focused }) => (
+              <View style={styles.addButtonContainer}>
+                <Ionicons name={APP_ICONS.ADD as any} color="#FFFFFF" size={size} />
+              </View>
             ),
             tabBarButton: (props) => {
               return (
                 <Pressable
                   onPress={() => handleAuthRequiredTab('post')}
-                  style={props.style}
+                  style={[props.style, styles.uploadButton]}
                 >
                   {props.children}
                 </Pressable>
@@ -86,8 +137,8 @@ export default function TabsLayout() {
           name="profile"
           options={{
             title: 'Profile',
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="person" color={color} size={size} />
+            tabBarIcon: ({ color, size, focused }) => (
+              <Ionicons name={(focused ? APP_ICONS.PROFILE_FILLED : APP_ICONS.PROFILE) as any} color={color} size={size} />
             ),
             tabBarButton: (props) => {
               return (
@@ -111,3 +162,27 @@ export default function TabsLayout() {
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  addButtonContainer: {
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FF0000', // YouTube red
+    borderRadius: 15,
+    marginTop: 3, // Align with other icons
+  },
+  uploadButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerRightContainer: {
+    flexDirection: 'row',
+    marginRight: 16,
+  },
+  headerIconButton: {
+    marginLeft: 20,
+    padding: 4,
+  },
+});

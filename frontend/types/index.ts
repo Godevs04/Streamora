@@ -82,7 +82,7 @@ export interface PaginationParams {
 }
 
 export interface PreviousIntent {
-  type: 'like' | 'subscribe' | 'post' | 'profile' | 'shorts' | 'comment';
+  type: 'like' | 'dislike' | 'subscribe' | 'post' | 'profile' | 'shorts' | 'comment' | 'share';
   data?: any;
   screen?: string;
 }

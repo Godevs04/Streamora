@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View, StyleSheet, Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -15,6 +15,8 @@ import {
   addNotificationListener, 
   addNotificationResponseListener 
 } from '../utils/notifications';
+import { preloadIcons } from '../utils/iconLoader';
+import { Ionicons } from '@expo/vector-icons';
 import ErrorBoundary from '../components/ErrorBoundary';
 import colors from '../constants/colors';
 
@@ -57,17 +59,37 @@ export default function RootLayout() {
     return () => clearTimeout(timer);
   }, []);
   
+  // Track icon loading state
+  const [iconsLoaded, setIconsLoaded] = useState(false);
+
+  // Load icons on app start
+  useEffect(() => {
+    const loadAppIcons = async () => {
+      try {
+        await preloadIcons();
+        setIconsLoaded(true);
+        console.log('Icons loaded successfully');
+      } catch (error) {
+        console.error('Failed to load icons:', error);
+        // Continue even if icon loading fails
+        setIconsLoaded(true);
+      }
+    };
+    
+    loadAppIcons();
+  }, []);
+
   useEffect(() => {
     const initApp = async () => {
       try {
         // Check if user is authenticated
         await checkAuth();
       } catch (error) {
-        console.error('Auth check failed:', error);
-        // Continue even if auth check fails
+        console.error('App initialization failed:', error);
+        // Continue even if initialization fails
       } finally {
-        // Hide splash screen when fonts are loaded, regardless of auth status
-        if (fontsLoaded || forceRender) {
+        // Hide splash screen when fonts and icons are loaded, regardless of auth status
+        if ((fontsLoaded && iconsLoaded) || forceRender) {
           try {
             await SplashScreen.hideAsync();
           } catch (error) {
@@ -78,7 +100,7 @@ export default function RootLayout() {
     };
     
     initApp();
-  }, [fontsLoaded, forceRender]);
+  }, [fontsLoaded, iconsLoaded, forceRender]);
   
   // Set up notification listeners when authenticated
   useEffect(() => {

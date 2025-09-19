@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, Image, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, Image, TouchableOpacity, Dimensions, StyleSheet, Share, Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import Avatar from './Avatar';
 import { PreviousIntent, Video } from '../types';
 import { formatCount, formatRelativeTime } from '../utils/formatDate';
 import useAuthStore from '../store/useAuthStore';
 import { toggleDummyVideoLike, subscribeToDummyUser } from '../services/dummyData';
+import { APP_ICONS } from '../utils/iconLoader';
 
 interface VideoCardProps {
   video: Video;
@@ -72,6 +73,44 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
     }
   };
   
+  // Handle dislike press
+  const handleDislikePress = () => {
+    // Check if user is authenticated
+    if (!showAuthModal({ type: 'dislike', data: { videoId: video._id } })) {
+      return;
+    }
+    
+    // In a real app, this would handle disliking
+    Alert.alert('Dislike', 'Video disliked');
+  };
+  
+  // Handle share press
+  const handleSharePress = async () => {
+    try {
+      const result = await Share.share({
+        message: `Check out this video: ${video.title}`,
+        url: `https://streamora.com/videos/${video._id}`,
+        title: video.title,
+      });
+      
+      if (result.action === Share.sharedAction) {
+        if (result.activityType) {
+          // shared with activity type of result.activityType
+          console.log(`Shared with ${result.activityType}`);
+        } else {
+          // shared
+          console.log('Shared successfully');
+        }
+      } else if (result.action === Share.dismissedAction) {
+        // dismissed
+        console.log('Share dismissed');
+      }
+    } catch (error) {
+      console.error('Error sharing video:', error);
+      Alert.alert('Error', 'Could not share the video');
+    }
+  };
+  
   // Handle subscribe press
   const handleSubscribePress = () => {
     // Check if user is authenticated
@@ -89,13 +128,13 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
   };
   
   return (
-    <View style={{ marginBottom: 16, ...(variant === 'compact' ? { marginHorizontal: 4 } : {}) }}>
+    <View style={styles.container}>
       {/* Thumbnail */}
       <TouchableOpacity
         onPress={handlePress}
         activeOpacity={0.9}
       >
-        <View style={{ width, height, borderRadius: 8, overflow: 'hidden', backgroundColor: '#1F2937' }}>
+        <View style={[styles.thumbnailContainer, { width, height }]}>
           <Image
             source={{ uri: video.thumbnailUrl }}
             style={{ width, height }}
@@ -103,8 +142,8 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
           />
           
           {/* Duration badge (if available) */}
-          <View style={{ position: 'absolute', bottom: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 4, borderRadius: 4 }}>
-            <Text style={{ color: 'white', fontSize: 12 }}>
+          <View style={styles.viewsBadge}>
+            <Text style={styles.viewsText}>
               {formatCount(video.views)} views
             </Text>
           </View>
@@ -112,68 +151,79 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
       </TouchableOpacity>
       
       {/* Video info */}
-      <View style={{ flexDirection: 'row', marginTop: 8, ...(variant === 'compact' ? { paddingRight: 8 } : {}) }}>
+      <View style={styles.infoContainer}>
         {variant === 'default' && (
-          <TouchableOpacity onPress={handleProfilePress} style={{ marginRight: 12 }}>
+          <TouchableOpacity onPress={handleProfilePress} style={styles.avatarContainer}>
             <Avatar uri={video.owner.avatarUrl} name={video.owner.name} size="sm" />
           </TouchableOpacity>
         )}
         
-        <View style={{ flex: 1 }}>
-          <Text numberOfLines={2} style={{ color: 'white', fontWeight: '500' }}>
+        <View style={styles.textContainer}>
+          <Text numberOfLines={2} style={styles.titleText}>
             {video.title}
           </Text>
           
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+          <View style={styles.metaContainer}>
             <TouchableOpacity onPress={handleProfilePress}>
-              <Text style={{ color: '#9CA3AF', fontSize: 12 }}>
+              <Text style={styles.channelText}>
                 {video.owner.name}
               </Text>
             </TouchableOpacity>
-            <Text style={{ color: '#9CA3AF', fontSize: 12, marginHorizontal: 4 }}>•</Text>
-            <Text style={{ color: '#9CA3AF', fontSize: 12 }}>
+            <Text style={styles.dotSeparator}>•</Text>
+            <Text style={styles.timeText}>
               {formatRelativeTime(video.createdAt)}
             </Text>
           </View>
           
           {variant === 'default' && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, justifyContent: 'space-between' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <TouchableOpacity 
-                  onPress={handleLikePress}
-                  style={{ 
-                    flexDirection: 'row', 
-                    alignItems: 'center', 
-                    backgroundColor: liked ? 'rgba(239, 68, 68, 0.2)' : 'rgba(75, 85, 99, 0.2)', 
-                    paddingVertical: 4,
-                    paddingHorizontal: 8,
-                    borderRadius: 16
-                  }}
-                >
-                  <Icon name={liked ? "heart" : "heart-outline"} size={16} color={liked ? "#EF4444" : "#9CA3AF"} />
-                  <Text style={{ color: liked ? "#EF4444" : '#9CA3AF', fontSize: 12, marginLeft: 4, fontWeight: '500' }}>
-                    {formatCount(likesCount)}
-                  </Text>
-                </TouchableOpacity>
-                
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 12 }}>
-                  <Icon name="chatbubble-outline" size={16} color="#9CA3AF" />
-                  <Text style={{ color: '#9CA3AF', fontSize: 12, marginLeft: 4 }}>
-                    {video.comments ? formatCount(video.comments.length) : '0'}
-                  </Text>
+            <View style={styles.actionsContainer}>
+              <View style={styles.statsContainer}>
+                <View style={styles.likeDislikeContainer}>
+                  <TouchableOpacity 
+                    onPress={handleLikePress}
+                    style={styles.actionButton}
+                  >
+                    <MaterialIcons 
+                      name={liked ? "thumb-up" : "thumb-up-off-alt"} 
+                      size={20} 
+                      color={liked ? "#FFFFFF" : "#909090"} 
+                    />
+                    <Text style={[styles.actionText, liked && styles.likedText]}>
+                      {formatCount(likesCount)}
+                    </Text>
+                  </TouchableOpacity>
+                  
+                  <View style={styles.actionDivider} />
+                  
+                  <TouchableOpacity 
+                    onPress={handleDislikePress}
+                    style={styles.actionButton}
+                  >
+                    <MaterialIcons 
+                      name="thumb-down-off-alt" 
+                      size={20} 
+                      color="#909090" 
+                    />
+                  </TouchableOpacity>
                 </View>
+                
+                <TouchableOpacity 
+                  onPress={handleSharePress}
+                  style={styles.actionButton}
+                >
+                  <MaterialIcons name="share" size={20} color="#909090" />
+                  <Text style={styles.actionText}>Share</Text>
+                </TouchableOpacity>
               </View>
               
               <TouchableOpacity
                 onPress={handleSubscribePress}
-                style={{
-                  backgroundColor: subscribed ? 'rgba(79, 70, 229, 0.2)' : 'rgba(79, 70, 229, 1)',
-                  paddingVertical: 4,
-                  paddingHorizontal: 10,
-                  borderRadius: 16,
-                }}
+                style={[
+                  styles.subscribeButton,
+                  subscribed && styles.subscribedButton
+                ]}
               >
-                <Text style={{ color: 'white', fontSize: 12, fontWeight: '500' }}>
+                <Text style={styles.subscribeText}>
                   {subscribed ? 'Subscribed' : 'Subscribe'}
                 </Text>
               </TouchableOpacity>
@@ -184,5 +234,123 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    marginBottom: 16,
+    width: '100%',
+  },
+  thumbnailContainer: {
+    borderRadius: 0, // YouTube doesn't use rounded corners
+    overflow: 'hidden',
+    backgroundColor: '#0F0F0F',
+  },
+  viewsBadge: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  viewsText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  infoContainer: {
+    flexDirection: 'row',
+    marginTop: 12,
+    paddingHorizontal: 12,
+  },
+  avatarContainer: {
+    marginRight: 12,
+  },
+  textContainer: {
+    flex: 1,
+  },
+  titleText: {
+    color: 'white',
+    fontWeight: '500',
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  metaContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  channelText: {
+    color: '#909090',
+    fontSize: 13,
+  },
+  dotSeparator: {
+    color: '#909090',
+    fontSize: 13,
+    marginHorizontal: 4,
+  },
+  timeText: {
+    color: '#909090',
+    fontSize: 13,
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    justifyContent: 'space-between',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  likeDislikeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#272727',
+    borderRadius: 18,
+    overflow: 'hidden',
+    marginRight: 8,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  actionDivider: {
+    width: 1,
+    height: '60%',
+    backgroundColor: '#3F3F3F',
+  },
+  commentContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 12,
+  },
+  actionText: {
+    color: '#909090',
+    fontSize: 13,
+    marginLeft: 6,
+    fontWeight: '500',
+  },
+  likedText: {
+    color: '#FFFFFF',
+  },
+  subscribeButton: {
+    backgroundColor: '#FF0000', // YouTube red
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 18,
+  },
+  subscribedButton: {
+    backgroundColor: '#272727',
+  },
+  subscribeText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+});
 
 export default VideoCard;

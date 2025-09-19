@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, RefreshControl, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import VideoCard from '../../components/VideoCard';
 import AuthRequiredWrapper from '../../components/AuthRequiredWrapper';
 import { getDummyVideos } from '../../services/dummyData';
@@ -45,7 +46,7 @@ export default function Home() {
     if (!isLoading) return null;
     
     return (
-      <View style={{ paddingVertical: 16 }}>
+      <View style={styles.footerContainer}>
         <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
@@ -55,9 +56,9 @@ export default function Home() {
     if (isLoading) return null;
     
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 40 }}>
-        <Text style={{ color: 'white', fontSize: 18 }}>No videos found</Text>
-        <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 8 }}>Pull down to refresh</Text>
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>No videos found</Text>
+        <Text style={styles.emptySubText}>Pull down to refresh</Text>
       </View>
     );
   };
@@ -67,9 +68,9 @@ export default function Home() {
       {(showAuthModal) => (
         <LinearGradient
           colors={[colors.gradientStart, colors.gradientEnd]}
-          style={{ flex: 1 }}
+          style={styles.container}
         >
-          <SafeAreaView style={{ flex: 1 }}>
+          <SafeAreaView style={styles.safeArea}>
             <FlatList
               data={videos}
               keyExtractor={(item) => item._id}
@@ -79,7 +80,7 @@ export default function Home() {
                   showAuthModal={(intent) => Boolean(showAuthModal(intent))} 
                 />
               )}
-              contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}
+              contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={false}
               ListEmptyComponent={renderEmpty}
               ListFooterComponent={renderFooter}
@@ -98,3 +99,37 @@ export default function Home() {
     </AuthRequiredWrapper>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  safeArea: {
+    flex: 1,
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    paddingBottom: 80, // Add extra padding at bottom for tab bar
+  },
+  footerContainer: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  emptySubText: {
+    color: '#9CA3AF',
+    fontSize: 14,
+    marginTop: 8,
+  },
+});
