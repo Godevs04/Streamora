@@ -6,6 +6,7 @@ import { BlurView } from 'expo-blur';
 import VideoCard from '../../components/VideoCard';
 import AuthRequiredWrapper from '../../components/AuthRequiredWrapper';
 import { getDummyVideos } from '../../services/dummyData';
+import { getVideos } from '../../services/videos';
 import { Video } from '../../types';
 import colors from '../../constants/colors';
 
@@ -14,18 +15,70 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  
   const fetchVideos = async (refresh = false) => {
     try {
       if (refresh) {
         setIsRefreshing(true);
+        // Reset pagination on refresh
+        setPage(1);
       } else if (!isLoading) {
         setIsLoading(true);
       }
 
-      // Use dummy data service instead of API call
-      const fetchedVideos = getDummyVideos();
+      const currentPage = refresh ? 1 : page;
       
-      setVideos(fetchedVideos);
+      try {
+        // Use real API instead of dummy data
+        const response = await getVideos({
+          page: currentPage,
+          limit: 20
+          // Removed sort parameter which was causing the error
+        });
+        
+        // Check if response has the expected structure
+        if (response) {
+          let fetchedVideos;
+          
+          // Handle both array response and nested object response
+          if (Array.isArray(response.data)) {
+            fetchedVideos = response.data;
+          } else if (response.data && typeof response.data === 'object') {
+            // Check if it has a videos property that's an array
+            const responseData = response.data as any; // Use type assertion
+            if (responseData.videos && Array.isArray(responseData.videos)) {
+              // Handle nested structure {"videos": [...]}
+              fetchedVideos = responseData.videos;
+            } else {
+              console.error('API returned unexpected data structure:', response.data);
+              throw new Error('Invalid response format');
+            }
+          } else {
+            console.error('API returned unexpected data structure:', response.data);
+            throw new Error('Invalid response format');
+          }
+          
+          const meta = response.meta;
+          
+          if (meta) {
+            setHasMore(meta.page < meta.totalPages);
+            setPage(currentPage + 1);
+          }
+          
+          // If refreshing, replace videos; otherwise append
+          setVideos(refresh ? fetchedVideos : [...videos, ...fetchedVideos]);
+        } else {
+          console.error('Invalid API response structure:', response);
+          throw new Error('Invalid response structure');
+        }
+      } catch (apiError) {
+        console.error('API error:', apiError);
+        // Fallback to dummy data if API fails
+        const dummyVideos = getDummyVideos();
+        setVideos(dummyVideos);
+      }
     } catch (error) {
       console.error('Error fetching videos:', error);
     } finally {
@@ -92,6 +145,12 @@ export default function Home() {
                   colors={[colors.primary]}
                 />
               }
+              onEndReached={() => {
+                if (hasMore && !isLoading && !isRefreshing) {
+                  fetchVideos();
+                }
+              }}
+              onEndReachedThreshold={0.5}
             />
           </SafeAreaView>
         </LinearGradient>

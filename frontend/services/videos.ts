@@ -8,8 +8,9 @@ import { ApiResponse, Comment, PaginationParams, Video, VideoUpload } from '../t
  * @returns Promise with videos response
  */
 export const getVideos = async (params: PaginationParams = {}): Promise<ApiResponse<Video[]>> => {
-  const { page = config.PAGINATION.DEFAULT_PAGE, limit = config.PAGINATION.DEFAULT_LIMIT, sort = 'recent' } = params;
-  return api.get(config.API.ENDPOINTS.VIDEOS.LIST, { params: { page, limit, sort } });
+  const { page = config.PAGINATION.DEFAULT_PAGE, limit = config.PAGINATION.DEFAULT_LIMIT } = params;
+  // Removed sort parameter which was causing the iterator error
+  return api.get(config.API.ENDPOINTS.VIDEOS.LIST, { params: { page, limit } });
 };
 
 /**

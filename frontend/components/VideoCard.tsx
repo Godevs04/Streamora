@@ -18,9 +18,26 @@ interface VideoCardProps {
 const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showAuthModal }) => {
   const { user } = useAuthStore();
   const screenWidth = Dimensions.get('window').width;
-  const [liked, setLiked] = useState(user ? video.likes.includes(user._id) : false);
-  const [likesCount, setLikesCount] = useState(video.likesCount);
+  const [liked, setLiked] = useState(user && video.likes ? video.likes.includes(user._id) : false);
+  const [likesCount, setLikesCount] = useState(video.likesCount || 0);
   const [subscribed, setSubscribed] = useState(false);
+  const [imageLoadError, setImageLoadError] = useState(false);
+  
+  // Function to get proper thumbnail URL
+  const getThumbnailUrl = (video: Video) => {
+    const url = video.thumbnailUrl;
+    
+    // If URL is a video file, try to extract a proper thumbnail
+    if (url && (url.includes('.mp4') || url.includes('.mov') || url.includes('.webm'))) {
+      // For Cloudinary URLs, we can modify the URL to get an image
+      if (url.includes('cloudinary.com') && url.includes('/video/upload/')) {
+        // Replace video upload with image transformation
+        return url.replace('/video/upload/', '/video/upload/f_jpg,w_640,h_360,c_fill,q_auto,g_auto/');
+      }
+    }
+    
+    return url;
+  };
   
   // Calculate thumbnail dimensions based on aspect ratio
   const getThumbnailDimensions = () => {
@@ -72,8 +89,8 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
   
   // Handle video press
   const handlePress = () => {
-    // In a real app, this would navigate to a video detail screen
-    console.log(`Viewing video: ${video._id}`);
+    // Navigate to video player
+    router.push(`/video/${video._id}`);
   };
   
   // Handle profile press
@@ -166,11 +183,24 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
         activeOpacity={0.9}
       >
         <View style={[styles.thumbnailContainer, { width, height }]}>
-          <Image
-            source={{ uri: video.thumbnailUrl }}
-            style={{ width, height }}
-            resizeMode="cover"
-          />
+          {video.thumbnailUrl && !imageLoadError ? (
+            <Image
+              source={{ uri: getThumbnailUrl(video) }}
+              style={{ width, height }}
+              resizeMode="cover"
+              onError={(e) => {
+                console.error('Image loading error:', e.nativeEvent.error);
+                console.error('Failed thumbnail URL:', video.thumbnailUrl);
+                // If image fails to load, update component state to show placeholder
+                setImageLoadError(true);
+              }}
+            />
+          ) : (
+            <View style={[{ width, height }, styles.placeholderContainer]}>
+              <MaterialIcons name="image" size={48} color="#666" />
+              <Text style={styles.placeholderText}>No thumbnail</Text>
+            </View>
+          )}
           
           {/* Duration badge (if available) */}
           {video.duration > 0 && (
@@ -284,6 +314,16 @@ const styles = StyleSheet.create({
     borderRadius: 0, // YouTube doesn't use rounded corners
     overflow: 'hidden',
     backgroundColor: '#0F0F0F',
+  },
+  placeholderContainer: {
+    backgroundColor: '#1F2937',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  placeholderText: {
+    color: '#9CA3AF',
+    marginTop: 8,
+    fontSize: 12,
   },
   durationBadge: {
     position: 'absolute',
