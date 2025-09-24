@@ -17,6 +17,8 @@ export interface Video {
   description?: string;
   videoUrl: string;
   thumbnailUrl: string;
+  thumbnailAspectRatio?: '16:9' | '4:3' | '1:1';
+  duration: number;
   tags: string[];
   likes: string[];
   likesCount: number;
@@ -72,7 +74,10 @@ export interface VideoUpload {
   tags?: string[];
   videoUri?: string;
   videoUrl?: string;
+  thumbnailUri?: string;
   thumbnailUrl?: string;
+  thumbnailAspectRatio?: '16:9' | '4:3' | '1:1';
+  duration?: number;
 }
 
 export interface PaginationParams {

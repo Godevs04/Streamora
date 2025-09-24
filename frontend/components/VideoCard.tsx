@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import Avatar from './Avatar';
 import { PreviousIntent, Video } from '../types';
-import { formatCount, formatRelativeTime } from '../utils/formatDate';
+import { formatCount, formatRelativeTime, formatDuration } from '../utils/formatDate';
 import useAuthStore from '../store/useAuthStore';
 import { toggleDummyVideoLike, subscribeToDummyUser } from '../services/dummyData';
 import { APP_ICONS } from '../utils/iconLoader';
@@ -22,19 +22,50 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
   const [likesCount, setLikesCount] = useState(video.likesCount);
   const [subscribed, setSubscribed] = useState(false);
   
-  // Calculate thumbnail dimensions
+  // Calculate thumbnail dimensions based on aspect ratio
   const getThumbnailDimensions = () => {
+    // Default to 16:9 if not specified
+    const aspectRatio = video.thumbnailAspectRatio || '16:9';
+    
     if (variant === 'compact') {
-      return {
-        width: screenWidth / 2 - 16, // 2 columns with padding
-        height: (screenWidth / 2 - 16) * (9 / 16), // 16:9 aspect ratio
-      };
+      const width = screenWidth / 2 - 16; // 2 columns with padding
+      
+      if (aspectRatio === '16:9') {
+        return {
+          width,
+          height: width * (9 / 16)
+        };
+      } else if (aspectRatio === '4:3') {
+        return {
+          width,
+          height: width * (3 / 4)
+        };
+      } else {
+        return {
+          width,
+          height: width
+        };
+      }
     }
     
-    return {
-      width: screenWidth - 32, // Full width with padding
-      height: (screenWidth - 32) * (9 / 16), // 16:9 aspect ratio
-    };
+    const width = screenWidth - 32; // Full width with padding
+    
+    if (aspectRatio === '16:9') {
+      return {
+        width,
+        height: width * (9 / 16)
+      };
+    } else if (aspectRatio === '4:3') {
+      return {
+        width,
+        height: width * (3 / 4)
+      };
+    } else {
+      return {
+        width,
+        height: width
+      };
+    }
   };
   
   const { width, height } = getThumbnailDimensions();
@@ -142,6 +173,15 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
           />
           
           {/* Duration badge (if available) */}
+          {video.duration > 0 && (
+            <View style={styles.durationBadge}>
+              <Text style={styles.durationText}>
+                {formatDuration(video.duration)}
+              </Text>
+            </View>
+          )}
+          
+          {/* Views badge */}
           <View style={styles.viewsBadge}>
             <Text style={styles.viewsText}>
               {formatCount(video.views)} views
@@ -245,10 +285,24 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#0F0F0F',
   },
-  viewsBadge: {
+  durationBadge: {
     position: 'absolute',
     bottom: 8,
     right: 8,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  durationText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  viewsBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
     backgroundColor: 'rgba(0,0,0,0.8)',
     paddingHorizontal: 6,
     paddingVertical: 3,
