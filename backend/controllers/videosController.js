@@ -11,38 +11,72 @@ const path = require('path');
  */
 const createVideo = async (req, res, next) => {
   try {
-    const { title, description, tags } = req.body;
+    const { title, description, tags, thumbnailAspectRatio, duration } = req.body;
     let videoUrl, thumbnailUrl;
 
     // Handle video upload if file is provided
-    if (req.file) {
+    if (req.files && req.files.video) {
       try {
-        // Upload to Cloudinary
-        const result = await cloudinary.uploader.upload(req.file.path, {
+        // Upload video to Cloudinary
+        const videoResult = await cloudinary.uploader.upload(req.files.video[0].path, {
           resource_type: 'video',
           folder: 'streamora/videos',
-          eager: [
-            { width: 300, height: 300, crop: 'pad', audio_codec: 'none' },
-            { width: 160, height: 100, crop: 'crop', gravity: 'south', audio_codec: 'none' }
-          ],
           eager_async: true,
           eager_notification_url: process.env.CLIENT_URL
         });
         
-        videoUrl = result.secure_url;
-        thumbnailUrl = result.eager[0].secure_url;
+        videoUrl = videoResult.secure_url;
         
-        // Delete local file after upload
-        fs.unlinkSync(req.file.path);
+        // Get video duration from Cloudinary response
+        const videoDuration = videoResult.duration || 0;
+        
+        // Delete local video file after upload
+        fs.unlinkSync(req.files.video[0].path);
+        
+        // If no custom thumbnail provided, generate one from the video
+        if (!req.files.thumbnail) {
+          thumbnailUrl = cloudinary.url(videoResult.public_id, {
+            resource_type: 'video',
+            format: 'jpg',
+            transformation: [
+              { width: 1280, height: 720, crop: 'fill', gravity: 'center' }
+            ]
+          });
+        }
       } catch (uploadError) {
         return sendErrorResponse(res, 400, 'Error uploading video', [{ message: uploadError.message }]);
       }
     } else if (req.body.videoUrl) {
       // If videoUrl is provided directly
       videoUrl = req.body.videoUrl;
-      thumbnailUrl = req.body.thumbnailUrl || videoUrl.replace(/\.[^/.]+$/, ".jpg");
     } else {
       return sendErrorResponse(res, 400, 'Video file or videoUrl is required');
+    }
+    
+    // Handle thumbnail upload if file is provided
+    if (req.files && req.files.thumbnail) {
+      try {
+        // Upload thumbnail to Cloudinary
+        const thumbnailResult = await cloudinary.uploader.upload(req.files.thumbnail[0].path, {
+          folder: 'streamora/thumbnails',
+          transformation: [
+            { width: 1280, height: 720, crop: 'fill', gravity: 'center' }
+          ]
+        });
+        
+        thumbnailUrl = thumbnailResult.secure_url;
+        
+        // Delete local thumbnail file after upload
+        fs.unlinkSync(req.files.thumbnail[0].path);
+      } catch (uploadError) {
+        return sendErrorResponse(res, 400, 'Error uploading thumbnail', [{ message: uploadError.message }]);
+      }
+    } else if (req.body.thumbnailUrl) {
+      // If thumbnailUrl is provided directly
+      thumbnailUrl = req.body.thumbnailUrl;
+    } else if (!thumbnailUrl) {
+      // If no thumbnail URL has been set yet, use a default or placeholder
+      return sendErrorResponse(res, 400, 'Thumbnail is required');
     }
 
     // Create video
@@ -52,6 +86,8 @@ const createVideo = async (req, res, next) => {
       description,
       videoUrl,
       thumbnailUrl,
+      thumbnailAspectRatio: thumbnailAspectRatio || '16:9',
+      duration: duration || 0,
       tags: tags ? JSON.parse(tags) : []
     });
 

@@ -66,3 +66,24 @@ export const formatCount = (num: number): string => {
   
   return `${(num / 1000000).toFixed(1)}M`;
 };
+
+/**
+ * Format seconds to a duration string (e.g. "1:23")
+ * @param seconds - Duration in seconds
+ * @returns Formatted duration string
+ */
+export const formatDuration = (seconds: number): string => {
+  if (!seconds) return '0:00';
+  
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  
+  if (minutes < 60) {
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  }
+  
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  
+  return `${hours}:${remainingMinutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+};

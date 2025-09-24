@@ -21,12 +21,18 @@ const router = express.Router();
 router.post(
   '/',
   protect,
-  upload.single('video'),
+  upload.fields([
+    { name: 'video', maxCount: 1 },
+    { name: 'thumbnail', maxCount: 1 }
+  ]),
   [
     check('title', 'Title is required').notEmpty().isLength({ max: 100 }),
     check('description').optional().isLength({ max: 1000 }),
     check('tags').optional().isString(),
-    check('videoUrl').optional().isURL()
+    check('videoUrl').optional().isURL(),
+    check('thumbnailUrl').optional().isURL(),
+    check('thumbnailAspectRatio').optional().isIn(['16:9', '4:3', '1:1']),
+    check('duration').optional().isNumeric()
   ],
   validate,
   createVideo

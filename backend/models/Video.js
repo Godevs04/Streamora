@@ -25,6 +25,15 @@ const VideoSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Thumbnail URL is required']
   },
+  thumbnailAspectRatio: {
+    type: String,
+    enum: ['16:9', '4:3', '1:1'],
+    default: '16:9'
+  },
+  duration: {
+    type: Number,
+    default: 0
+  },
   tags: {
     type: [String],
     default: []

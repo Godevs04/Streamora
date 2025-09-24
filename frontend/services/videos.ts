@@ -8,8 +8,9 @@ import { ApiResponse, Comment, PaginationParams, Video, VideoUpload } from '../t
  * @returns Promise with videos response
  */
 export const getVideos = async (params: PaginationParams = {}): Promise<ApiResponse<Video[]>> => {
-  const { page = config.PAGINATION.DEFAULT_PAGE, limit = config.PAGINATION.DEFAULT_LIMIT, sort = 'recent' } = params;
-  return api.get(config.API.ENDPOINTS.VIDEOS.LIST, { params: { page, limit, sort } });
+  const { page = config.PAGINATION.DEFAULT_PAGE, limit = config.PAGINATION.DEFAULT_LIMIT } = params;
+  // Removed sort parameter which was causing the iterator error
+  return api.get(config.API.ENDPOINTS.VIDEOS.LIST, { params: { page, limit } });
 };
 
 /**
@@ -40,6 +41,16 @@ export const uploadVideo = async (videoData: VideoUpload): Promise<ApiResponse<V
     formData.append('tags', JSON.stringify(videoData.tags));
   }
   
+  // Add thumbnail aspect ratio if provided
+  if (videoData.thumbnailAspectRatio) {
+    formData.append('thumbnailAspectRatio', videoData.thumbnailAspectRatio);
+  }
+  
+  // Add duration if provided
+  if (videoData.duration) {
+    formData.append('duration', videoData.duration.toString());
+  }
+  
   // If we have a video URI (from image picker)
   if (videoData.videoUri) {
     const uriParts = videoData.videoUri.split('.');
@@ -53,10 +64,22 @@ export const uploadVideo = async (videoData: VideoUpload): Promise<ApiResponse<V
   } else if (videoData.videoUrl) {
     // If we have a video URL (from external source)
     formData.append('videoUrl', videoData.videoUrl);
+  } else {
+    throw new Error('Video file or URL is required');
+  }
+  
+  // Handle thumbnail
+  if (videoData.thumbnailUri) {
+    const uriParts = videoData.thumbnailUri.split('.');
+    const fileType = uriParts[uriParts.length - 1] || 'jpg';
     
-    if (videoData.thumbnailUrl) {
-      formData.append('thumbnailUrl', videoData.thumbnailUrl);
-    }
+    formData.append('thumbnail', {
+      uri: videoData.thumbnailUri,
+      name: `thumbnail.${fileType}`,
+      type: `image/${fileType}`,
+    } as any);
+  } else if (videoData.thumbnailUrl) {
+    formData.append('thumbnailUrl', videoData.thumbnailUrl);
   }
   
   return api.post(config.API.ENDPOINTS.VIDEOS.CREATE, formData, {
