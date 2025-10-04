@@ -56,6 +56,19 @@ export interface ApiResponse<T> {
   };
 }
 
+export interface VideosApiResponse {
+  success: boolean;
+  data: {
+    videos: Video[];
+  };
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 export interface LoginCredentials {
   email: string;
   password: string;
@@ -106,4 +119,5 @@ export interface AuthState {
   register: (credentials: RegisterCredentials) => Promise<PreviousIntent | null>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<boolean>;
+  updateUser: (updatedUser: User) => Promise<User>;
 }

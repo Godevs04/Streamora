@@ -101,8 +101,8 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
       return;
     }
     
-    // In a real app, this would navigate to a profile screen
-    console.log(`Viewing profile: ${video.owner._id}`);
+    // Navigate to profile page
+    router.push(`/profile/${video.owner._id}`);
   };
   
   // Handle like press

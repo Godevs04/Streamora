@@ -149,15 +149,17 @@ export default function RootLayout() {
             <Stack
               screenOptions={{
                 headerStyle: {
-                  backgroundColor: '#000000',
+                  backgroundColor: colors.background.primary,
                 },
-                headerTintColor: '#FFFFFF',
+                headerTintColor: colors.text.primary,
                 headerTitleStyle: {
                   fontWeight: 'bold',
+                  fontSize: 18,
                 },
                 contentStyle: {
-                  backgroundColor: '#000000',
+                  backgroundColor: colors.background.primary,
                 },
+                headerShadowVisible: false,
               }}
             >
               <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -178,6 +180,34 @@ export default function RootLayout() {
               <Stack.Screen
                 name="(tabs)"
                 options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="profile/[userId]"
+                options={{
+                  title: 'Profile',
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="video/[id]"
+                options={{
+                  title: 'Video',
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="edit-profile"
+                options={{
+                  title: 'Edit Profile',
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="settings"
+                options={{
+                  title: 'Settings',
                   headerShown: false,
                 }}
               />

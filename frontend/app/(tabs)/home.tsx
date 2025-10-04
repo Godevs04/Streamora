@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, ActivityIndicator, RefreshControl, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, RefreshControl, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import VideoCard from '../../components/VideoCard';
 import AuthRequiredWrapper from '../../components/AuthRequiredWrapper';
-import { getDummyVideos } from '../../services/dummyData';
+// Removed dummy data import - using real API data
 import { getVideos } from '../../services/videos';
-import { Video } from '../../types';
+import { Video, VideosApiResponse } from '../../types';
 import colors from '../../constants/colors';
 
 export default function Home() {
@@ -44,28 +44,11 @@ export default function Home() {
         });
         
         // Check if response has the expected structure
-        if (response) {
-          let fetchedVideos;
+        if (response && response.success) {
+          const apiResponse = response as any; // Type assertion for API response
+          const fetchedVideos = apiResponse.data.videos;
           
-          // Handle both array response and nested object response
-          if (Array.isArray(response.data)) {
-            fetchedVideos = response.data;
-          } else if (response.data && typeof response.data === 'object') {
-            // Check if it has a videos property that's an array
-            const responseData = response.data as any; // Use type assertion
-            if (responseData.videos && Array.isArray(responseData.videos)) {
-              // Handle nested structure {"videos": [...]}
-              fetchedVideos = responseData.videos;
-            } else {
-              console.error('API returned unexpected data structure:', response.data);
-              throw new Error('Invalid response format');
-            }
-          } else {
-            console.error('API returned unexpected data structure:', response.data);
-            throw new Error('Invalid response format');
-          }
-          
-          const meta = response.meta;
+          const meta = apiResponse.meta;
           
           if (meta) {
             setHasMore(meta.page < meta.totalPages);
@@ -80,9 +63,16 @@ export default function Home() {
         }
       } catch (apiError) {
         console.error('API error:', apiError);
-        // Fallback to dummy data if API fails
-        const dummyVideos = getDummyVideos();
-        setVideos(dummyVideos);
+        // Don't fallback to dummy data - show empty state instead
+        setVideos([]);
+        Alert.alert(
+          'Connection Error', 
+          'Unable to load videos. Please check your internet connection and try again.',
+          [
+            { text: 'Retry', onPress: () => fetchVideos(true) },
+            { text: 'Cancel', style: 'cancel' }
+          ]
+        );
       }
     } catch (error) {
       console.error('Error fetching videos:', error);
@@ -189,8 +179,8 @@ export default function Home() {
   return (
     <AuthRequiredWrapper>
       {(showAuthModal) => (
-        <View style={styles.container}>
-          <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView style={styles.container} edges={[]}>
+          <View style={styles.safeArea}>
             {renderHeader()}
             <FlatList
               data={videos}
@@ -220,8 +210,8 @@ export default function Home() {
               }}
               onEndReachedThreshold={0.5}
             />
-          </SafeAreaView>
-        </View>
+          </View>
+        </SafeAreaView>
       )}
     </AuthRequiredWrapper>
   );
@@ -231,12 +221,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.primary,
+    paddingTop: 0,
+    marginTop: 0,
   },
   safeArea: {
     flex: 1,
+    paddingTop: 0,
+    marginTop: 0,
   },
   header: {
     backgroundColor: colors.background.primary,
+    paddingTop: 0,
     paddingBottom: 8,
   },
   topBar: {

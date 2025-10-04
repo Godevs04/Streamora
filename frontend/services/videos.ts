@@ -1,13 +1,13 @@
 import api from './api';
 import config from '../constants/config';
-import { ApiResponse, Comment, PaginationParams, Video, VideoUpload } from '../types';
+import { ApiResponse, Comment, PaginationParams, Video, VideoUpload, VideosApiResponse } from '../types';
 
 /**
  * Get videos with pagination
  * @param params - Pagination parameters
  * @returns Promise with videos response
  */
-export const getVideos = async (params: PaginationParams = {}): Promise<ApiResponse<Video[]>> => {
+export const getVideos = async (params: PaginationParams = {}): Promise<VideosApiResponse> => {
   const { page = config.PAGINATION.DEFAULT_PAGE, limit = config.PAGINATION.DEFAULT_LIMIT } = params;
   // Removed sort parameter which was causing the iterator error
   return api.get(config.API.ENDPOINTS.VIDEOS.LIST, { params: { page, limit } });
