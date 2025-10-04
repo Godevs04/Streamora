@@ -23,6 +23,7 @@ export interface Video {
   likes: string[];
   likesCount: number;
   views: number;
+  type: 'normal' | 'shorts';
   createdAt: string;
   updatedAt: string;
   comments?: Comment[];
@@ -91,6 +92,7 @@ export interface VideoUpload {
   thumbnailUrl?: string;
   thumbnailAspectRatio?: '16:9' | '4:3' | '1:1';
   duration?: number;
+  type?: 'normal' | 'shorts';
 }
 
 export interface PaginationParams {

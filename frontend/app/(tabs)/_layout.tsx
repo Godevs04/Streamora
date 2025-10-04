@@ -104,9 +104,9 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="explore"
           options={{
-            title: 'Explore',
+            title: 'Shorts',
             tabBarIcon: ({ color, size, focused }) => (
-              <Ionicons name={(focused ? APP_ICONS.EXPLORE_FILLED : APP_ICONS.EXPLORE) as any} color={color} size={size} />
+              <Ionicons name="play-circle-outline" color={color} size={size} />
             ),
           }}
         />

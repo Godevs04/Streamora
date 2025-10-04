@@ -32,6 +32,7 @@ export default {
   gray: '#6B7280',         // Gray-500
   lightGray: '#A1A1AA',    // Gray-400
   darkGray: '#374151',     // Gray-700
+  border: '#374151',       // Gray-700 for borders
   error: '#EF4444',        // Red-500
   success: '#10B981',      // Emerald-500
   warning: '#F59E0B',      // Amber-500

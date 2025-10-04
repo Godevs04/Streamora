@@ -39,8 +39,8 @@ export default function Home() {
         // Use real API instead of dummy data
         const response = await getVideos({
           page: currentPage,
-          limit: 20
-          // Removed sort parameter which was causing the error
+          limit: 20,
+          type: 'normal' // Only show normal videos, not shorts
         });
         
         // Check if response has the expected structure
@@ -55,8 +55,11 @@ export default function Home() {
             setPage(currentPage + 1);
           }
           
+          // Filter out shorts videos to ensure only normal videos appear in home
+          const normalVideos = fetchedVideos.filter((video: Video) => video.type !== 'shorts');
+          
           // If refreshing, replace videos; otherwise append
-          setVideos(refresh ? fetchedVideos : [...videos, ...fetchedVideos]);
+          setVideos(refresh ? normalVideos : [...videos, ...normalVideos]);
         } else {
           console.error('Invalid API response structure:', response);
           throw new Error('Invalid response structure');
