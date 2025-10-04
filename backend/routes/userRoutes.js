@@ -1,34 +1,66 @@
 const express = require('express');
-const { check } = require('express-validator');
-const { getUserById, updateProfile } = require('../controllers/usersController');
+const { body } = require('express-validator');
 const { protect } = require('../middlewares/auth');
-const upload = require('../middlewares/upload');
-const validate = require('../middlewares/validate');
+const {
+  getUserProfile,
+  getUserById,
+  updateUserProfile,
+  updateUserAvatar,
+  getUserStats
+} = require('../controllers/userController');
 
 const router = express.Router();
 
-/**
- * @route GET /api/users/:id
- * @desc Get user by ID
- * @access Public
- */
-router.get('/:id', getUserById);
+// Validation rules
+const updateProfileValidation = [
+  body('name')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 50 })
+    .withMessage('Name must be between 1 and 50 characters'),
+  body('username')
+    .optional()
+    .trim()
+    .isLength({ min: 3, max: 20 })
+    .withMessage('Username must be between 3 and 20 characters')
+    .matches(/^[a-zA-Z0-9_]+$/)
+    .withMessage('Username can only contain letters, numbers, and underscores'),
+  body('bio')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Bio cannot exceed 500 characters'),
+  body('email')
+    .optional()
+    .isEmail()
+    .withMessage('Please provide a valid email address')
+    .normalizeEmail()
+];
 
-/**
- * @route PUT /api/users/me
- * @desc Update current user profile
- * @access Private
- */
-router.put(
-  '/me',
-  protect,
-  upload.single('avatar'),
-  [
-    check('name').optional().notEmpty().withMessage('Name cannot be empty'),
-    check('bio').optional().isLength({ max: 200 }).withMessage('Bio cannot exceed 200 characters')
-  ],
-  validate,
-  updateProfile
-);
+const updateAvatarValidation = [
+  body('avatarUrl')
+    .notEmpty()
+    .withMessage('Avatar URL is required')
+    .isURL()
+    .withMessage('Please provide a valid URL')
+];
+
+// All routes require authentication
+router.use(protect);
+
+// GET /api/user/profile - Get user profile
+router.get('/profile', getUserProfile);
+
+// GET /api/user/stats - Get user statistics
+router.get('/stats', getUserStats);
+
+// PUT /api/user/profile - Update user profile
+router.put('/profile', updateProfileValidation, updateUserProfile);
+
+// PUT /api/user/avatar - Update user avatar
+router.put('/avatar', updateAvatarValidation, updateUserAvatar);
+
+// GET /api/user/:userId - Get user by ID (must be last to avoid conflicts)
+router.get('/:userId', getUserById);
 
 module.exports = router;

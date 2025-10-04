@@ -23,6 +23,7 @@ export interface Video {
   likes: string[];
   likesCount: number;
   views: number;
+  type: 'normal' | 'shorts';
   createdAt: string;
   updatedAt: string;
   comments?: Comment[];
@@ -56,6 +57,19 @@ export interface ApiResponse<T> {
   };
 }
 
+export interface VideosApiResponse {
+  success: boolean;
+  data: {
+    videos: Video[];
+  };
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 export interface LoginCredentials {
   email: string;
   password: string;
@@ -78,6 +92,7 @@ export interface VideoUpload {
   thumbnailUrl?: string;
   thumbnailAspectRatio?: '16:9' | '4:3' | '1:1';
   duration?: number;
+  type?: 'normal' | 'shorts';
 }
 
 export interface PaginationParams {
@@ -106,4 +121,5 @@ export interface AuthState {
   register: (credentials: RegisterCredentials) => Promise<PreviousIntent | null>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<boolean>;
+  updateUser: (updatedUser: User) => Promise<User>;
 }

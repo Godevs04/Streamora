@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { AuthState, LoginCredentials, PreviousIntent, RegisterCredentials, User } from '../types';
 import config from '../constants/config';
 import { login as loginApi, register as registerApi, getMe } from '../services/auth';
+import { updateUserProfile as updateUserProfileApi } from '../services/user';
 
 const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
@@ -12,6 +13,28 @@ const useAuthStore = create<AuthState>((set, get) => ({
   previousIntent: null,
   
   setUser: (user: User | null) => set({ user, isAuthenticated: !!user }),
+  
+  updateUser: async (updatedUser: User) => {
+    const { token } = get();
+    if (!token) {
+      throw new Error('No authentication token');
+    }
+
+    try {
+      const response = await updateUserProfileApi(token, {
+        name: updatedUser.name,
+        username: updatedUser.username,
+        bio: updatedUser.bio,
+        email: updatedUser.email,
+      });
+
+      set({ user: response.data });
+      return response.data;
+    } catch (error) {
+      console.error('Error updating user:', error);
+      throw error;
+    }
+  },
   
   setToken: async (token: string | null) => {
     set({ token });

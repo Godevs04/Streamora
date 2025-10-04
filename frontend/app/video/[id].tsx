@@ -28,6 +28,9 @@ export default function VideoPlayer() {
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [showControls, setShowControls] = useState(true);
+  const [isVideoLoading, setIsVideoLoading] = useState(true);
+  const [volume, setVolume] = useState(1.0);
+  const [isMuted, setIsMuted] = useState(false);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const videoId = Array.isArray(id) ? id[0] : id;
@@ -53,6 +56,7 @@ export default function VideoPlayer() {
     
     try {
       setIsLoading(true);
+      setIsVideoLoading(true);
       const response = await getVideoById(videoId);
       
       // Make sure we have a valid response with data
@@ -60,10 +64,16 @@ export default function VideoPlayer() {
         throw new Error('Invalid response from server');
       }
       
-      const fetchedVideo = response.data;
+      const responseData = response.data;
       
       // Log the received video data to help debug
-      console.log('Received video data:', JSON.stringify(fetchedVideo));
+      console.log('Received video data:', JSON.stringify(responseData));
+      
+      // Extract video data from the response - it's nested under 'video' property
+      const fetchedVideo = (responseData as any).video || responseData;
+      
+      console.log('Video URL:', fetchedVideo.videoUrl);
+      console.log('Video ID:', fetchedVideo._id);
       
       // Only validate that we have some video data, don't be too strict
       if (!fetchedVideo) {
@@ -73,6 +83,8 @@ export default function VideoPlayer() {
       // Ensure all required properties exist to prevent undefined errors
       const validatedVideo = {
         ...fetchedVideo,
+        _id: fetchedVideo._id || fetchedVideo.id,
+        videoUrl: fetchedVideo.videoUrl,
         owner: fetchedVideo.owner || { name: 'Unknown User', avatarUrl: null },
         likes: fetchedVideo.likes || [],
         likesCount: fetchedVideo.likesCount || 0,
@@ -83,6 +95,21 @@ export default function VideoPlayer() {
         updatedAt: fetchedVideo.updatedAt || new Date().toISOString(),
       };
       
+      // Validate that we have the essential video data
+      if (!validatedVideo._id) {
+        throw new Error('Video ID is missing from response');
+      }
+      
+      if (!validatedVideo.videoUrl) {
+        throw new Error('Video URL is missing from response');
+      }
+      
+      console.log('Validated video data:', {
+        id: validatedVideo._id,
+        videoUrl: validatedVideo.videoUrl,
+        title: validatedVideo.title
+      });
+      
       setVideo(validatedVideo);
       
       // Safely check if likes array exists before calling includes
@@ -92,7 +119,9 @@ export default function VideoPlayer() {
       
       // Increment view count
       try {
-        await incrementVideoView(videoId);
+        if (validatedVideo._id) {
+          await incrementVideoView(validatedVideo._id);
+        }
       } catch (viewError) {
         console.error('Error incrementing view count:', viewError);
       }
@@ -108,6 +137,8 @@ export default function VideoPlayer() {
     setStatus(status);
     
     if (status.isLoaded) {
+      setIsVideoLoading(false);
+      
       // Auto-hide controls after 3 seconds of playback
       if (status.isPlaying && showControls) {
         if (controlsTimeoutRef.current) {
@@ -117,6 +148,11 @@ export default function VideoPlayer() {
         controlsTimeoutRef.current = setTimeout(() => {
           setShowControls(false);
         }, 3000);
+      }
+      
+      // If video ended, show play button for replay
+      if ((status as any).didJustFinish) {
+        setShowControls(true);
       }
     }
   };
@@ -135,6 +171,36 @@ export default function VideoPlayer() {
     // Show controls when toggling play state
     setShowControls(true);
   };
+
+  const replayVideo = async () => {
+    if (!videoRef.current) return;
+    
+    await videoRef.current.setPositionAsync(0);
+    await videoRef.current.playAsync();
+    setShowControls(true);
+  };
+
+  const toggleMute = async () => {
+    if (!videoRef.current) return;
+    
+    const newMutedState = !isMuted;
+    setIsMuted(newMutedState);
+    
+    if (newMutedState) {
+      await videoRef.current.setVolumeAsync(0);
+    } else {
+      await videoRef.current.setVolumeAsync(volume);
+    }
+  };
+
+  const handleVolumeChange = async (newVolume: number) => {
+    if (!videoRef.current) return;
+    
+    setVolume(newVolume);
+    if (!isMuted) {
+      await videoRef.current.setVolumeAsync(newVolume);
+    }
+  };
   
   const toggleFullscreen = async () => {
     if (isFullscreen) {
@@ -148,6 +214,11 @@ export default function VideoPlayer() {
   
   const handleLikePress = async () => {
     if (!user || !video) return;
+    
+    if (!video._id) {
+      console.error('Video ID is missing');
+      return;
+    }
     
     try {
       const response = await toggleLikeVideo(video._id);
@@ -165,6 +236,11 @@ export default function VideoPlayer() {
   
   const handleSharePress = async () => {
     if (!video) return;
+    
+    if (!video._id) {
+      console.error('Video ID is missing for sharing');
+      return;
+    }
     
     try {
       // Use the configured APP_URL instead of hardcoded URL
@@ -271,61 +347,177 @@ export default function VideoPlayer() {
                 source={{ uri: video.videoUrl }}
                 style={styles.video}
                 resizeMode={isFullscreen ? ResizeMode.CONTAIN : ResizeMode.COVER}
-                shouldPlay
+                shouldPlay={true}
                 useNativeControls={false}
-                isLooping
+                isLooping={false}
                 onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
+                onLoad={() => {
+                  console.log('Video loaded successfully');
+                  setIsVideoLoading(false);
+                }}
+                onError={(error) => {
+                  console.error('Video error:', error);
+                  setIsVideoLoading(false);
+                }}
+                onLoadStart={() => {
+                  console.log('Video loading started');
+                  setIsVideoLoading(true);
+                }}
               />
               
-              {showControls && (
-                <View style={styles.videoControls}>
-                  {!isFullscreen && (
-                    <TouchableOpacity
-                      style={styles.backButtonVideo}
-                      onPress={handleBackPress}
-                    >
-                      <MaterialIcons name="arrow-back" size={24} color="white" />
-                    </TouchableOpacity>
-                  )}
-                  
+              {isVideoLoading && (
+                <View style={styles.videoLoadingOverlay}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                  <Text style={styles.videoLoadingText}>Loading video...</Text>
+                </View>
+              )}
+              
+              {!isVideoLoading && (!status?.isLoaded || !status?.isPlaying || (status?.isLoaded && (status as any).didJustFinish)) && (
+                <View style={styles.playButtonOverlay}>
                   <TouchableOpacity
-                    style={styles.playButton}
-                    onPress={togglePlay}
+                    style={styles.playButtonOverlayButton}
+                    onPress={(status?.isLoaded && (status as any).didJustFinish) ? replayVideo : togglePlay}
                   >
                     <MaterialIcons
-                      name={status?.isLoaded && status.isPlaying ? 'pause' : 'play-arrow'}
-                      size={48}
+                      name={(status?.isLoaded && (status as any).didJustFinish) ? "replay" : "play-arrow"}
+                      size={64}
                       color="white"
                     />
                   </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Vertical Action Buttons Inside Video */}
+              <View style={styles.videoActionButtons}>
+                <TouchableOpacity
+                  style={styles.videoActionButton}
+                  onPress={handleLikePress}
+                >
+                  <MaterialIcons
+                    name={liked ? "favorite" : "favorite-border"}
+                    size={24}
+                    color={liked ? colors.primary : "white"}
+                  />
+                  <Text style={styles.videoActionText}>{formatCount(likesCount)}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.videoActionButton}
+                  onPress={() => {
+                    // TODO: Add comment functionality
+                    console.log('Comments pressed');
+                  }}
+                >
+                  <MaterialIcons
+                    name="chat-bubble-outline"
+                    size={24}
+                    color="white"
+                  />
+                  <Text style={styles.videoActionText}>Comments</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.videoActionButton}
+                  onPress={handleSharePress}
+                >
+                  <MaterialIcons
+                    name="share"
+                    size={24}
+                    color="white"
+                  />
+                  <Text style={styles.videoActionText}>Share</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.videoActionButton}
+                  onPress={() => {
+                    // TODO: Add save/playlist functionality
+                    console.log('Save pressed');
+                  }}
+                >
+                  <MaterialIcons
+                    name="add"
+                    size={24}
+                    color="white"
+                  />
+                  <Text style={styles.videoActionText}>Save</Text>
+                </TouchableOpacity>
+              </View>
+              
+              {/* Top Controls - Back Button Only */}
+              {showControls && !isFullscreen && (
+                <TouchableOpacity
+                  style={styles.backButtonVideo}
+                  onPress={handleBackPress}
+                >
+                  <MaterialIcons name="arrow-back" size={24} color="white" />
+                </TouchableOpacity>
+              )}
+
+              {/* Bottom Controls - Progress, Time, Volume, Fullscreen */}
+              {showControls && (
+                <View style={styles.bottomControlsOverlay}>
+                  <View style={styles.progressContainer}>
+                    <View style={styles.progressBackground} />
+                    <View
+                      style={[
+                        styles.progressFill,
+                        { width: `${getProgressPercentage()}%` }
+                      ]}
+                    />
+                  </View>
                   
-                  <View style={styles.bottomControls}>
-                    <View style={styles.progressContainer}>
-                      <View style={styles.progressBackground} />
-                      <View
-                        style={[
-                          styles.progressFill,
-                          { width: `${getProgressPercentage()}%` }
-                        ]}
-                      />
-                    </View>
+                  <View style={styles.timeControls}>
+                    <Text style={styles.durationText}>
+                      {getFormattedDuration()}
+                    </Text>
                     
-                    <View style={styles.timeControls}>
-                      <Text style={styles.durationText}>
-                        {getFormattedDuration()}
-                      </Text>
-                      
+                    <View style={styles.volumeControls}>
                       <TouchableOpacity
-                        style={styles.fullscreenButton}
-                        onPress={toggleFullscreen}
+                        style={styles.volumeButton}
+                        onPress={toggleMute}
                       >
                         <MaterialIcons
-                          name={isFullscreen ? 'fullscreen-exit' : 'fullscreen'}
-                          size={24}
+                          name={isMuted ? 'volume-off' : 'volume-up'}
+                          size={20}
                           color="white"
                         />
                       </TouchableOpacity>
+                      
+                      <View style={styles.volumeSlider}>
+                        <View style={styles.volumeTrack} />
+                        <View 
+                          style={[
+                            styles.volumeFill,
+                            { width: `${(isMuted ? 0 : volume) * 100}%` }
+                          ]} 
+                        />
+                        <TouchableOpacity
+                          style={[
+                            styles.volumeThumb,
+                            { left: `${(isMuted ? 0 : volume) * 100}%` }
+                          ]}
+                          onPress={() => {
+                            // Cycle through volume levels
+                            const volumeLevels = [0, 0.3, 0.7, 1.0];
+                            const currentIndex = volumeLevels.findIndex(v => Math.abs(v - volume) < 0.1);
+                            const nextIndex = (currentIndex + 1) % volumeLevels.length;
+                            handleVolumeChange(volumeLevels[nextIndex]);
+                          }}
+                        />
+                      </View>
                     </View>
+                    
+                    <TouchableOpacity
+                      style={styles.fullscreenButton}
+                      onPress={toggleFullscreen}
+                    >
+                      <MaterialIcons
+                        name={isFullscreen ? 'fullscreen-exit' : 'fullscreen'}
+                        size={24}
+                        color="white"
+                      />
+                    </TouchableOpacity>
                   </View>
                 </View>
               )}
@@ -339,32 +531,8 @@ export default function VideoPlayer() {
                 
                 <View style={styles.videoStats}>
                   <Text style={styles.statsText}>
-                    {formatCount(video.views)} views • {formatRelativeTime(video.createdAt)}
+                    {formatCount(video.views)} views • {formatCount(likesCount)} likes • {formatRelativeTime(video.createdAt)}
                   </Text>
-                </View>
-                
-                <View style={styles.actionButtons}>
-                  <TouchableOpacity
-                    style={styles.actionButton}
-                    onPress={handleLikePress}
-                  >
-                    <MaterialIcons
-                      name={liked ? 'thumb-up' : 'thumb-up-off-alt'}
-                      size={24}
-                      color={liked ? colors.primary : 'white'}
-                    />
-                    <Text style={[styles.actionText, liked && styles.actionTextActive]}>
-                      {formatCount(likesCount)}
-                    </Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity
-                    style={styles.actionButton}
-                    onPress={handleSharePress}
-                  >
-                    <MaterialIcons name="share" size={24} color="white" />
-                    <Text style={styles.actionText}>Share</Text>
-                  </TouchableOpacity>
                 </View>
                 
                 {video.owner ? (
@@ -464,15 +632,19 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 16 / 9,
     backgroundColor: '#000',
+    borderRadius: 0,
+    overflow: 'hidden',
   },
   fullscreenVideoContainer: {
     aspectRatio: undefined,
     height: '100%',
+    borderRadius: 0,
   },
   videoWrapper: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
   },
   video: {
     width: '100%',
@@ -480,14 +652,27 @@ const styles = StyleSheet.create({
   },
   videoControls: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
     justifyContent: 'space-between',
+  },
+  bottomControlsOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    zIndex: 3,
   },
   backButtonVideo: {
     position: 'absolute',
     top: 16,
     left: 16,
     zIndex: 10,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   playButton: {
     alignSelf: 'center',
@@ -503,6 +688,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     overflow: 'hidden',
     position: 'relative',
+    marginBottom: 8,
   },
   progressBackground: {
     position: 'absolute',
@@ -511,99 +697,223 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 3,
   },
   progressFill: {
     height: '100%',
     backgroundColor: colors.primary,
+    borderRadius: 3,
   },
   timeControls: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
+    paddingHorizontal: 4,
   },
   durationText: {
     color: 'white',
     fontSize: 12,
+    fontWeight: '500',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   fullscreenButton: {
-    padding: 4,
+    padding: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   contentContainer: {
     flex: 1,
+    backgroundColor: colors.background.primary,
   },
   videoInfo: {
-    padding: 16,
+    padding: 20,
+    backgroundColor: colors.background.primary,
   },
   videoTitle: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '500',
-    marginBottom: 8,
+    color: colors.text.primary,
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 12,
+    lineHeight: 26,
   },
   videoStats: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   statsText: {
-    color: '#9CA3AF',
-    fontSize: 14,
+    color: colors.text.secondary,
+    fontSize: 15,
+    fontWeight: '500',
   },
-  actionButtons: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-    paddingBottom: 16,
-    marginBottom: 16,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 24,
-  },
-  actionText: {
-    color: 'white',
-    marginLeft: 8,
-    fontSize: 14,
-  },
-  actionTextActive: {
-    color: colors.primary,
-  },
+  // Removed old action button styles - now using videoActionButtons
   channelContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: colors.background.secondary,
+    borderRadius: 12,
   },
   channelInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   channelText: {
     marginLeft: 12,
+    flex: 1,
   },
   channelName: {
-    color: 'white',
+    color: colors.text.primary,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   subscribeButton: {
     backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 4,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   subscribeText: {
-    color: 'white',
-    fontWeight: '500',
+    color: colors.text.primary,
+    fontWeight: '600',
+    fontSize: 14,
   },
   descriptionContainer: {
-    paddingTop: 16,
+    paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    borderTopColor: colors.background.secondary,
+    marginTop: 8,
   },
   descriptionText: {
+    color: colors.text.secondary,
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '400',
+  },
+  videoLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 5,
+  },
+  videoLoadingText: {
     color: 'white',
-    fontSize: 14,
-    lineHeight: 20,
+    marginTop: 16,
+    fontSize: 16,
+  },
+  playButtonOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    zIndex: 3,
+  },
+  playButtonOverlayButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 50,
+    width: 80,
+    height: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  volumeControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 8,
+  },
+  volumeButton: {
+    padding: 4,
+    marginRight: 8,
+  },
+  volumeSlider: {
+    width: 60,
+    height: 20,
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  volumeTrack: {
+    position: 'absolute',
+    top: 8,
+    left: 0,
+    right: 0,
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 2,
+  },
+  volumeFill: {
+    position: 'absolute',
+    top: 8,
+    left: 0,
+    height: 4,
+    backgroundColor: colors.primary,
+    borderRadius: 2,
+  },
+  volumeThumb: {
+    position: 'absolute',
+    top: 4,
+    width: 12,
+    height: 12,
+    backgroundColor: 'white',
+    borderRadius: 6,
+    marginLeft: -6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  videoActionButtons: {
+    position: 'absolute',
+    right: 16,
+    bottom: 80,
+    alignItems: 'center',
+    zIndex: 4,
+  },
+  videoActionButton: {
+    alignItems: 'center',
+    marginBottom: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    borderRadius: 25,
+    padding: 8,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  videoActionText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 2,
+    textAlign: 'center',
+    minWidth: 40,
   },
 });

@@ -18,6 +18,7 @@ const userRoutes = require('./routes/userRoutes');
 const videoRoutes = require('./routes/videoRoutes');
 const commentRoutes = require('./routes/commentRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
 
 // Import middleware
 const errorHandler = require('./middlewares/errorHandler');
@@ -68,6 +69,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/videos', videoRoutes);
 app.use('/api', commentRoutes); // Using /api prefix for nested routes
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Health check route - accessible without auth
 app.get('/health', (req, res) => {

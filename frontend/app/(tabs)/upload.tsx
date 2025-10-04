@@ -23,6 +23,7 @@ export default function Upload() {
   const [isCustomThumbnail, setIsCustomThumbnail] = useState(false);
   const [videoDuration, setVideoDuration] = useState<number>(0);
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '4:3' | '1:1'>('16:9');
+  const [videoType, setVideoType] = useState<'normal' | 'shorts'>('normal');
   const [isLoading, setIsLoading] = useState(false);
   const [thumbnailGenerating, setThumbnailGenerating] = useState(false);
   
@@ -157,7 +158,8 @@ export default function Upload() {
         videoUri,
         thumbnailUri,
         thumbnailAspectRatio: aspectRatio,
-        duration: videoDuration
+        duration: videoDuration,
+        type: videoType
       });
       
       Alert.alert(
@@ -269,6 +271,40 @@ export default function Upload() {
                   </View>
                 )}
               </TouchableOpacity>
+              
+              {/* Video Type Selection */}
+              {videoUri && (
+                <View style={styles.videoTypeSection}>
+                  <Text style={styles.sectionTitle}>Video Type</Text>
+                  <View style={styles.videoTypeSelector}>
+                    <TouchableOpacity 
+                      style={[styles.videoTypeButton, videoType === 'normal' && styles.videoTypeButtonActive]}
+                      onPress={() => setVideoType('normal')}
+                    >
+                      <Icon name="play-circle-outline" size={20} color={videoType === 'normal' ? '#FFFFFF' : colors.gray} />
+                      <Text style={[styles.videoTypeText, videoType === 'normal' && styles.videoTypeTextActive]}>
+                        Normal Video
+                      </Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[styles.videoTypeButton, videoType === 'shorts' && styles.videoTypeButtonActive]}
+                      onPress={() => setVideoType('shorts')}
+                    >
+                      <Icon name="play-circle" size={20} color={videoType === 'shorts' ? '#FFFFFF' : colors.gray} />
+                      <Text style={[styles.videoTypeText, videoType === 'shorts' && styles.videoTypeTextActive]}>
+                        Shorts
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.videoTypeDescription}>
+                    {videoType === 'shorts' 
+                      ? 'Shorts are vertical videos under 60 seconds, perfect for quick content!'
+                      : 'Normal videos are traditional horizontal videos for longer content.'
+                    }
+                  </Text>
+                </View>
+              )}
               
               {/* Thumbnail Section */}
               {videoUri && (
@@ -574,5 +610,44 @@ const styles = StyleSheet.create({
   },
   textAreaInput: {
     minHeight: 100,
+  },
+  videoTypeSection: {
+    marginBottom: 24,
+  },
+  videoTypeSelector: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  videoTypeButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginHorizontal: 4,
+    backgroundColor: '#374151',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#4B5563',
+  },
+  videoTypeButtonActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  videoTypeText: {
+    color: colors.gray,
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  videoTypeTextActive: {
+    color: '#FFFFFF',
+  },
+  videoTypeDescription: {
+    color: '#9CA3AF',
+    fontSize: 12,
+    lineHeight: 16,
+    textAlign: 'center',
   },
 });

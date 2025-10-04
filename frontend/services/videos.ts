@@ -1,16 +1,19 @@
 import api from './api';
 import config from '../constants/config';
-import { ApiResponse, Comment, PaginationParams, Video, VideoUpload } from '../types';
+import { ApiResponse, Comment, PaginationParams, Video, VideoUpload, VideosApiResponse } from '../types';
 
 /**
  * Get videos with pagination
  * @param params - Pagination parameters
  * @returns Promise with videos response
  */
-export const getVideos = async (params: PaginationParams = {}): Promise<ApiResponse<Video[]>> => {
-  const { page = config.PAGINATION.DEFAULT_PAGE, limit = config.PAGINATION.DEFAULT_LIMIT } = params;
-  // Removed sort parameter which was causing the iterator error
-  return api.get(config.API.ENDPOINTS.VIDEOS.LIST, { params: { page, limit } });
+export const getVideos = async (params: PaginationParams & { type?: string } = {}): Promise<VideosApiResponse> => {
+  const { page = config.PAGINATION.DEFAULT_PAGE, limit = config.PAGINATION.DEFAULT_LIMIT, type } = params;
+  const queryParams: any = { page, limit };
+  if (type) {
+    queryParams.type = type;
+  }
+  return api.get(config.API.ENDPOINTS.VIDEOS.LIST, { params: queryParams });
 };
 
 /**
@@ -49,6 +52,11 @@ export const uploadVideo = async (videoData: VideoUpload): Promise<ApiResponse<V
   // Add duration if provided
   if (videoData.duration) {
     formData.append('duration', videoData.duration.toString());
+  }
+  
+  // Add video type if provided
+  if (videoData.type) {
+    formData.append('type', videoData.type);
   }
   
   // If we have a video URI (from image picker)

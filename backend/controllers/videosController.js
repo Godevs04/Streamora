@@ -11,7 +11,7 @@ const path = require('path');
  */
 const createVideo = async (req, res, next) => {
   try {
-    const { title, description, tags, thumbnailAspectRatio, duration } = req.body;
+    const { title, description, tags, thumbnailAspectRatio, duration, type } = req.body;
     let videoUrl, thumbnailUrl;
 
     // Handle video upload if file is provided
@@ -88,7 +88,8 @@ const createVideo = async (req, res, next) => {
       thumbnailUrl,
       thumbnailAspectRatio: thumbnailAspectRatio || '16:9',
       duration: duration || 0,
-      tags: tags ? JSON.parse(tags) : []
+      tags: tags ? JSON.parse(tags) : [],
+      type: type || 'normal'
     });
 
     // Populate owner
@@ -110,7 +111,14 @@ const getVideos = async (req, res, next) => {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 20;
     const sort = req.query.sort || 'recent';
+    const type = req.query.type;
     const skip = (page - 1) * limit;
+
+    // Build filter options
+    let filterOptions = {};
+    if (type) {
+      filterOptions.type = type;
+    }
 
     // Build sort options
     let sortOptions = {};
@@ -121,14 +129,14 @@ const getVideos = async (req, res, next) => {
     }
 
     // Get videos
-    const videos = await Video.find()
+    const videos = await Video.find(filterOptions)
       .sort(sortOptions)
       .skip(skip)
       .limit(limit)
       .populate('owner', 'name avatarUrl');
 
     // Get total count
-    const total = await Video.countDocuments();
+    const total = await Video.countDocuments(filterOptions);
 
     sendSuccessResponse(res, 200, { videos }, {
       page,

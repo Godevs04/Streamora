@@ -1,122 +1,192 @@
-import React, { useState } from 'react';
-import { View, Text, FlatList, ActivityIndicator, TextInput } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity, RefreshControl, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import Icon from 'react-native-vector-icons/Ionicons';
-import VideoCard from '../../components/VideoCard';
+import { Ionicons } from '@expo/vector-icons';
+import ShortsPlayer from '../../components/ShortsPlayer';
 import { getVideos } from '../../services/videos';
 import { Video } from '../../types';
 import colors from '../../constants/colors';
 
-export default function Explore() {
-  const [searchQuery, setSearchQuery] = useState('');
+export default function Shorts() {
   const [videos, setVideos] = useState<Video[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-    
-    setIsLoading(true);
-    setHasSearched(true);
-    
+  const fetchShorts = async () => {
     try {
-      // In a real app, you would have a search endpoint
-      // For now, we'll just filter by title using the existing endpoint
+      setIsLoading(true);
       const response = await getVideos({
         page: 1,
         limit: 50,
         sort: 'popular',
+        type: 'shorts' // Filter for shorts only
       });
       
-      // Client-side filtering as a fallback
-      // In a real app, this would be done on the server
-      const filteredVideos = response.data.filter(video => 
-        video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        video.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        video.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
-      
-      setVideos(filteredVideos);
+      // Filter for shorts videos (videos with type: 'shorts')
+      const shortsVideos = response.data.videos.filter((video: Video) => video.type === 'shorts');
+      setVideos(shortsVideos);
     } catch (error) {
-      console.error('Error searching videos:', error);
+      console.error('Error fetching shorts:', error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchShorts();
+  }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchShorts();
+    setRefreshing(false);
   };
   
   const renderEmpty = () => {
     if (isLoading) return null;
     
-    if (!hasSearched) {
-      return (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 40 }}>
-          <Icon name="search" size={48} color={colors.gray} />
-          <Text style={{ color: 'white', fontSize: 18, marginTop: 16 }}>Search for videos</Text>
-          <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 8, textAlign: 'center', paddingHorizontal: 40 }}>
-            Enter keywords to find videos by title, description, or tags
-          </Text>
-        </View>
-      );
-    }
-    
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 40 }}>
-        <Icon name="alert-circle-outline" size={48} color={colors.gray} />
-        <Text style={{ color: 'white', fontSize: 18, marginTop: 16 }}>No results found</Text>
-        <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 8 }}>
-          Try different keywords or check spelling
+      <View style={styles.emptyContainer}>
+        <Ionicons name="play-circle-outline" size={64} color={colors.primary} />
+        <Text style={styles.emptyTitle}>No Shorts Yet</Text>
+        <Text style={styles.emptySubtitle}>
+          Upload your first short video to get started!
         </Text>
+        <TouchableOpacity style={styles.uploadButton} onPress={() => {/* Navigate to upload */}}>
+          <Ionicons name="add" size={20} color="#FFFFFF" />
+          <Text style={styles.uploadButtonText}>Upload Short</Text>
+        </TouchableOpacity>
       </View>
     );
   };
   
   return (
-    <LinearGradient
-      colors={[colors.gradientStart, colors.gradientEnd]}
-      style={{ flex: 1 }}
-    >
-      <SafeAreaView style={{ flex: 1 }}>
-        <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#1F2937', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 }}>
-            <Icon name="search" size={20} color={colors.gray} />
-            <TextInput
-              style={{ flex: 1, color: 'white', fontSize: 16, marginLeft: 8 }}
-              placeholder="Search videos..."
-              placeholderTextColor={colors.gray}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              onSubmitEditing={handleSearch}
-              returnKeyType="search"
-            />
-            {searchQuery.length > 0 && (
-              <Icon
-                name="close-circle"
-                size={20}
-                color={colors.gray}
-                onPress={() => setSearchQuery('')}
-              />
-            )}
-          </View>
+    <SafeAreaView style={styles.container} edges={[]}>
+      <View style={styles.safeArea}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Shorts</Text>
+          <TouchableOpacity style={styles.headerButton}>
+            <Ionicons name="search" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
         
         {isLoading ? (
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={{ color: 'white', marginTop: 16 }}>Searching...</Text>
+            <Text style={styles.loadingText}>Loading Shorts...</Text>
           </View>
         ) : (
           <FlatList
             data={videos}
             keyExtractor={(item) => item._id}
-            renderItem={({ item }) => <VideoCard video={item} />}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}
-            numColumns={1}
+            renderItem={({ item }) => (
+              <ShortsPlayer
+                video={item}
+                onLike={() => console.log('Like video:', item._id)}
+                onComment={() => console.log('Comment on video:', item._id)}
+                onShare={() => console.log('Share video:', item._id)}
+                onSubscribe={() => console.log('Subscribe to:', item.owner.name)}
+                isLiked={false}
+                isSubscribed={false}
+              />
+            )}
+            pagingEnabled
             showsVerticalScrollIndicator={false}
+            snapToInterval={Dimensions.get('window').height}
+            snapToAlignment="start"
+            decelerationRate="fast"
             ListEmptyComponent={renderEmpty}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={colors.primary}
+              />
+            }
           />
         )}
-      </SafeAreaView>
-    </LinearGradient>
+      </View>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background.primary,
+    paddingTop: 0,
+    marginTop: 0,
+  },
+  safeArea: {
+    flex: 1,
+    paddingTop: 0,
+    marginTop: 0,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.background.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text.primary,
+  },
+  headerButton: {
+    padding: 8,
+  },
+  listContainer: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    color: colors.text.primary,
+    marginTop: 16,
+    fontSize: 16,
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text.primary,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    color: colors.text.secondary,
+    marginTop: 8,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 25,
+    marginTop: 24,
+  },
+  uploadButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+});

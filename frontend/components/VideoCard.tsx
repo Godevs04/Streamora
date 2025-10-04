@@ -8,6 +8,7 @@ import { formatCount, formatRelativeTime, formatDuration } from '../utils/format
 import useAuthStore from '../store/useAuthStore';
 import { toggleDummyVideoLike, subscribeToDummyUser } from '../services/dummyData';
 import { APP_ICONS } from '../utils/iconLoader';
+import colors from '../constants/colors';
 
 interface VideoCardProps {
   video: Video;
@@ -100,8 +101,8 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
       return;
     }
     
-    // In a real app, this would navigate to a profile screen
-    console.log(`Viewing profile: ${video.owner._id}`);
+    // Navigate to profile page
+    router.push(`/profile/${video.owner._id}`);
   };
   
   // Handle like press
@@ -247,45 +248,6 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
           
           {variant === 'default' && (
             <View style={styles.actionsContainer}>
-              <View style={styles.statsContainer}>
-                <View style={styles.likeDislikeContainer}>
-                  <TouchableOpacity 
-                    onPress={handleLikePress}
-                    style={styles.actionButton}
-                  >
-                    <MaterialIcons 
-                      name={liked ? "thumb-up" : "thumb-up-off-alt"} 
-                      size={20} 
-                      color={liked ? "#FFFFFF" : "#909090"} 
-                    />
-                    <Text style={[styles.actionText, liked && styles.likedText]}>
-                      {formatCount(likesCount)}
-                    </Text>
-                  </TouchableOpacity>
-                  
-                  <View style={styles.actionDivider} />
-                  
-                  <TouchableOpacity 
-                    onPress={handleDislikePress}
-                    style={styles.actionButton}
-                  >
-                    <MaterialIcons 
-                      name="thumb-down-off-alt" 
-                      size={20} 
-                      color="#909090" 
-                    />
-                  </TouchableOpacity>
-                </View>
-                
-                <TouchableOpacity 
-                  onPress={handleSharePress}
-                  style={styles.actionButton}
-                >
-                  <MaterialIcons name="share" size={20} color="#909090" />
-                  <Text style={styles.actionText}>Share</Text>
-                </TouchableOpacity>
-              </View>
-              
               <TouchableOpacity
                 onPress={handleSubscribePress}
                 style={[
@@ -313,15 +275,15 @@ const styles = StyleSheet.create({
   thumbnailContainer: {
     borderRadius: 0, // YouTube doesn't use rounded corners
     overflow: 'hidden',
-    backgroundColor: '#0F0F0F',
+    backgroundColor: colors.background.primary,
   },
   placeholderContainer: {
-    backgroundColor: '#1F2937',
+    backgroundColor: colors.background.secondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   placeholderText: {
-    color: '#9CA3AF',
+    color: colors.text.secondary,
     marginTop: 8,
     fontSize: 12,
   },
@@ -365,7 +327,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   titleText: {
-    color: 'white',
+    color: colors.text.primary,
     fontWeight: '500',
     fontSize: 15,
     lineHeight: 20,
@@ -376,23 +338,23 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   channelText: {
-    color: '#909090',
+    color: colors.text.secondary,
     fontSize: 13,
   },
   dotSeparator: {
-    color: '#909090',
+    color: colors.text.secondary,
     fontSize: 13,
     marginHorizontal: 4,
   },
   timeText: {
-    color: '#909090',
+    color: colors.text.secondary,
     fontSize: 13,
   },
   actionsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 16,
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
   },
   statsContainer: {
     flexDirection: 'row',
@@ -401,7 +363,7 @@ const styles = StyleSheet.create({
   likeDislikeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#272727',
+    backgroundColor: colors.background.tertiary,
     borderRadius: 18,
     overflow: 'hidden',
     marginRight: 8,
@@ -415,7 +377,7 @@ const styles = StyleSheet.create({
   actionDivider: {
     width: 1,
     height: '60%',
-    backgroundColor: '#3F3F3F',
+    backgroundColor: colors.darkGray,
   },
   commentContainer: {
     flexDirection: 'row',
@@ -423,25 +385,25 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   actionText: {
-    color: '#909090',
+    color: colors.text.secondary,
     fontSize: 13,
     marginLeft: 6,
     fontWeight: '500',
   },
   likedText: {
-    color: '#FFFFFF',
+    color: colors.text.primary,
   },
   subscribeButton: {
-    backgroundColor: '#FF0000', // YouTube red
+    backgroundColor: colors.primary, // Dark blue instead of red
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 18,
   },
   subscribedButton: {
-    backgroundColor: '#272727',
+    backgroundColor: colors.background.tertiary,
   },
   subscribeText: {
-    color: 'white',
+    color: colors.text.primary,
     fontSize: 14,
     fontWeight: '500',
   },

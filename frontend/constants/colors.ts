@@ -1,48 +1,57 @@
 /**
- * YouTube-inspired color palette for Streamora
+ * NovaTube-inspired color palette for Streamora
+ * Dark blue and black theme
  */
 export default {
   // Primary colors
-  primary: '#FF0000',       // YouTube Red
-  secondary: '#212121',     // Dark background
+  primary: '#6366F1',       // Indigo blue (NovaTube purple equivalent)
+  secondary: '#1E1B4B',     // Dark blue background
   white: '#FFFFFF',
   black: '#000000',
   
   // UI colors
   background: {
-    primary: '#0F0F0F',     // Main background
-    secondary: '#212121',   // Cards, modals
-    tertiary: '#272727',    // Buttons, inputs
+    primary: '#0F0F23',     // Very dark blue background
+    secondary: '#1E1B4B',   // Dark blue cards, modals
+    tertiary: '#312E81',    // Darker blue for buttons, inputs
   },
   
   // Text colors
   text: {
     primary: '#FFFFFF',     // Main text
-    secondary: '#AAAAAA',   // Secondary text
-    tertiary: '#717171',    // Disabled text
+    secondary: '#A1A1AA',   // Secondary text (gray-400)
+    tertiary: '#71717A',    // Disabled text (gray-500)
   },
   
   // Accent colors
-  blue: '#3EA6FF',          // YouTube Blue
-  red: '#FF0000',           // YouTube Red
+  blue: '#3B82F6',          // Blue-500
+  purple: '#6366F1',        // Indigo-500 (primary)
+  indigo: '#4F46E5',        // Indigo-600
   
   // Utility colors
-  gray: '#909090',
-  lightGray: '#AAAAAA',
-  darkGray: '#717171',
-  error: '#F44336',
-  success: '#4CAF50',
-  warning: '#FF9800',
-  info: '#2196F3',
+  gray: '#6B7280',         // Gray-500
+  lightGray: '#A1A1AA',    // Gray-400
+  darkGray: '#374151',     // Gray-700
+  border: '#374151',       // Gray-700 for borders
+  error: '#EF4444',        // Red-500
+  success: '#10B981',      // Emerald-500
+  warning: '#F59E0B',      // Amber-500
+  info: '#3B82F6',         // Blue-500
   
   // Gradient colors
-  gradientStart: '#0F0F0F',  // Dark background
+  gradientStart: '#0F0F23',  // Very dark blue
   gradientEnd: '#000000',    // Black
   
   // Button colors
   button: {
-    primary: '#FF0000',     // YouTube Red
-    secondary: '#3EA6FF',   // YouTube Blue
-    disabled: '#717171',
+    primary: '#6366F1',     // Indigo-500
+    secondary: '#3B82F6',   // Blue-500
+    disabled: '#71717A',     // Gray-500
+  },
+  
+  // Category colors
+  category: {
+    active: '#6366F1',      // Indigo-500
+    inactive: '#374151',    // Gray-700
   },
 };

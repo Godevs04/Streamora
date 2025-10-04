@@ -50,6 +50,11 @@ const VideoSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  type: {
+    type: String,
+    enum: ['normal', 'shorts'],
+    default: 'normal'
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -73,7 +78,7 @@ VideoSchema.virtual('comments', {
 
 // Method to toggle like/unlike
 VideoSchema.methods.toggleLike = async function(userId) {
-  const userIdObj = mongoose.Types.ObjectId(userId);
+  const userIdObj = new mongoose.Types.ObjectId(userId);
   const isLiked = this.likes.includes(userIdObj);
   
   if (isLiked) {
