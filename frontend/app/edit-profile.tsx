@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Alert, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -11,6 +11,7 @@ import colors from '../constants/colors';
 
 export default function EditProfile() {
   const { user, updateUser } = useAuthStore();
+  const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -214,10 +215,17 @@ export default function EditProfile() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={[]}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.safeArea}>
         {renderHeader()}
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.scrollView} 
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: Math.max(insets.bottom + 20, 40) }
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
           {renderAvatarSection()}
           {renderFormSection()}
         </ScrollView>
@@ -239,7 +247,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 0,
+    paddingTop: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.background.secondary,
@@ -265,10 +273,13 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: 20,
   },
   avatarSection: {
     paddingVertical: 24,
+    paddingTop: 32, // Extra top padding for better spacing
     alignItems: 'center',
   },
   sectionTitle: {
@@ -300,7 +311,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   formSection: {
-    paddingBottom: 40,
+    paddingBottom: 20, // Reduced since we have dynamic bottom padding
   },
   inputGroup: {
     marginBottom: 20,
