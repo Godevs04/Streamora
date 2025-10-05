@@ -98,7 +98,7 @@ export interface VideoUpload {
 export interface PaginationParams {
   page?: number;
   limit?: number;
-  sort?: 'recent' | 'popular';
+  sort?: 'recent' | 'popular' | 'newest' | 'oldest' | 'top';
 }
 
 export interface PreviousIntent {

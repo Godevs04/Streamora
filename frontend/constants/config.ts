@@ -22,6 +22,7 @@ export default {
           LIST: (videoId: string) => `/videos/${videoId}/comments`,
           CREATE: (videoId: string) => `/videos/${videoId}/comments`,
           DELETE: (commentId: string) => `/comments/${commentId}`,
+          LIKE: (commentId: string) => `/comments/${commentId}/like`,
         },
       },
       NOTIFICATIONS: {

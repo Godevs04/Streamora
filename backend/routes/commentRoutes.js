@@ -3,7 +3,8 @@ const { check } = require('express-validator');
 const { 
   createComment, 
   getComments, 
-  deleteComment 
+  deleteComment,
+  toggleLikeComment,
 } = require('../controllers/commentsController');
 const { protect } = require('../middlewares/auth');
 const validate = require('../middlewares/validate');
@@ -38,5 +39,12 @@ router.get('/videos/:id/comments', getComments);
  * @access Private
  */
 router.delete('/comments/:commentId', protect, deleteComment);
+
+/**
+ * @route PUT /api/comments/:commentId/like
+ * @desc Toggle like/unlike a comment
+ * @access Private
+ */
+router.put('/comments/:commentId/like', protect, toggleLikeComment);
 
 module.exports = router;

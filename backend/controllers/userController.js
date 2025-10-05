@@ -186,9 +186,10 @@ const getUserStats = async (req, res) => {
       Video.countDocuments({ owner: userId })
     ]);
 
-    // Aggregate likes and views across user's videos
-    const agg = await Video.aggregate([
-      { $match: { owner: new require('mongoose').Types.ObjectId(userId) } },
+  // Aggregate likes and views across user's videos
+  const mongoose = require('mongoose');
+  const agg = await Video.aggregate([
+    { $match: { owner: new mongoose.Types.ObjectId(userId) } },
       {
         $group: {
           _id: null,

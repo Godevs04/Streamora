@@ -17,6 +17,14 @@ const CommentSchema = new mongoose.Schema({
     trim: true,
     maxlength: [500, 'Comment cannot exceed 500 characters']
   },
+  likesCount: {
+    type: Number,
+    default: 0,
+  },
+  likedBy: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  }],
   createdAt: {
     type: Date,
     default: Date.now
@@ -31,6 +39,7 @@ const CommentSchema = new mongoose.Schema({
 
 // Add index for faster queries
 CommentSchema.index({ video: 1, createdAt: -1 });
+CommentSchema.index({ video: 1, likesCount: -1 });
 
 const Comment = mongoose.model('Comment', CommentSchema);
 

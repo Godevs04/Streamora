@@ -128,7 +128,7 @@ export const getVideoComments = async (
   videoId: string,
   params: PaginationParams = {}
 ): Promise<ApiResponse<Comment[]>> => {
-  const { page = config.PAGINATION.DEFAULT_PAGE, limit = config.PAGINATION.DEFAULT_LIMIT, sort = 'newest' } = params;
+  const { page = config.PAGINATION.DEFAULT_PAGE, limit = config.PAGINATION.DEFAULT_LIMIT, sort = 'newest' } = params as any;
   return api.get(config.API.ENDPOINTS.VIDEOS.COMMENTS.LIST(videoId), { params: { page, limit, sort } });
 };
 
@@ -149,4 +149,11 @@ export const addComment = async (videoId: string, text: string): Promise<ApiResp
  */
 export const deleteComment = async (commentId: string): Promise<ApiResponse<{ message: string }>> => {
   return api.delete(config.API.ENDPOINTS.VIDEOS.COMMENTS.DELETE(commentId));
+};
+
+/**
+ * Toggle like/unlike a comment
+ */
+export const toggleLikeComment = async (commentId: string): Promise<ApiResponse<{ liked: boolean, likesCount: number }>> => {
+  return api.put(config.API.ENDPOINTS.VIDEOS.COMMENTS.LIKE(commentId));
 };

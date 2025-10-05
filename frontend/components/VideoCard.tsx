@@ -6,7 +6,8 @@ import Avatar from './Avatar';
 import { PreviousIntent, Video } from '../types';
 import { formatCount, formatRelativeTime, formatDuration } from '../utils/formatDate';
 import useAuthStore from '../store/useAuthStore';
-import { toggleDummyVideoLike } from '../services/dummyData';
+// Use real API for likes on home feed
+import { toggleLikeVideo } from '../services/videos';
 import { subscribeToUser as apiSubscribe, unsubscribeFromUser as apiUnsubscribe } from '../services/user';
 import { APP_ICONS } from '../utils/iconLoader';
 import colors from '../constants/colors';
@@ -107,19 +108,22 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
   };
   
   // Handle like press
-  const handleLikePress = () => {
+  const handleLikePress = async () => {
     // Check if user is authenticated
     if (!showAuthModal({ type: 'like', data: { videoId: video._id } })) {
       return;
     }
     
-    // Toggle like
-    if (user) {
-      const updatedVideo = toggleDummyVideoLike(video._id, user._id);
-      if (updatedVideo) {
-        setLiked(!liked);
-        setLikesCount(updatedVideo.likesCount);
-      }
+    if (!video?._id) return;
+    try {
+      const resp = await toggleLikeVideo(video._id);
+      const { liked: isLiked, likesCount: newLikes } = resp.data || {};
+      setLiked(Boolean(isLiked));
+      if (typeof newLikes === 'number') setLikesCount(newLikes);
+    } catch (e) {
+      // Fallback local toggle
+      setLiked(!liked);
+      setLikesCount(liked ? Math.max(0, likesCount - 1) : likesCount + 1);
     }
   };
   
@@ -129,9 +133,12 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
     if (!showAuthModal({ type: 'dislike', data: { videoId: video._id } })) {
       return;
     }
-    
-    // In a real app, this would handle disliking
-    Alert.alert('Dislike', 'Video disliked');
+    // Local-only dislike: toggle like off and decrement count if currently liked
+    if (liked) {
+      setLiked(false);
+      setLikesCount(Math.max(0, likesCount - 1));
+    }
+    Alert.alert('Feedback', 'Thanks for your feedback');
   };
   
   // Handle share press
@@ -217,7 +224,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
           {video.duration && video.duration > 0 && (
             <View style={styles.durationBadge}>
               <Text style={styles.durationText}>
-                {formatDuration(video.duration)}
+                {formatDuration(video.duration > 1000 ? Math.round(video.duration / 1000) : video.duration)}
               </Text>
             </View>
           )}
@@ -270,7 +277,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
             </View>
 
             {/* Comments */}
-            <TouchableOpacity style={styles.commentContainer} onPress={() => router.push(`/video/${video._id}`)}>
+            <TouchableOpacity style={styles.commentContainer} onPress={() => router.push({ pathname: `/video/${video._id}`, params: { focus: 'comments' } as any })}>
               <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.text.secondary} />
               <Text style={styles.actionText}>{formatCount((video.comments?.length || 0))}</Text>
             </TouchableOpacity>
@@ -285,7 +292,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
             {variant === 'default' && (
               <TouchableOpacity
                 onPress={handleSubscribePress}
-                style={[styles.subscribeButton, subscribed && styles.subscribedButton]}
+                style={[styles.subscribeButton, subscribed && styles.subscribedButton, styles.subscribeRight]}
               >
                 <Text style={styles.subscribeText}>{subscribed ? 'Subscribed' : 'Subscribe'}</Text>
               </TouchableOpacity>
@@ -390,7 +397,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 12,
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
+    paddingLeft: 4,
   },
   actionsRowCompact: {
     justifyContent: 'flex-start',
@@ -405,7 +413,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.tertiary,
     borderRadius: 18,
     overflow: 'hidden',
-    marginRight: 8,
+    marginRight: 6,
   },
   actionButton: {
     flexDirection: 'row',
@@ -421,7 +429,8 @@ const styles = StyleSheet.create({
   commentContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 12,
+    marginLeft: 8,
+    marginRight: 6,
   },
   actionText: {
     color: colors.text.secondary,
@@ -445,6 +454,9 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     fontSize: 14,
     fontWeight: '500',
+  },
+  subscribeRight: {
+    marginLeft: 'auto',
   },
 });
 

@@ -44,7 +44,7 @@ const getComments = async (req, res, next) => {
     const videoId = req.params.id;
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 20;
-    const sort = req.query.sort || 'newest';
+    const sort = req.query.sort || 'newest'; // 'newest' | 'oldest' | 'top'
     const skip = (page - 1) * limit;
     
     // Check if video exists
@@ -57,6 +57,8 @@ const getComments = async (req, res, next) => {
     let sortOptions = {};
     if (sort === 'oldest') {
       sortOptions = { createdAt: 1 };
+    } else if (sort === 'top') {
+      sortOptions = { likesCount: -1, createdAt: -1 };
     } else {
       sortOptions = { createdAt: -1 };
     }
@@ -111,8 +113,40 @@ const deleteComment = async (req, res, next) => {
   }
 };
 
+/**
+ * Like/unlike a comment (toggle)
+ * @route PUT /api/comments/:commentId/like
+ * @access Private
+ */
+const toggleLikeComment = async (req, res, next) => {
+  try {
+    const { commentId } = req.params;
+    const userId = req.user._id;
+
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+      return sendErrorResponse(res, 404, 'Comment not found');
+    }
+
+    const hasLiked = comment.likedBy?.some(id => id.toString() === userId.toString());
+    if (hasLiked) {
+      comment.likedBy = comment.likedBy.filter(id => id.toString() !== userId.toString());
+      comment.likesCount = Math.max(0, (comment.likesCount || 0) - 1);
+    } else {
+      comment.likedBy = [...(comment.likedBy || []), userId];
+      comment.likesCount = (comment.likesCount || 0) + 1;
+    }
+    await comment.save();
+
+    return sendSuccessResponse(res, 200, { liked: !hasLiked, likesCount: comment.likesCount });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createComment,
   getComments,
-  deleteComment
+  deleteComment,
+  toggleLikeComment
 };

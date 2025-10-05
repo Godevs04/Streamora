@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, Share, Alert, Platform } from 'react-native';
-import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, Share, Alert, Platform, Modal } from 'react-native';
+import { TextInput } from 'react-native-gesture-handler';
+import { getVideoComments, addComment, toggleLikeComment } from '../../services/videos';
+import { useLocalSearchParams, useRouter, Stack, useNavigation, usePathname } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Linking } from 'react-native';
@@ -17,7 +19,7 @@ import config from '../../constants/config';
 import useAuthStore from '../../store/useAuthStore';
 
 export default function VideoPlayer() {
-  const { id } = useLocalSearchParams();
+  const { id, focus } = useLocalSearchParams();
   const router = useRouter();
   const videoRef = useRef<Video>(null);
   const { user } = useAuthStore();
@@ -33,10 +35,20 @@ export default function VideoPlayer() {
   const [isVideoLoading, setIsVideoLoading] = useState(true);
   const [volume, setVolume] = useState(1.0);
   const [isMuted, setIsMuted] = useState(false);
+  const [commentsVisible, setCommentsVisible] = useState(false);
+  const [newComment, setNewComment] = useState('');
+  const [comments, setComments] = useState<any[]>([]);
+  const [commentsSort, setCommentsSort] = useState<'top' | 'newest'>('top');
+  const [commentsLoading, setCommentsLoading] = useState(false);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const [moreExpanded, setMoreExpanded] = useState(false);
   const toggleMore = () => setMoreExpanded((v) => !v);
+  const [settingsVisible, setSettingsVisible] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1.0);
+  const [captionsEnabled, setCaptionsEnabled] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [qualityLabel, setQualityLabel] = useState<'Auto (360p)' | 'Auto'>('Auto (360p)');
   
   const videoId = Array.isArray(id) ? id[0] : id;
   
@@ -51,6 +63,33 @@ export default function VideoPlayer() {
       }
     };
   }, [videoId]);
+
+  // Open comments if navigated with focus=comments
+  useEffect(() => {
+    if (focus === 'comments') {
+      setCommentsVisible(true);
+    }
+  }, [focus]);
+
+  const loadComments = async (sort: 'top' | 'newest' = commentsSort) => {
+    if (!video?._id) return;
+    try {
+      setCommentsLoading(true);
+      const res = await getVideoComments(video._id, { page: 1, limit: 50, sort: sort as any });
+      const list = (res?.data as any) || [];
+      setComments(list);
+    } catch (e) {
+      // ignore
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (commentsVisible) {
+      loadComments('top');
+    }
+  }, [commentsVisible, video?._id]);
   
   const fetchVideo = async () => {
     if (!videoId) {
@@ -284,8 +323,24 @@ export default function VideoPlayer() {
     Alert.alert('Reported', 'Thank you for your report. Our team will review it.');
   };
   
-  const handleVideoPress = () => {
-    setShowControls(!showControls);
+  const handleVideoPress = async () => {
+    if (isLocked) {
+      setShowControls(!showControls);
+      return;
+    }
+    try {
+      if (status?.isLoaded && status.isPlaying) {
+        await videoRef.current?.pauseAsync();
+      } else if (status?.isLoaded) {
+        await videoRef.current?.setRateAsync(playbackRate, true);
+        await videoRef.current?.playAsync();
+      }
+    } catch (e) {}
+    setShowControls(true);
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 3000);
   };
   
   const handleBackPress = () => {
@@ -372,8 +427,8 @@ export default function VideoPlayer() {
               <Video
                 ref={videoRef}
                 source={{ uri: video.videoUrl }}
-                style={styles.video}
-                resizeMode={isFullscreen ? ResizeMode.CONTAIN : ResizeMode.COVER}
+                style={[styles.video, isFullscreen && styles.fullscreenVideo]}
+                resizeMode={isFullscreen ? ResizeMode.COVER : ResizeMode.CONTAIN}
                 shouldPlay={true}
                 useNativeControls={false}
                 isLooping={false}
@@ -529,14 +584,14 @@ export default function VideoPlayer() {
                     <Text style={styles.actionPillText}>Download</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity style={styles.actionPill} onPress={handleSavePress}>
-                    <MaterialIcons name="add" size={20} color={colors.text.primary} />
-                    <Text style={styles.actionPillText}>Save</Text>
-                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.actionPill} onPress={() => setSettingsVisible(true)}>
+                      <MaterialIcons name="settings" size={20} color={colors.text.primary} />
+                      <Text style={styles.actionPillText}>Options</Text>
+                    </TouchableOpacity>
 
-                  <TouchableOpacity style={styles.actionPill} onPress={() => scrollRef.current?.scrollToEnd({ animated: true })}>
+                <TouchableOpacity style={styles.actionPill} onPress={() => setCommentsVisible(true)}>
                     <MaterialIcons name="chat-bubble-outline" size={20} color={colors.text.primary} />
-                    <Text style={styles.actionPillText}>Comments {(video.comments?.length || 0)}</Text>
+                  <Text style={styles.actionPillText}>Comments {(video.comments?.length || 0)}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity style={styles.actionPill} onPress={toggleMore}>
@@ -547,6 +602,11 @@ export default function VideoPlayer() {
 
                 {moreExpanded && (
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.actionsRowSecondary}>
+                   
+                    <TouchableOpacity style={styles.actionPill} onPress={handleSavePress}>
+                    <MaterialIcons name="add" size={20} color={colors.text.primary} />
+                    <Text style={styles.actionPillText}>Save</Text>
+                  </TouchableOpacity>
                     <TouchableOpacity style={styles.actionPill} onPress={handleReportPress}>
                       <MaterialIcons name="flag" size={20} color={colors.text.primary} />
                       <Text style={styles.actionPillText}>Report</Text>
@@ -600,6 +660,159 @@ export default function VideoPlayer() {
               </View>
             </ScrollView>
           )}
+          {/* Settings Bottom Sheet */}
+          <Modal
+            visible={settingsVisible}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setSettingsVisible(false)}
+          >
+            <View style={styles.modalBackdrop}>
+              <TouchableOpacity
+                style={styles.modalBackdropTouchable}
+                activeOpacity={1}
+                onPress={() => setSettingsVisible(false)}
+              />
+              <View style={styles.sheet}>
+                <View style={styles.sheetHandleContainer}>
+                  <View style={styles.sheetHandle} />
+                </View>
+
+                <TouchableOpacity style={styles.sheetRow} onPress={() => setQualityLabel('Auto (360p)')}>
+                  <View style={styles.sheetRowLeft}>
+                    <MaterialIcons name="tune" size={22} color={colors.text.primary} />
+                    <Text style={styles.sheetRowText}>Quality</Text>
+                  </View>
+                  <Text style={styles.sheetRowValue}>{qualityLabel}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.sheetRow} onPress={async () => {
+                  const next = playbackRate === 1 ? 1.25 : playbackRate === 1.25 ? 1.5 : playbackRate === 1.5 ? 2.0 : 1.0;
+                  setPlaybackRate(next);
+                  try { await videoRef.current?.setRateAsync(next, true); } catch {}
+                }}>
+                  <View style={styles.sheetRowLeft}>
+                    <MaterialIcons name="slow-motion-video" size={22} color={colors.text.primary} />
+                    <Text style={styles.sheetRowText}>Playback speed</Text>
+                  </View>
+                  <Text style={styles.sheetRowValue}>{playbackRate === 1 ? 'Normal' : `${playbackRate}x`}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.sheetRow} onPress={() => setCaptionsEnabled(!captionsEnabled)}>
+                  <View style={styles.sheetRowLeft}>
+                    <MaterialIcons name="closed-caption" size={22} color={colors.text.primary} />
+                    <Text style={styles.sheetRowText}>Captions</Text>
+                  </View>
+                  <Text style={styles.sheetRowValue}>{captionsEnabled ? 'On' : 'Off'}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.sheetRow} onPress={() => setIsLocked(!isLocked)}>
+                  <View style={styles.sheetRowLeft}>
+                    <MaterialIcons name="lock" size={22} color={colors.text.primary} />
+                    <Text style={styles.sheetRowText}>Lock screen</Text>
+                  </View>
+                  <Text style={styles.sheetRowValue}>{isLocked ? 'Locked' : 'Unlocked'}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.sheetRow} onPress={() => Alert.alert('More', 'Additional settings coming soon')}>
+                  <View style={styles.sheetRowLeft}>
+                    <MaterialIcons name="more-horiz" size={22} color={colors.text.primary} />
+                    <Text style={styles.sheetRowText}>More</Text>
+                  </View>
+                  <MaterialIcons name="chevron-right" size={22} color={colors.text.primary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+
+          {isLocked && (
+            <View style={styles.lockOverlay} pointerEvents="box-none">
+              {showControls && (
+                <TouchableOpacity style={styles.unlockButton} onPress={() => setIsLocked(false)}>
+                  <MaterialIcons name="lock-open" size={20} color="white" />
+                  <Text style={styles.unlockText}>Unlock</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
+          {/* Comments Bottom Sheet */}
+          <Modal
+            visible={commentsVisible}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setCommentsVisible(false)}
+          >
+            <View style={styles.modalBackdrop}>
+              <TouchableOpacity style={styles.modalBackdropTouchable} activeOpacity={1} onPress={() => setCommentsVisible(false)} />
+              <View style={styles.sheet}>
+                <View style={styles.sheetHandleContainer}>
+                  <View style={styles.sheetHandle} />
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <Text style={styles.commentsHeader}>Comments</Text>
+                  <View style={{ flexDirection: 'row' }}>
+                    <TouchableOpacity onPress={() => { setCommentsSort('top'); loadComments('top'); }}>
+                      <Text style={[styles.sortPill, commentsSort === 'top' && styles.sortPillActive]}>Top</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => { setCommentsSort('newest'); loadComments('newest'); }}>
+                      <Text style={[styles.sortPill, commentsSort === 'newest' && styles.sortPillActive]}>Newest</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <ScrollView style={{ maxHeight: 320 }}>
+                  {commentsLoading ? (
+                    <Text style={styles.emptyComments}>Loading...</Text>
+                  ) : (
+                    <>
+                      {comments.map((c: any) => (
+                        <View key={c._id || Math.random().toString()} style={styles.commentRow}>
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Text style={styles.commentAuthor}>{c.author?.name || 'User'}</Text>
+                            <TouchableOpacity onPress={async () => {
+                              try {
+                                const res = await toggleLikeComment(c._id);
+                                const data = res?.data || {};
+                                setComments(prev => prev.map(item => item._id === c._id ? { ...item, likesCount: data.likesCount } : item));
+                              } catch {}
+                            }}>
+                              <Text style={styles.commentLikes}>♥ {c.likesCount || 0}</Text>
+                            </TouchableOpacity>
+                          </View>
+                          <Text style={styles.commentText}>{c.text}</Text>
+                        </View>
+                      ))}
+                      {comments.length === 0 && (
+                        <Text style={styles.emptyComments}>No comments yet</Text>
+                      )}
+                    </>
+                  )}
+                </ScrollView>
+                <View style={styles.addCommentRow}>
+                  <TextInput
+                    style={styles.commentInput}
+                    placeholder="Add a comment"
+                    placeholderTextColor={colors.text.secondary}
+                    value={newComment}
+                    onChangeText={setNewComment}
+                  />
+                  <TouchableOpacity
+                    style={styles.sendButton}
+                    onPress={async () => {
+                      if (!newComment.trim() || !video?._id) return;
+                      try {
+                        await addComment(video._id, newComment.trim());
+                        setNewComment('');
+                        await loadComments(commentsSort);
+                      } catch {}
+                    }}
+                  >
+                    <MaterialIcons name="send" size={20} color={colors.text.primary} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
         </LinearGradient>
       </SafeAreaView>
     </>
@@ -683,6 +896,133 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
   },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)'
+  },
+  modalBackdropTouchable: {
+    flex: 1,
+  },
+  sheet: {
+    backgroundColor: 'rgba(20,20,20,0.98)',
+    paddingBottom: 24,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingHorizontal: 16,
+  },
+  sheetHandleContainer: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.3)'
+  },
+  sheetRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.1)'
+  },
+  sheetRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  sheetRowText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  sheetRowValue: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
+  },
+  commentsHeader: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  commentRow: {
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.08)'
+  },
+  commentAuthor: {
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  commentText: {
+    color: 'rgba(255,255,255,0.9)',
+  },
+  emptyComments: {
+    color: 'rgba(255,255,255,0.6)',
+    paddingVertical: 12,
+  },
+  sortPill: {
+    color: 'rgba(255,255,255,0.8)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    marginLeft: 8,
+    overflow: 'hidden',
+  },
+  sortPillActive: {
+    color: 'white',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  commentLikes: {
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: '600',
+  },
+  addCommentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  commentInput: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: 'white',
+    marginRight: 8,
+  },
+  sendButton: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  lockOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    padding: 12,
+  },
+  unlockButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+  },
+  unlockText: {
+    color: 'white',
+    marginLeft: 6,
+    fontSize: 12,
+    fontWeight: '600',
+  },
   actionsListContainer: {
     marginTop: 12,
   },
@@ -704,7 +1044,18 @@ const styles = StyleSheet.create({
   fullscreenVideoContainer: {
     aspectRatio: undefined,
     height: '100%',
+    width: '100%',
     borderRadius: 0,
+    backgroundColor: '#000',
+  },
+  fullscreenVideo: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
   },
   videoWrapper: {
     flex: 1,
