@@ -10,12 +10,14 @@ import Button from '../../components/Button';
 import AuthRequiredWrapper from '../../components/AuthRequiredWrapper';
 import useAuthStore from '../../store/useAuthStore';
 import { getDummyVideos } from '../../services/dummyData';
+import { getUserStats } from '../../services/user';
 import { Video } from '../../types';
 import colors from '../../constants/colors';
 import { formatCount } from '../../utils/formatDate';
+import { uploadImage } from '../../services/upload';
 
 export default function Profile() {
-  const { user, logout } = useAuthStore();
+  const { user, logout, updateUser } = useAuthStore();
   const [videos, setVideos] = useState<Video[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'videos' | 'liked'>('videos');
@@ -52,12 +54,44 @@ export default function Profile() {
       const totalViews = userVideos.reduce((sum, video) => sum + (video.views || 0), 0);
       
       setVideos(userVideos);
-      setProfileStats({
-        followers: Math.floor(Math.random() * 10000) + 1000, // Simulated followers
-        following: Math.floor(Math.random() * 500) + 50, // Simulated following
-        likes: totalLikes,
-        uploads: userVideos.length,
-      });
+
+      // Fetch real stats from API
+      try {
+        const { token } = useAuthStore.getState();
+        if (token) {
+          const response = await getUserStats(token);
+          if (response?.success) {
+            const data = response.data;
+            setProfileStats({
+              followers: data.followers || 0,
+              following: data.following || 0,
+              likes: totalLikes,
+              uploads: data.totalVideos ?? userVideos.length,
+            });
+          } else {
+            setProfileStats({
+              followers: 0,
+              following: 0,
+              likes: totalLikes,
+              uploads: userVideos.length,
+            });
+          }
+        } else {
+          setProfileStats({
+            followers: 0,
+            following: 0,
+            likes: totalLikes,
+            uploads: userVideos.length,
+          });
+        }
+      } catch (e) {
+        setProfileStats({
+          followers: 0,
+          following: 0,
+          likes: totalLikes,
+          uploads: userVideos.length,
+        });
+      }
     } catch (error) {
       console.error('Error fetching user videos:', error);
     } finally {
@@ -75,8 +109,7 @@ export default function Profile() {
   };
   
   const handleEditProfile = () => {
-    // In a real app, this would navigate to an edit profile screen
-    Alert.alert('Edit Profile', 'This feature is not implemented yet.');
+    router.push('/edit-profile');
   };
   
   const handleChangeAvatar = async () => {
@@ -100,11 +133,39 @@ export default function Profile() {
       });
       
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        // In a real app, you would upload the image to your backend
-        Alert.alert('Avatar Update', 'This feature is not fully implemented yet.');
+        const imageUri = result.assets[0].uri;
+        
+        // Upload the image to server
+        try {
+          const { token } = useAuthStore.getState();
+          if (!token) {
+            throw new Error('No authentication token');
+          }
+          
+          const uploadedUrl = await uploadImage(imageUri, token);
+          
+          // Update the user in the store with the new avatar URL
+          await updateUser({
+            _id: user?._id || '',
+            name: user?.name || '',
+            username: user?.username || '',
+            bio: user?.bio || '',
+            email: user?.email || '',
+            avatarUrl: uploadedUrl,
+            roles: user?.roles || ['user'],
+            createdAt: user?.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+          
+          Alert.alert('Success', 'Avatar updated successfully');
+        } catch (uploadError) {
+          console.error('Error uploading avatar:', uploadError);
+          Alert.alert('Error', 'Failed to upload avatar. Please try again.');
+        }
       }
     } catch (error) {
       console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image');
     }
   };
   

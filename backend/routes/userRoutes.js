@@ -6,7 +6,11 @@ const {
   getUserById,
   updateUserProfile,
   updateUserAvatar,
-  getUserStats
+  getUserStats,
+  getUserVideos,
+  subscribeToUser,
+  unsubscribeFromUser,
+  getPublicUserStats,
 } = require('../controllers/userController');
 
 const router = express.Router();
@@ -34,7 +38,11 @@ const updateProfileValidation = [
     .optional()
     .isEmail()
     .withMessage('Please provide a valid email address')
-    .normalizeEmail()
+    .normalizeEmail(),
+  body('avatarUrl')
+    .optional()
+    .isURL()
+    .withMessage('Please provide a valid avatar URL')
 ];
 
 const updateAvatarValidation = [
@@ -59,6 +67,18 @@ router.put('/profile', updateProfileValidation, updateUserProfile);
 
 // PUT /api/user/avatar - Update user avatar
 router.put('/avatar', updateAvatarValidation, updateUserAvatar);
+
+// GET /api/user/:userId/videos - Get user videos
+router.get('/:userId/videos', getUserVideos);
+
+// POST /api/user/:userId/subscribe - Subscribe to a user
+router.post('/:userId/subscribe', subscribeToUser);
+
+// DELETE /api/user/:userId/subscribe - Unsubscribe from a user
+router.delete('/:userId/subscribe', unsubscribeFromUser);
+
+// GET /api/user/:userId/stats - Public stats for a user
+router.get('/:userId/stats', getPublicUserStats);
 
 // GET /api/user/:userId - Get user by ID (must be last to avoid conflicts)
 router.get('/:userId', getUserById);

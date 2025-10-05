@@ -112,12 +112,22 @@ const getVideos = async (req, res, next) => {
     const limit = parseInt(req.query.limit, 10) || 20;
     const sort = req.query.sort || 'recent';
     const type = req.query.type;
+    const search = req.query.search;
     const skip = (page - 1) * limit;
 
     // Build filter options
     let filterOptions = {};
     if (type) {
       filterOptions.type = type;
+    }
+    
+    // Add search functionality
+    if (search) {
+      filterOptions.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { tags: { $in: [new RegExp(search, 'i')] } }
+      ];
     }
 
     // Build sort options

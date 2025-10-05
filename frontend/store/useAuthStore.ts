@@ -26,6 +26,7 @@ const useAuthStore = create<AuthState>((set, get) => ({
         username: updatedUser.username,
         bio: updatedUser.bio,
         email: updatedUser.email,
+        avatarUrl: updatedUser.avatarUrl,
       });
 
       set({ user: response.data });

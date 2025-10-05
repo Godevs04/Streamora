@@ -20,6 +20,7 @@ export default function Home() {
 
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const categories = ['Trending', 'Music', 'Gaming', 'Podcasts', 'Tech', 'Education', 'Entertainment'];
   
@@ -40,7 +41,8 @@ export default function Home() {
         const response = await getVideos({
           page: currentPage,
           limit: 20,
-          type: 'normal' // Only show normal videos, not shorts
+          type: 'normal', // Only show normal videos, not shorts
+          search: searchQuery || undefined // Add search parameter
         });
         
         // Check if response has the expected structure
@@ -93,6 +95,27 @@ export default function Home() {
     fetchVideos(true);
   };
 
+  const handleSearch = () => {
+    // Reset pagination and fetch videos with search query
+    setPage(1);
+    setHasMore(true);
+    fetchVideos(true);
+  };
+
+  const handleSearchInputChange = (text: string) => {
+    setSearchQuery(text);
+    // Debounce search - search after user stops typing for 500ms
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    const timeout = setTimeout(() => {
+      if (text.trim() === '' || text.length >= 2) {
+        handleSearch();
+      }
+    }, 500);
+    setSearchTimeout(timeout);
+  };
+
   const renderFooter = () => {
     if (!isLoading) return null;
     
@@ -125,9 +148,14 @@ export default function Home() {
             placeholder="Search videos..."
             placeholderTextColor={colors.text.tertiary}
             value={searchQuery}
-            onChangeText={setSearchQuery}
+            onChangeText={handleSearchInputChange}
+            onSubmitEditing={handleSearch}
+            returnKeyType="search"
           />
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => {
+            setSearchQuery('');
+            handleRefresh();
+          }}>
             <MaterialIcons name="refresh" size={20} color={colors.text.tertiary} />
           </TouchableOpacity>
         </View>

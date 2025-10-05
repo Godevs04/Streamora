@@ -11,7 +11,7 @@ const connectDB = async () => {
     });
     
     console.log(`MongoDB Connected: ${conn.connection.host}`);
-    console.log(`Database Name: streamora`);
+    console.log(`Database Name: Streamora`);
   } catch (error) {
     console.error(`Error connecting to MongoDB: ${error.message}`);
     process.exit(1);

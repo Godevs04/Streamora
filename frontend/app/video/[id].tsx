@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Activ
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Linking } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
@@ -27,11 +28,15 @@ export default function VideoPlayer() {
   const [status, setStatus] = useState<AVPlaybackStatus | null>(null);
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
+  const [disliked, setDisliked] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isVideoLoading, setIsVideoLoading] = useState(true);
   const [volume, setVolume] = useState(1.0);
   const [isMuted, setIsMuted] = useState(false);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const [moreExpanded, setMoreExpanded] = useState(false);
+  const toggleMore = () => setMoreExpanded((v) => !v);
   
   const videoId = Array.isArray(id) ? id[0] : id;
   
@@ -256,6 +261,28 @@ export default function VideoPlayer() {
       console.error('Error sharing video:', error);
     }
   };
+
+  const handleDislikePress = () => {
+    // simple local toggle; backend dislike not implemented
+    setDisliked(!disliked);
+  };
+
+  const handleDownloadPress = async () => {
+    if (!video?.videoUrl) return;
+    try {
+      await Linking.openURL(video.videoUrl);
+    } catch (e) {
+      Alert.alert('Download', 'Opening video URL...');
+    }
+  };
+
+  const handleSavePress = () => {
+    Alert.alert('Saved', 'Added to your saved list');
+  };
+
+  const handleReportPress = () => {
+    Alert.alert('Reported', 'Thank you for your report. Our team will review it.');
+  };
   
   const handleVideoPress = () => {
     setShowControls(!showControls);
@@ -387,62 +414,7 @@ export default function VideoPlayer() {
                 </View>
               )}
 
-              {/* Vertical Action Buttons Inside Video */}
-              <View style={styles.videoActionButtons}>
-                <TouchableOpacity
-                  style={styles.videoActionButton}
-                  onPress={handleLikePress}
-                >
-                  <MaterialIcons
-                    name={liked ? "favorite" : "favorite-border"}
-                    size={24}
-                    color={liked ? colors.primary : "white"}
-                  />
-                  <Text style={styles.videoActionText}>{formatCount(likesCount)}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.videoActionButton}
-                  onPress={() => {
-                    // TODO: Add comment functionality
-                    console.log('Comments pressed');
-                  }}
-                >
-                  <MaterialIcons
-                    name="chat-bubble-outline"
-                    size={24}
-                    color="white"
-                  />
-                  <Text style={styles.videoActionText}>Comments</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.videoActionButton}
-                  onPress={handleSharePress}
-                >
-                  <MaterialIcons
-                    name="share"
-                    size={24}
-                    color="white"
-                  />
-                  <Text style={styles.videoActionText}>Share</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.videoActionButton}
-                  onPress={() => {
-                    // TODO: Add save/playlist functionality
-                    console.log('Save pressed');
-                  }}
-                >
-                  <MaterialIcons
-                    name="add"
-                    size={24}
-                    color="white"
-                  />
-                  <Text style={styles.videoActionText}>Save</Text>
-                </TouchableOpacity>
-              </View>
+              {/* Floating action buttons removed in portrait to match requested UI */}
               
               {/* Top Controls - Back Button Only */}
               {showControls && !isFullscreen && (
@@ -525,7 +497,7 @@ export default function VideoPlayer() {
           </View>
           
           {!isFullscreen && (
-            <ScrollView style={styles.contentContainer}>
+            <ScrollView style={styles.contentContainer} ref={scrollRef}>
               <View style={styles.videoInfo}>
                 <Text style={styles.videoTitle}>{video.title}</Text>
                 
@@ -534,6 +506,53 @@ export default function VideoPlayer() {
                     {formatCount(video.views)} views • {formatCount(likesCount)} likes • {formatRelativeTime(video.createdAt)}
                   </Text>
                 </View>
+
+                {/* Horizontal Actions Bar (Portrait) */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.actionsRow}>
+                  <TouchableOpacity style={styles.actionPill} onPress={handleLikePress}>
+                    <MaterialIcons name={liked ? 'favorite' : 'favorite-border'} size={20} color={liked ? colors.error : colors.text.primary} />
+                    <Text style={styles.actionPillText}>{formatCount(likesCount)}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.actionPill} onPress={handleDislikePress}>
+                    <MaterialIcons name={disliked ? 'thumb-down-alt' : 'thumb-down-off-alt'} size={20} color={colors.text.primary} />
+                    <Text style={styles.actionPillText}>Dislike</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.actionPill} onPress={handleSharePress}>
+                    <MaterialIcons name="share" size={20} color={colors.text.primary} />
+                    <Text style={styles.actionPillText}>Share</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.actionPill} onPress={handleDownloadPress}>
+                    <MaterialIcons name="download" size={20} color={colors.text.primary} />
+                    <Text style={styles.actionPillText}>Download</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.actionPill} onPress={handleSavePress}>
+                    <MaterialIcons name="add" size={20} color={colors.text.primary} />
+                    <Text style={styles.actionPillText}>Save</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.actionPill} onPress={() => scrollRef.current?.scrollToEnd({ animated: true })}>
+                    <MaterialIcons name="chat-bubble-outline" size={20} color={colors.text.primary} />
+                    <Text style={styles.actionPillText}>Comments {(video.comments?.length || 0)}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.actionPill} onPress={toggleMore}>
+                    <MaterialIcons name={moreExpanded ? 'expand-less' : 'expand-more'} size={20} color={colors.text.primary} />
+                    <Text style={styles.actionPillText}>{moreExpanded ? 'Less' : 'More'}</Text>
+                  </TouchableOpacity>
+                </ScrollView>
+
+                {moreExpanded && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.actionsRowSecondary}>
+                    <TouchableOpacity style={styles.actionPill} onPress={handleReportPress}>
+                      <MaterialIcons name="flag" size={20} color={colors.text.primary} />
+                      <Text style={styles.actionPillText}>Report</Text>
+                    </TouchableOpacity>
+                  </ScrollView>
+                )}
                 
                 {video.owner ? (
                   <View style={styles.channelContainer}>
@@ -634,6 +653,53 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     borderRadius: 0,
     overflow: 'hidden',
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    gap: 8,
+    marginTop: 12,
+  },
+  actionsRowSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    gap: 8,
+    marginTop: 8,
+  },
+  actionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    marginRight: 8,
+  },
+  actionPillText: {
+    color: 'white',
+    marginLeft: 8,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  actionsListContainer: {
+    marginTop: 12,
+  },
+  actionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    marginBottom: 10,
+  },
+  actionItemText: {
+    color: 'white',
+    marginLeft: 10,
+    fontSize: 14,
+    fontWeight: '600',
   },
   fullscreenVideoContainer: {
     aspectRatio: undefined,

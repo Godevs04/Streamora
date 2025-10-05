@@ -7,11 +7,14 @@ import { ApiResponse, Comment, PaginationParams, Video, VideoUpload, VideosApiRe
  * @param params - Pagination parameters
  * @returns Promise with videos response
  */
-export const getVideos = async (params: PaginationParams & { type?: string } = {}): Promise<VideosApiResponse> => {
-  const { page = config.PAGINATION.DEFAULT_PAGE, limit = config.PAGINATION.DEFAULT_LIMIT, type } = params;
+export const getVideos = async (params: PaginationParams & { type?: string; search?: string } = {}): Promise<VideosApiResponse> => {
+  const { page = config.PAGINATION.DEFAULT_PAGE, limit = config.PAGINATION.DEFAULT_LIMIT, type, search } = params;
   const queryParams: any = { page, limit };
   if (type) {
     queryParams.type = type;
+  }
+  if (search) {
+    queryParams.search = search;
   }
   return api.get(config.API.ENDPOINTS.VIDEOS.LIST, { params: queryParams });
 };

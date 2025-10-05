@@ -6,7 +6,8 @@ import Avatar from './Avatar';
 import { PreviousIntent, Video } from '../types';
 import { formatCount, formatRelativeTime, formatDuration } from '../utils/formatDate';
 import useAuthStore from '../store/useAuthStore';
-import { toggleDummyVideoLike, subscribeToDummyUser } from '../services/dummyData';
+import { toggleDummyVideoLike } from '../services/dummyData';
+import { subscribeToUser as apiSubscribe, unsubscribeFromUser as apiUnsubscribe } from '../services/user';
 import { APP_ICONS } from '../utils/iconLoader';
 import colors from '../constants/colors';
 
@@ -161,18 +162,27 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
   };
   
   // Handle subscribe press
-  const handleSubscribePress = () => {
+  const handleSubscribePress = async () => {
     // Check if user is authenticated
     if (!showAuthModal({ type: 'subscribe', data: { userId: video.owner._id } })) {
       return;
     }
     
-    // Subscribe to channel
-    if (user) {
-      const success = subscribeToDummyUser(video.owner._id, user._id);
-      if (success) {
+    if (!user) return;
+    try {
+      const { token } = useAuthStore.getState();
+      if (!token) return;
+      if (subscribed) {
+        await apiUnsubscribe(video.owner._id, token);
+        setSubscribed(false);
+        Alert.alert('Unsubscribed', `You have unsubscribed from ${video.owner.name}`);
+      } else {
+        await apiSubscribe(video.owner._id, token);
         setSubscribed(true);
+        Alert.alert('Subscribed', `You have subscribed to ${video.owner.name}`);
       }
+    } catch (e) {
+      // noop
     }
   };
   
@@ -204,7 +214,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
           )}
           
           {/* Duration badge (if available) */}
-          {video.duration > 0 && (
+          {video.duration && video.duration > 0 && (
             <View style={styles.durationBadge}>
               <Text style={styles.durationText}>
                 {formatDuration(video.duration)}
@@ -246,21 +256,41 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
             </Text>
           </View>
           
-          {variant === 'default' && (
-            <View style={styles.actionsContainer}>
-              <TouchableOpacity
-                onPress={handleSubscribePress}
-                style={[
-                  styles.subscribeButton,
-                  subscribed && styles.subscribedButton
-                ]}
-              >
-                <Text style={styles.subscribeText}>
-                  {subscribed ? 'Subscribed' : 'Subscribe'}
-                </Text>
+          <View style={[styles.actionsRow, variant === 'compact' && styles.actionsRowCompact]}>
+            {/* Like/Dislike */}
+            <View style={styles.likeDislikeContainer}>
+              <TouchableOpacity style={styles.actionButton} onPress={handleLikePress}>
+                <Ionicons name={liked ? 'heart' : 'heart-outline'} size={18} color={liked ? colors.text.primary : colors.text.secondary} />
+                <Text style={[styles.actionText, liked && styles.likedText]}>{formatCount(likesCount)}</Text>
+              </TouchableOpacity>
+              <View style={styles.actionDivider} />
+              <TouchableOpacity style={styles.actionButton} onPress={handleDislikePress}>
+                <Ionicons name="thumbs-down-outline" size={18} color={colors.text.secondary} />
               </TouchableOpacity>
             </View>
-          )}
+
+            {/* Comments */}
+            <TouchableOpacity style={styles.commentContainer} onPress={() => router.push(`/video/${video._id}`)}>
+              <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.text.secondary} />
+              <Text style={styles.actionText}>{formatCount((video.comments?.length || 0))}</Text>
+            </TouchableOpacity>
+
+            {/* Share */}
+            <TouchableOpacity style={styles.commentContainer} onPress={handleSharePress}>
+              <Ionicons name="share-social-outline" size={18} color={colors.text.secondary} />
+              <Text style={styles.actionText}>Share</Text>
+            </TouchableOpacity>
+
+            {/* Subscribe */}
+            {variant === 'default' && (
+              <TouchableOpacity
+                onPress={handleSubscribePress}
+                style={[styles.subscribeButton, subscribed && styles.subscribedButton]}
+              >
+                <Text style={styles.subscribeText}>{subscribed ? 'Subscribed' : 'Subscribe'}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
     </View>
@@ -355,6 +385,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 16,
     justifyContent: 'flex-end',
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    justifyContent: 'space-between',
+  },
+  actionsRowCompact: {
+    justifyContent: 'flex-start',
   },
   statsContainer: {
     flexDirection: 'row',
