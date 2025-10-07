@@ -76,7 +76,14 @@ export default function VideoPlayer() {
     try {
       setCommentsLoading(true);
       const res = await getVideoComments(video._id, { page: 1, limit: 50, sort: sort as any });
-      const list = (res?.data as any) || [];
+      const payload: any = res as any;
+      const list = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload?.comments)
+          ? payload.comments
+          : Array.isArray(payload?.data?.data)
+            ? payload.data.data
+            : [];
       setComments(list);
     } catch (e) {
       // ignore
@@ -132,6 +139,7 @@ export default function VideoPlayer() {
         owner: fetchedVideo.owner || { name: 'Unknown User', avatarUrl: null },
         likes: fetchedVideo.likes || [],
         likesCount: fetchedVideo.likesCount || 0,
+        commentsCount: typeof fetchedVideo.commentsCount === 'number' ? fetchedVideo.commentsCount : (Array.isArray(fetchedVideo.comments) ? fetchedVideo.comments.length : 0),
         views: fetchedVideo.views || 0,
         duration: fetchedVideo.duration || 0,
         description: fetchedVideo.description || '',
@@ -554,11 +562,11 @@ export default function VideoPlayer() {
           {!isFullscreen && (
             <ScrollView style={styles.contentContainer} ref={scrollRef}>
               <View style={styles.videoInfo}>
-                <Text style={styles.videoTitle}>{video.title}</Text>
+                <Text style={styles.videoTitle}>{video.title || 'Untitled Video'}</Text>
                 
                 <View style={styles.videoStats}>
                   <Text style={styles.statsText}>
-                    {formatCount(video.views)} views • {formatCount(likesCount)} likes • {formatRelativeTime(video.createdAt)}
+                    {formatCount(typeof video.views === 'number' ? video.views : 0)} views • {formatCount(typeof likesCount === 'number' ? likesCount : 0)} likes • {formatRelativeTime(video.createdAt || new Date().toISOString())}
                   </Text>
                 </View>
 
@@ -566,7 +574,7 @@ export default function VideoPlayer() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.actionsRow}>
                   <TouchableOpacity style={styles.actionPill} onPress={handleLikePress}>
                     <MaterialIcons name={liked ? 'favorite' : 'favorite-border'} size={20} color={liked ? colors.error : colors.text.primary} />
-                    <Text style={styles.actionPillText}>{formatCount(likesCount)}</Text>
+                    <Text style={styles.actionPillText}>{formatCount(typeof likesCount === 'number' ? likesCount : 0)}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity style={styles.actionPill} onPress={handleDislikePress}>
@@ -591,7 +599,7 @@ export default function VideoPlayer() {
 
                 <TouchableOpacity style={styles.actionPill} onPress={() => setCommentsVisible(true)}>
                     <MaterialIcons name="chat-bubble-outline" size={20} color={colors.text.primary} />
-                  <Text style={styles.actionPillText}>Comments {(video.comments?.length || 0)}</Text>
+                  <Text style={styles.actionPillText}>Comments {comments.length}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity style={styles.actionPill} onPress={toggleMore}>
@@ -803,6 +811,22 @@ export default function VideoPlayer() {
                       try {
                         await addComment(video._id, newComment.trim());
                         setNewComment('');
+                        // Update local comments state immediately for better UX
+                        const optimisticComment = {
+                          _id: 'temp_' + Date.now(),
+                          text: newComment.trim(),
+                          author: { name: 'You' },
+                          video: video._id,
+                          createdAt: new Date().toISOString(),
+                          updatedAt: new Date().toISOString(),
+                          likesCount: 0
+                        };
+                        setComments(prev => [...prev, optimisticComment]);
+                        // Optimistically bump commentsCount on the video
+                        setVideo(prev => prev ? {
+                          ...prev,
+                          commentsCount: ((typeof prev.commentsCount === 'number' ? prev.commentsCount : (Array.isArray(prev.comments) ? prev.comments.length : 0)) + 1)
+                        } : prev);
                         await loadComments(commentsSort);
                       } catch {}
                     }}

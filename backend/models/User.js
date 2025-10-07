@@ -39,6 +39,30 @@ const UserSchema = new mongoose.Schema({
     default: '',
     maxlength: [200, 'Bio cannot exceed 200 characters']
   },
+  bannerUrl: {
+    type: String,
+    default: ''
+  },
+  subscribersCount: {
+    type: Number,
+    default: 0
+  },
+  paymentMethods: [{
+    _id: String,
+    type: {
+      type: String,
+      enum: ['paypal', 'bank', 'crypto']
+    },
+    identifier: String,
+    isDefault: {
+      type: Boolean,
+      default: false
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   roles: {
     type: [String],
     default: ['user'],

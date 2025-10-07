@@ -240,19 +240,19 @@ export default function ProfileView() {
   const renderStats = () => (
     <View style={styles.statsContainer}>
       <View style={styles.statCard}>
-        <Text style={styles.statNumber}>{formatCount(profileStats.followers)}</Text>
+        <Text style={styles.statNumber}>{formatCount(typeof profileStats.followers === 'number' ? profileStats.followers : 0)}</Text>
         <Text style={styles.statLabel}>FOLLOWERS</Text>
       </View>
       <View style={styles.statCard}>
-        <Text style={styles.statNumber}>{formatCount(profileStats.following)}</Text>
+        <Text style={styles.statNumber}>{formatCount(typeof profileStats.following === 'number' ? profileStats.following : 0)}</Text>
         <Text style={styles.statLabel}>FOLLOWING</Text>
       </View>
       <View style={styles.statCard}>
-        <Text style={styles.statNumber}>{formatCount(profileStats.likes)}</Text>
+        <Text style={styles.statNumber}>{formatCount(typeof profileStats.likes === 'number' ? profileStats.likes : 0)}</Text>
         <Text style={styles.statLabel}>LIKES</Text>
       </View>
       <View style={styles.statCard}>
-        <Text style={styles.statNumber}>{formatCount(profileStats.uploads)}</Text>
+        <Text style={styles.statNumber}>{formatCount(typeof profileStats.uploads === 'number' ? profileStats.uploads : 0)}</Text>
         <Text style={styles.statLabel}>UPLOADS</Text>
       </View>
     </View>

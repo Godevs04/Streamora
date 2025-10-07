@@ -29,6 +29,31 @@ export default {
         REGISTER: '/notifications/register',
         SEND: '/notifications/send',
       },
+      ADMIN: {
+        CREATOR: {
+          STATS: '/admin/creator/stats',
+          LATEST_VIDEOS: '/admin/creator/latest-videos',
+          ANALYTICS: '/admin/creator/analytics',
+          MONETIZATION: '/admin/creator/monetization',
+          CONTENT: '/admin/creator/content',
+          COMMUNITY: '/admin/creator/community',
+          SETTINGS: '/admin/creator/settings',
+        },
+        CHANNEL: {
+          UPDATE: '/admin/channel/update',
+          UPLOAD_PROFILE: '/admin/channel/upload-profile',
+          UPLOAD_BANNER: '/admin/channel/upload-banner',
+        },
+        PAYMENTS: {
+          LIST: '/admin/payments/methods',
+          ADD: '/admin/payments/methods',
+          DELETE: (id: string) => `/admin/payments/methods/${id}`,
+          SET_DEFAULT: (id: string) => `/admin/payments/methods/${id}/default`,
+        },
+        POLICIES: {
+          GET: '/admin/policies',
+        },
+      },
     },
   },
   

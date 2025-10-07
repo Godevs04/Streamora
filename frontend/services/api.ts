@@ -33,7 +33,8 @@ api.interceptors.response.use(
     return response.data;
   },
   (error) => {
-    console.error('API Error:', error);
+    // Use console.warn to avoid triggering RedBox in development for handled 4xx/5xx
+    console.warn('API Warning:', error?.response?.status, error?.response?.data?.message || error?.message);
     
     // Handle network errors
     if (!error.response) {

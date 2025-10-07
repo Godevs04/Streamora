@@ -224,7 +224,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
           {video.duration && video.duration > 0 && (
             <View style={styles.durationBadge}>
               <Text style={styles.durationText}>
-                {formatDuration(video.duration > 1000 ? Math.round(video.duration / 1000) : video.duration)}
+                {formatDuration(typeof video.duration === 'number' && video.duration > 1000 ? Math.round(video.duration / 1000) : (video.duration || 0))}
               </Text>
             </View>
           )}
@@ -232,7 +232,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
           {/* Views badge */}
           <View style={styles.viewsBadge}>
             <Text style={styles.viewsText}>
-              {formatCount(video.views)} views
+              {formatCount(typeof video.views === 'number' ? video.views : 0)} views
             </Text>
           </View>
         </View>
@@ -242,24 +242,24 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
       <View style={styles.infoContainer}>
         {variant === 'default' && (
           <TouchableOpacity onPress={handleProfilePress} style={styles.avatarContainer}>
-            <Avatar uri={video.owner.avatarUrl} name={video.owner.name} size="sm" />
+            <Avatar uri={video.owner?.avatarUrl} name={video.owner?.name || 'User'} size="sm" />
           </TouchableOpacity>
         )}
         
         <View style={styles.textContainer}>
           <Text numberOfLines={2} style={styles.titleText}>
-            {video.title}
+            {video.title || 'Untitled Video'}
           </Text>
           
           <View style={styles.metaContainer}>
             <TouchableOpacity onPress={handleProfilePress}>
               <Text style={styles.channelText}>
-                {video.owner.name}
+                {video.owner?.name || 'Unknown User'}
               </Text>
             </TouchableOpacity>
             <Text style={styles.dotSeparator}>•</Text>
             <Text style={styles.timeText}>
-              {formatRelativeTime(video.createdAt)}
+              {formatRelativeTime(video.createdAt || new Date().toISOString())}
             </Text>
           </View>
           
@@ -268,7 +268,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
             <View style={styles.likeDislikeContainer}>
               <TouchableOpacity style={styles.actionButton} onPress={handleLikePress}>
                 <Ionicons name={liked ? 'heart' : 'heart-outline'} size={18} color={liked ? colors.text.primary : colors.text.secondary} />
-                <Text style={[styles.actionText, liked && styles.likedText]}>{formatCount(likesCount)}</Text>
+                <Text style={[styles.actionText, liked && styles.likedText]}>{formatCount(typeof likesCount === 'number' ? likesCount : 0)}</Text>
               </TouchableOpacity>
               <View style={styles.actionDivider} />
               <TouchableOpacity style={styles.actionButton} onPress={handleDislikePress}>
@@ -279,7 +279,13 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
             {/* Comments */}
             <TouchableOpacity style={styles.commentContainer} onPress={() => router.push({ pathname: `/video/${video._id}`, params: { focus: 'comments' } as any })}>
               <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.text.secondary} />
-              <Text style={styles.actionText}>{formatCount((video.comments?.length || 0))}</Text>
+              <Text style={styles.actionText}>
+                {formatCount(
+                  typeof (video as any).commentsCount === 'number'
+                    ? (video as any).commentsCount
+                    : (Array.isArray(video.comments) ? video.comments.length : 0)
+                )}
+              </Text>
             </TouchableOpacity>
 
             {/* Share */}

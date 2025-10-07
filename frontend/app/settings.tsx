@@ -52,7 +52,7 @@ export default function Settings() {
   };
 
   const handleAdminMode = () => {
-    Alert.alert('Admin Mode', 'Creator Studio Analytics will be available soon.');
+    router.push('/admin');
   };
 
   const handleHelpSupport = () => {

@@ -122,10 +122,10 @@ export default function ShortsPlayer({
         {/* Video Info Overlay */}
         <View style={styles.videoInfo}>
           <View style={styles.videoDetails}>
-            <Text style={styles.videoTitle}>{video.title}</Text>
-            <Text style={styles.channelName}>{video.owner.name}</Text>
+            <Text style={styles.videoTitle}>{video.title || 'Untitled Video'}</Text>
+            <Text style={styles.channelName}>{video.owner?.name || 'Unknown User'}</Text>
             <View style={styles.hashtags}>
-              {video.tags.slice(0, 3).map((tag, index) => (
+              {(video.tags || []).slice(0, 3).map((tag, index) => (
                 <Text key={index} style={styles.hashtag}>
                   #{tag}
                 </Text>
@@ -142,7 +142,7 @@ export default function ShortsPlayer({
               size={28}
               color={isLikedState ? colors.error : '#FFFFFF'}
             />
-            <Text style={styles.actionText}>{formatCount(video.likesCount)}</Text>
+            <Text style={styles.actionText}>{formatCount(typeof video.likesCount === 'number' ? video.likesCount : 0)}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionButton} onPress={onComment}>

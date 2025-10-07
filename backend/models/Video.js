@@ -55,6 +55,11 @@ const VideoSchema = new mongoose.Schema({
     enum: ['normal', 'shorts'],
     default: 'normal'
   },
+  status: {
+    type: String,
+    enum: ['draft', 'published', 'scheduled'],
+    default: 'published'
+  },
   createdAt: {
     type: Date,
     default: Date.now

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, FlatList, ActivityIndicator, RefreshControl, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -9,6 +9,7 @@ import AuthRequiredWrapper from '../../components/AuthRequiredWrapper';
 // Removed dummy data import - using real API data
 import { getVideos } from '../../services/videos';
 import { Video, VideosApiResponse } from '../../types';
+import { useFocusEffect } from 'expo-router';
 import colors from '../../constants/colors';
 
 export default function Home() {
@@ -58,10 +59,15 @@ export default function Home() {
           }
           
           // Filter out shorts videos to ensure only normal videos appear in home
-          const normalVideos = fetchedVideos.filter((video: Video) => video.type !== 'shorts');
+          const normalVideos = fetchedVideos
+            .filter((video: Video) => video.type !== 'shorts')
+            .map((v: any) => ({
+              ...v,
+              commentsCount: typeof v.commentsCount === 'number' ? v.commentsCount : (Array.isArray(v.comments) ? v.comments.length : 0),
+            }));
           
-          // If refreshing, replace videos; otherwise append
-          setVideos(refresh ? normalVideos : [...videos, ...normalVideos]);
+          // If refreshing, replace videos; otherwise append (avoid stale closure)
+          setVideos((prev) => (refresh ? normalVideos : [...prev, ...normalVideos]));
         } else {
           console.error('Invalid API response structure:', response);
           throw new Error('Invalid response structure');
@@ -90,6 +96,15 @@ export default function Home() {
   useEffect(() => {
     fetchVideos();
   }, []);
+
+  // Refresh when screen gains focus to reflect latest counts from server
+  useFocusEffect(
+    useCallback(() => {
+      fetchVideos(true);
+      // no cleanup needed
+      return undefined;
+    }, [searchQuery, selectedCategory])
+  );
 
   const handleRefresh = () => {
     fetchVideos(true);
