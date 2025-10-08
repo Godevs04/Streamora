@@ -163,11 +163,11 @@ export default function AdminSettings() {
               key={`settings-tab-${tab}-${index}`}
               style={[styles.tab, tab === 'Settings' && styles.tabActive]}
               onPress={() => {
-                if (tab === 'Dashboard') router.replace('/admin');
-                if (tab === 'Analytics') router.replace('/admin/analytics');
-                if (tab === 'Monetization') router.replace('/admin/monetization');
-                if (tab === 'Content') router.replace('/admin/content');
-                if (tab === 'Community') router.replace('/admin/community');
+                if (tab === 'Dashboard') router.push('/admin');
+                if (tab === 'Analytics') router.push('/admin/analytics');
+                if (tab === 'Monetization') router.push('/admin/monetization');
+                if (tab === 'Content') router.push('/admin/content');
+                if (tab === 'Community') router.push('/admin/community');
               }}
             >
               <Text style={[styles.tabText, tab === 'Settings' && styles.tabTextActive]}>{tab}</Text>

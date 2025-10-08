@@ -7,6 +7,8 @@ export default {
         REGISTER: '/auth/register',
         LOGIN: '/auth/login',
         ME: '/auth/me',
+        VERIFY_EMAIL: '/auth/verify-email',
+        RESEND_OTP: '/auth/resend-otp',
       },
       USERS: {
         GET_BY_ID: (id: string) => `/users/${id}`,

@@ -66,8 +66,18 @@ export default function Home() {
               commentsCount: typeof v.commentsCount === 'number' ? v.commentsCount : (Array.isArray(v.comments) ? v.comments.length : 0),
             }));
           
-          // If refreshing, replace videos; otherwise append (avoid stale closure)
-          setVideos((prev) => (refresh ? normalVideos : [...prev, ...normalVideos]));
+          // If refreshing, replace videos; otherwise append unique videos only
+          setVideos((prev) => {
+            if (refresh) {
+              return normalVideos;
+            } else {
+              // Create a map to track existing video IDs
+              const existingIds = new Set(prev.map(video => video._id));
+              // Filter out videos that already exist
+              const newVideos = normalVideos.filter((video: Video) => !existingIds.has(video._id));
+              return [...prev, ...newVideos];
+            }
+          });
         } else {
           console.error('Invalid API response structure:', response);
           throw new Error('Invalid response structure');
@@ -230,7 +240,7 @@ export default function Home() {
             {renderHeader()}
             <FlatList
               data={videos}
-              keyExtractor={(item) => item._id}
+              keyExtractor={(item, index) => item._id || `video-${index}`}
               renderItem={({ item }) => (
                 <VideoCard 
                   video={item} 

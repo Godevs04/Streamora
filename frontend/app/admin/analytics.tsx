@@ -56,11 +56,11 @@ export default function AdminAnalytics() {
               key={`analytics-tab-${tab}-${index}`}
               style={[styles.tab, tab === 'Analytics' && styles.tabActive]}
               onPress={() => {
-                if (tab === 'Dashboard') router.replace('/admin');
-                if (tab === 'Monetization') router.replace('/admin/monetization');
-                if (tab === 'Content') router.replace('/admin/content');
-                if (tab === 'Community') router.replace('/admin/community');
-                if (tab === 'Settings') router.replace('/admin/settings');
+                if (tab === 'Dashboard') router.push('/admin');
+                if (tab === 'Monetization') router.push('/admin/monetization');
+                if (tab === 'Content') router.push('/admin/content');
+                if (tab === 'Community') router.push('/admin/community');
+                if (tab === 'Settings') router.push('/admin/settings');
               }}
             >
               <Text style={[styles.tabText, tab === 'Analytics' && styles.tabTextActive]}>{tab}</Text>
@@ -95,21 +95,23 @@ export default function AdminAnalytics() {
             </View>
 
             {/* Traffic + Audience */}
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
-              <View style={[styles.card, { flex: 2 }]}> 
+            <View style={styles.trafficAudienceRow}>
+              <View style={[styles.card, styles.trafficCard]}> 
                 <Text style={styles.cardTitle}>Traffic Sources</Text>
-                <View style={{ height: 140, justifyContent: 'flex-end', flexDirection: 'row', alignItems: 'flex-end', gap: 16, paddingHorizontal: 12 }}>
+                <View style={styles.trafficChart}>
                   {renderBar('Direct', data?.traffic?.direct || 0, 'direct')}
                   {renderBar('External', data?.traffic?.external || 0, 'external')}
                   {renderBar('Search', data?.traffic?.search || 0, 'search')}
                   {renderBar('Suggested', data?.traffic?.suggested || 0, 'suggested')}
                 </View>
               </View>
-              <View style={[styles.card, { flex: 1 }]}> 
+              <View style={[styles.card, styles.demographicsCard]}> 
                 <Text style={styles.cardTitle}>Audience Demographics</Text>
-                <Text style={styles.demographicRow}>Male {Math.round((data?.demographics?.male || 0))}%</Text>
-                <Text style={styles.demographicRow}>Female {Math.round((data?.demographics?.female || 0))}%</Text>
-                <Text style={styles.demographicRow}>Other {Math.round((data?.demographics?.other || 0))}%</Text>
+                <View style={styles.demographicsContent}>
+                  <Text style={styles.demographicRow}>Male {Math.round((data?.demographics?.male || 0))}%</Text>
+                  <Text style={styles.demographicRow}>Female {Math.round((data?.demographics?.female || 0))}%</Text>
+                  <Text style={styles.demographicRow}>Other {Math.round((data?.demographics?.other || 0))}%</Text>
+                </View>
               </View>
             </View>
 
@@ -198,6 +200,11 @@ const styles = StyleSheet.create({
   cardTitle: { color: colors.text.primary, fontWeight: '700', marginBottom: 8 },
   trafficLabel: { color: colors.text.secondary, fontSize: 12, marginTop: 6 },
   demographicRow: { color: colors.text.secondary, fontSize: 13, marginTop: 6 },
+  trafficAudienceRow: { flexDirection: 'row', gap: 12, marginTop: 12 },
+  trafficCard: { flex: 2 },
+  demographicsCard: { flex: 1 },
+  trafficChart: { height: 140, justifyContent: 'flex-end', flexDirection: 'row', alignItems: 'flex-end', gap: 16, paddingHorizontal: 12 },
+  demographicsContent: { paddingTop: 8 },
   videoKpiRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.1)' },
   videoTitle: { color: colors.text.primary, fontWeight: '700', fontSize: 14 },
   videoMeta: { color: colors.text.secondary, fontSize: 12, marginTop: 2 },

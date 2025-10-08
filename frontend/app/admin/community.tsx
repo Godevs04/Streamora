@@ -57,11 +57,11 @@ export default function AdminCommunity() {
               key={`community-tab-${tab}-${index}`}
               style={[styles.tab, tab === 'Community' && styles.tabActive]}
               onPress={() => {
-                if (tab === 'Dashboard') router.replace('/admin');
-                if (tab === 'Analytics') router.replace('/admin/analytics');
-                if (tab === 'Monetization') router.replace('/admin/monetization');
-                if (tab === 'Content') router.replace('/admin/content');
-                if (tab === 'Settings') router.replace('/admin/settings');
+                if (tab === 'Dashboard') router.push('/admin');
+                if (tab === 'Analytics') router.push('/admin/analytics');
+                if (tab === 'Monetization') router.push('/admin/monetization');
+                if (tab === 'Content') router.push('/admin/content');
+                if (tab === 'Settings') router.push('/admin/settings');
               }}
             >
               <Text style={[styles.tabText, tab === 'Community' && styles.tabTextActive]}>{tab}</Text>

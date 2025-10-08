@@ -57,11 +57,11 @@ export default function AdminContent() {
               key={`content-tab-${tab}-${index}`}
               style={[styles.tab, tab === 'Content' && styles.tabActive]}
               onPress={() => {
-                if (tab === 'Dashboard') router.replace('/admin');
-                if (tab === 'Analytics') router.replace('/admin/analytics');
-                if (tab === 'Monetization') router.replace('/admin/monetization');
-                if (tab === 'Community') router.replace('/admin/community');
-                if (tab === 'Settings') router.replace('/admin/settings');
+                if (tab === 'Dashboard') router.push('/admin');
+                if (tab === 'Analytics') router.push('/admin/analytics');
+                if (tab === 'Monetization') router.push('/admin/monetization');
+                if (tab === 'Community') router.push('/admin/community');
+                if (tab === 'Settings') router.push('/admin/settings');
               }}
             >
               <Text style={[styles.tabText, tab === 'Content' && styles.tabTextActive]}>{tab}</Text>

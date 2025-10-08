@@ -43,37 +43,25 @@ export default function Register() {
     if (!validateForm()) return;
     
     try {
-      const previousIntent = await register({
+      const response = await register({
         name,
         email,
         password,
         username: username || undefined,
       });
       
-      console.log('Registration successful');
+      console.log('Registration successful:', response);
       
-      // If there was a previous intent, handle it
-      if (previousIntent) {
-        console.log('Returning to previous intent:', previousIntent);
-        
-        // Handle different intent types
-        switch (previousIntent.type) {
-          case 'profile':
-            router.replace('/(tabs)/profile');
-            break;
-          case 'post':
-            router.replace('/(tabs)/upload');
-            break;
-          case 'shorts':
-            router.replace('/(tabs)/upload');
-            break;
-          default:
-            // For like, subscribe, comment intents, go back to home
-            router.replace('/(tabs)/home');
-        }
+      // Check if email verification is required
+      if (response?.data?.requiresVerification) {
+        // Navigate to email verification screen
+        router.push({
+          pathname: '/auth/verify-email',
+          params: { email: email }
+        });
       } else {
-        // Default navigation to home
-        console.log('No previous intent, navigating to home');
+        // If no verification required (shouldn't happen with current backend), navigate to home
+        console.log('No verification required, navigating to home');
         router.replace('/(tabs)/home');
       }
     } catch (error: any) {

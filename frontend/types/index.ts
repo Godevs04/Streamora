@@ -227,6 +227,17 @@ export interface AuthResponse {
   };
 }
 
+export interface RegisterResponse {
+  success: boolean;
+  data: {
+    message?: string;
+    email?: string;
+    requiresVerification?: boolean;
+    user?: User;
+    token?: string;
+  };
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -299,7 +310,7 @@ export interface AuthState {
   setIsLoading: (isLoading: boolean) => void;
   setPreviousIntent: (intent: PreviousIntent | null) => void;
   login: (credentials: LoginCredentials) => Promise<PreviousIntent | null>;
-  register: (credentials: RegisterCredentials) => Promise<PreviousIntent | null>;
+  register: (credentials: RegisterCredentials) => Promise<RegisterResponse>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<boolean>;
   updateUser: (updatedUser: User) => Promise<User>;

@@ -299,7 +299,7 @@ export default function ProfileView() {
     return (
       <FlatList
         data={videos}
-        keyExtractor={(item) => item._id}
+        keyExtractor={(item, index) => item._id || `user-video-${index}`}
         renderItem={({ item }) => (
           <VideoCard 
             video={item} 

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
-import { AuthState, LoginCredentials, PreviousIntent, RegisterCredentials, User } from '../types';
+import { AuthState, LoginCredentials, PreviousIntent, RegisterCredentials, User, RegisterResponse } from '../types';
 import config from '../constants/config';
 import { login as loginApi, register as registerApi, getMe } from '../services/auth';
 import { updateUserProfile as updateUserProfileApi } from '../services/user';
@@ -68,17 +68,25 @@ const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
   
-  register: async (credentials: RegisterCredentials) => {
+  register: async (credentials: RegisterCredentials): Promise<RegisterResponse> => {
     set({ isLoading: true });
     try {
       const response = await registerApi(credentials);
-      const { user, token } = response.data;
       
-      await get().setToken(token);
-      set({ user, isAuthenticated: true, isLoading: false });
+      // Check if email verification is required
+      if (response.data?.requiresVerification) {
+        set({ isLoading: false });
+        // Return the response so the component can handle navigation to verification screen
+        return response;
+      }
       
-      // Return the previous intent for navigation after registration
-      return get().previousIntent;
+      // If no verification required (shouldn't happen with current backend)
+      if (response.data?.user && response.data?.token) {
+        await get().setToken(response.data.token);
+        set({ user: response.data.user, isAuthenticated: true, isLoading: false });
+      }
+      
+      return response;
     } catch (error) {
       set({ isLoading: false });
       throw error;

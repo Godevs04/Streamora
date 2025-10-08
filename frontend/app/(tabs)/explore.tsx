@@ -78,7 +78,7 @@ export default function Shorts() {
         ) : (
           <FlatList
             data={videos}
-            keyExtractor={(item) => item._id}
+            keyExtractor={(item, index) => item._id || `short-${index}`}
             renderItem={({ item }) => (
               <ShortsPlayer
                 video={item}

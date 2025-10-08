@@ -56,11 +56,11 @@ export default function AdminMonetization() {
               key={`monetization-tab-${tab}-${index}`}
               style={[styles.tab, tab === 'Monetization' && styles.tabActive]}
               onPress={() => {
-                if (tab === 'Dashboard') router.replace('/admin');
-                if (tab === 'Analytics') router.replace('/admin/analytics');
-                if (tab === 'Content') router.replace('/admin/content');
-                if (tab === 'Community') router.replace('/admin/community');
-                if (tab === 'Settings') router.replace('/admin/settings');
+                if (tab === 'Dashboard') router.push('/admin');
+                if (tab === 'Analytics') router.push('/admin/analytics');
+                if (tab === 'Content') router.push('/admin/content');
+                if (tab === 'Community') router.push('/admin/community');
+                if (tab === 'Settings') router.push('/admin/settings');
               }}
             >
               <Text style={[styles.tabText, tab === 'Monetization' && styles.tabTextActive]}>{tab}</Text>
@@ -154,8 +154,8 @@ export default function AdminMonetization() {
             </View>
 
             {/* Withdrawal & Ad Revenue */}
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
-              <View style={[styles.card, { flex: 1 }]}>
+            <View style={styles.withdrawalRevenueRow}>
+              <View style={[styles.card, styles.withdrawalCard]}>
                 <Text style={styles.cardTitle}>Withdrawal</Text>
                 <View style={styles.balanceRow}>
                   <MaterialIcons name="account-balance-wallet" size={20} color={colors.text.primary} />
@@ -175,7 +175,7 @@ export default function AdminMonetization() {
                 ))}
               </View>
 
-              <View style={[styles.card, { flex: 1 }]}>
+              <View style={[styles.card, styles.revenueCard]}>
                 <Text style={styles.cardTitle}>Ad Revenue Breakdown</Text>
                 <View style={styles.revenueBreakdown}>
                   <RevenueItem 
@@ -323,6 +323,9 @@ const styles = StyleSheet.create({
   payoutDate: { color: colors.text.secondary, fontSize: 12, marginTop: 2 },
   payoutMethod: { color: colors.text.secondary, fontSize: 12 },
   revenueBreakdown: { gap: 12 },
+  withdrawalRevenueRow: { flexDirection: 'row', gap: 12, marginTop: 12 },
+  withdrawalCard: { flex: 1 },
+  revenueCard: { flex: 1 },
   revenueItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   revenueLabel: { color: colors.text.secondary, fontSize: 14, fontWeight: '600', flex: 1 },
   revenueValue: { color: colors.text.primary, fontSize: 14, fontWeight: '700' },

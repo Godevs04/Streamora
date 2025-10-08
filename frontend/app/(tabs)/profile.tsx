@@ -307,7 +307,7 @@ export default function Profile() {
     return (
       <FlatList
         data={videos}
-        keyExtractor={(item) => item._id}
+        keyExtractor={(item, index) => item._id || `profile-video-${index}`}
         renderItem={({ item }) => (
           <VideoCard 
             video={item} 

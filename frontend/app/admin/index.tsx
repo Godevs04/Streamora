@@ -105,8 +105,6 @@ export default function AdminDashboard() {
             <View style={styles.cardsRow}>
               <StatCard key="subscribers" icon="people-outline" label="Subscribers" value={formatCount(Number(data?.stats?.subscribers || 0))} />
               <StatCard key="totalViews" icon="visibility" label="Total Views" value={formatCount(Number(data?.stats?.totalViews || 0))} />
-            </View>
-            <View style={styles.cardsRow}>
               <StatCard key="watchTime" icon="schedule" label="Watch Time" value={`${formatCount(Number(data?.stats?.watchTimeHours || 0))}h`} />
             </View>
 

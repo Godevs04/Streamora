@@ -72,6 +72,18 @@ const UserSchema = new mongoose.Schema({
     type: [String],
     default: []
   },
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+  emailVerificationOTP: {
+    type: String,
+    select: false
+  },
+  otpExpires: {
+    type: Date,
+    select: false
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -104,11 +116,33 @@ UserSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
+// Method to generate OTP for email verification
+UserSchema.methods.generateEmailVerificationOTP = function() {
+  // Generate 6-digit OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  
+  // Set OTP and expiration (10 minutes)
+  this.emailVerificationOTP = otp;
+  this.otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+  
+  return otp;
+};
+
+// Method to verify OTP
+UserSchema.methods.verifyEmailOTP = function(enteredOTP) {
+  return (
+    this.emailVerificationOTP === enteredOTP &&
+    this.otpExpires > Date.now()
+  );
+};
+
 // Method to get public profile (no sensitive data)
 UserSchema.methods.getPublicProfile = function() {
   const userObject = this.toObject();
   delete userObject.password;
   delete userObject.fcmTokens;
+  delete userObject.emailVerificationOTP;
+  delete userObject.otpExpires;
   
   return userObject;
 };
