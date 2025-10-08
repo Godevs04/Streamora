@@ -127,9 +127,10 @@ app.use(errorHandler);
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Accessible at: http://localhost:${PORT} or http://192.168.1.9:${PORT}`);
 });
 
 // Handle unhandled promise rejections

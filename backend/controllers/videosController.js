@@ -1,6 +1,7 @@
 const Video = require('../models/Video');
 const { cloudinary } = require('../config/cloudinary');
 const { sendSuccessResponse, sendErrorResponse } = require('../utils/sendResponse');
+const { notifyNewVideo, notifyNewLike } = require('../utils/notificationService');
 const fs = require('fs');
 const path = require('path');
 
@@ -35,11 +36,16 @@ const createVideo = async (req, res, next) => {
         
         // If no custom thumbnail provided, generate one from the video
         if (!req.files.thumbnail) {
+          // Determine thumbnail dimensions based on video type
+          const isShorts = type === 'shorts';
+          const thumbnailWidth = isShorts ? 720 : 1280;
+          const thumbnailHeight = isShorts ? 1280 : 720;
+          
           thumbnailUrl = cloudinary.url(videoResult.public_id, {
             resource_type: 'video',
             format: 'jpg',
             transformation: [
-              { width: 1280, height: 720, crop: 'fill', gravity: 'center' }
+              { width: thumbnailWidth, height: thumbnailHeight, crop: 'fill', gravity: 'center' }
             ]
           });
         }
@@ -56,11 +62,16 @@ const createVideo = async (req, res, next) => {
     // Handle thumbnail upload if file is provided
     if (req.files && req.files.thumbnail) {
       try {
+        // Determine thumbnail dimensions based on video type
+        const isShorts = type === 'shorts';
+        const thumbnailWidth = isShorts ? 720 : 1280;
+        const thumbnailHeight = isShorts ? 1280 : 720;
+        
         // Upload thumbnail to Cloudinary
         const thumbnailResult = await cloudinary.uploader.upload(req.files.thumbnail[0].path, {
           folder: 'streamora/thumbnails',
           transformation: [
-            { width: 1280, height: 720, crop: 'fill', gravity: 'center' }
+            { width: thumbnailWidth, height: thumbnailHeight, crop: 'fill', gravity: 'center' }
           ]
         });
         
@@ -74,9 +85,9 @@ const createVideo = async (req, res, next) => {
     } else if (req.body.thumbnailUrl) {
       // If thumbnailUrl is provided directly
       thumbnailUrl = req.body.thumbnailUrl;
-    } else if (!thumbnailUrl) {
-      // If no thumbnail URL has been set yet, use a default or placeholder
-      return sendErrorResponse(res, 400, 'Thumbnail is required');
+    } else if (!thumbnailUrl && type !== 'shorts') {
+      // If no thumbnail URL has been set yet and it's not a shorts video, require thumbnail
+      return sendErrorResponse(res, 400, 'Thumbnail is required for normal videos');
     }
 
     // Create video
@@ -86,7 +97,7 @@ const createVideo = async (req, res, next) => {
       description,
       videoUrl,
       thumbnailUrl,
-      thumbnailAspectRatio: thumbnailAspectRatio || '16:9',
+      thumbnailAspectRatio: type === 'shorts' ? '9:16' : (thumbnailAspectRatio || '16:9'),
       duration: duration || 0,
       tags: tags ? JSON.parse(tags) : [],
       type: type || 'normal'
@@ -94,6 +105,11 @@ const createVideo = async (req, res, next) => {
 
     // Populate owner
     await video.populate('owner', 'name avatarUrl');
+
+    // Send notification to subscribers (non-blocking)
+    notifyNewVideo(req.user._id, title, video._id).catch(error => {
+      console.error('Error sending new video notification:', error);
+    });
 
     sendSuccessResponse(res, 201, { video });
   } catch (error) {
@@ -215,6 +231,13 @@ const toggleLike = async (req, res, next) => {
     
     // Toggle like
     const isLiked = await video.toggleLike(req.user._id);
+    
+    // Send notification if video was liked (not unliked)
+    if (isLiked) {
+      notifyNewLike(video.owner._id, req.user._id, video.title, video._id).catch(error => {
+        console.error('Error sending like notification:', error);
+      });
+    }
     
     sendSuccessResponse(res, 200, {
       liked: isLiked,

@@ -7,7 +7,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import { Video, ResizeMode } from 'expo-av';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import Button from '../../components/Button';
 import AuthRequiredWrapper from '../../components/AuthRequiredWrapper';
 import { uploadVideo } from '../../services/videos';
@@ -22,7 +22,7 @@ export default function Upload() {
   const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
   const [isCustomThumbnail, setIsCustomThumbnail] = useState(false);
   const [videoDuration, setVideoDuration] = useState<number>(0);
-  const [aspectRatio, setAspectRatio] = useState<'16:9' | '4:3' | '1:1'>('16:9');
+  const [aspectRatio, setAspectRatio] = useState<'16:9' | '4:3' | '1:1' | '9:16'>('16:9');
   const [videoType, setVideoType] = useState<'normal' | 'shorts'>('normal');
   const [isLoading, setIsLoading] = useState(false);
   const [thumbnailGenerating, setThumbnailGenerating] = useState(false);
@@ -138,8 +138,8 @@ export default function Upload() {
       return;
     }
     
-    if (!thumbnailUri) {
-      Alert.alert('Error', 'Please select or generate a thumbnail');
+    if (videoType === 'normal' && !thumbnailUri) {
+      Alert.alert('Error', 'Please select or generate a thumbnail for normal videos');
       return;
     }
     
@@ -156,8 +156,8 @@ export default function Upload() {
         description,
         tags: tagsArray,
         videoUri,
-        thumbnailUri,
-        thumbnailAspectRatio: aspectRatio,
+        thumbnailUri: videoType === 'shorts' ? undefined : (thumbnailUri || undefined),
+        thumbnailAspectRatio: videoType === 'shorts' ? undefined : aspectRatio,
         duration: videoDuration,
         type: videoType
       });
@@ -205,6 +205,11 @@ export default function Upload() {
         width,
         height: width * (3 / 4)
       };
+    } else if (aspectRatio === '9:16') {
+      return {
+        width,
+        height: width * (16 / 9)
+      };
     } else {
       return {
         width,
@@ -221,6 +226,44 @@ export default function Upload() {
     return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
   };
   
+  const handleCancel = () => {
+    Alert.alert(
+      'Cancel Upload',
+      'Are you sure you want to cancel? All progress will be lost.',
+      [
+        { text: 'Keep Editing', style: 'cancel' },
+        { 
+          text: 'Cancel', 
+          style: 'destructive',
+          onPress: () => {
+            // Reset form and navigate back
+            setTitle('');
+            setDescription('');
+            setTags('');
+            setVideoUri(null);
+            setThumbnailUri(null);
+            setVideoDuration(0);
+            setVideoType('normal');
+            router.back();
+          }
+        }
+      ]
+    );
+  };
+  
+  const handleVideoTypeChange = (type: 'normal' | 'shorts') => {
+    setVideoType(type);
+    
+    // For shorts, disable thumbnail and set appropriate aspect ratio
+    if (type === 'shorts') {
+      setAspectRatio('9:16'); // Vertical aspect ratio for shorts
+      setThumbnailUri(null); // Disable thumbnail for shorts
+      setIsCustomThumbnail(false);
+    } else {
+      setAspectRatio('16:9'); // Default horizontal aspect ratio
+    }
+  };
+  
   return (
     <AuthRequiredWrapper>
       {(showAuthModal) => (
@@ -229,11 +272,19 @@ export default function Upload() {
           style={styles.container}
         >
           <SafeAreaView style={styles.safeArea}>
+            {/* Header with Back Button */}
+            <View style={styles.header}>
+              <TouchableOpacity onPress={handleCancel} style={styles.backButton}>
+                <Ionicons name="arrow-back" size={24} color="white" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Upload Video</Text>
+              <View style={styles.headerSpacer} />
+            </View>
+            
             <ScrollView
               contentContainerStyle={styles.scrollContent}
               keyboardShouldPersistTaps="handled"
             >
-              <Text style={styles.headerText}>Upload New Video</Text>
               
               {/* Video Selection */}
               <TouchableOpacity
@@ -279,9 +330,9 @@ export default function Upload() {
                   <View style={styles.videoTypeSelector}>
                     <TouchableOpacity 
                       style={[styles.videoTypeButton, videoType === 'normal' && styles.videoTypeButtonActive]}
-                      onPress={() => setVideoType('normal')}
+                      onPress={() => handleVideoTypeChange('normal')}
                     >
-                      <Icon name="play-circle-outline" size={20} color={videoType === 'normal' ? '#FFFFFF' : colors.gray} />
+                      <Ionicons name="play-circle-outline" size={20} color={videoType === 'normal' ? '#FFFFFF' : colors.gray} />
                       <Text style={[styles.videoTypeText, videoType === 'normal' && styles.videoTypeTextActive]}>
                         Normal Video
                       </Text>
@@ -289,9 +340,9 @@ export default function Upload() {
                     
                     <TouchableOpacity 
                       style={[styles.videoTypeButton, videoType === 'shorts' && styles.videoTypeButtonActive]}
-                      onPress={() => setVideoType('shorts')}
+                      onPress={() => handleVideoTypeChange('shorts')}
                     >
-                      <Icon name="play-circle" size={20} color={videoType === 'shorts' ? '#FFFFFF' : colors.gray} />
+                      <Ionicons name="play-circle" size={20} color={videoType === 'shorts' ? '#FFFFFF' : colors.gray} />
                       <Text style={[styles.videoTypeText, videoType === 'shorts' && styles.videoTypeTextActive]}>
                         Shorts
                       </Text>
@@ -306,8 +357,8 @@ export default function Upload() {
                 </View>
               )}
               
-              {/* Thumbnail Section */}
-              {videoUri && (
+              {/* Thumbnail Section - Only for Normal Videos */}
+              {videoUri && videoType === 'normal' && (
                 <View style={styles.thumbnailSection}>
                   <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Thumbnail</Text>
@@ -415,11 +466,11 @@ export default function Upload() {
               </View>
               
               <Button
-                title="Upload Video"
+                title={`Upload ${videoType === 'shorts' ? 'Short' : 'Video'}`}
                 onPress={handleUpload}
                 isLoading={isLoading}
                 fullWidth
-                disabled={!videoUri || !thumbnailUri || !title.trim() || isLoading}
+                disabled={!videoUri || (videoType === 'normal' && !thumbnailUri) || !title.trim() || isLoading}
               />
             </ScrollView>
           </SafeAreaView>
@@ -649,5 +700,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     textAlign: 'center',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  backButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  headerSpacer: {
+    width: 40, // Same width as back button to center the title
   },
 });

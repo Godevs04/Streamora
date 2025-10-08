@@ -326,7 +326,7 @@ export default function Profile() {
   return (
     <AuthRequiredWrapper>
       {(showAuthModal) => (
-        <SafeAreaView style={styles.container} edges={[]}>
+        <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.safeArea}>
             {renderHeader()}
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
   // Header Styles
   header: {
     backgroundColor: colors.background.primary,
-    paddingTop: 0,
+    paddingTop: 8, // Add padding from safe area
     paddingBottom: 8,
     marginTop: 0,
   },

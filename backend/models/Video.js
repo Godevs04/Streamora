@@ -27,7 +27,7 @@ const VideoSchema = new mongoose.Schema({
   },
   thumbnailAspectRatio: {
     type: String,
-    enum: ['16:9', '4:3', '1:1'],
+    enum: ['16:9', '4:3', '1:1', '9:16'],
     default: '16:9'
   },
   duration: {

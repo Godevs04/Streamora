@@ -235,7 +235,7 @@ export default function Home() {
   return (
     <AuthRequiredWrapper>
       {(showAuthModal) => (
-        <SafeAreaView style={styles.container} edges={[]}>
+        <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.safeArea}>
             {renderHeader()}
             <FlatList
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: colors.background.primary,
-    paddingTop: 0,
+    paddingTop: 8, // Add some padding from safe area
     paddingBottom: 8,
   },
   topBar: {

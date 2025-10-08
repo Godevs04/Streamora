@@ -29,7 +29,11 @@ module.exports = {
   },
   extra: {
     eas: {
-      projectId: "your-project-id"
+      projectId: "streamora-7bcb1" // Your actual Firebase Project ID
+    },
+    firebase: {
+      senderId: "856945155045",
+      projectId: "streamora-7bcb1"
     }
   },
   plugins: [

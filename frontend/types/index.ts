@@ -282,7 +282,7 @@ export interface VideoUpload {
   videoUrl?: string;
   thumbnailUri?: string;
   thumbnailUrl?: string;
-  thumbnailAspectRatio?: '16:9' | '4:3' | '1:1';
+  thumbnailAspectRatio?: '16:9' | '4:3' | '1:1' | '9:16';
   duration?: number;
   type?: 'normal' | 'shorts';
 }

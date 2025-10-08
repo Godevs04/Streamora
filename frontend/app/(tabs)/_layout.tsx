@@ -87,17 +87,7 @@ export default function TabsLayout() {
             tabBarIcon: ({ color, size, focused }) => (
               <Ionicons name={(focused ? APP_ICONS.HOME_FILLED : APP_ICONS.HOME) as any} color={color} size={size} />
             ),
-            headerTitle: 'Streamora',
-            headerRight: () => (
-              <View style={styles.headerRightContainer}>
-                <TouchableOpacity style={styles.headerIconButton}>
-                  <Ionicons name={APP_ICONS.SEARCH as any} size={24} color="#FFFFFF" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.headerIconButton}>
-                  <Ionicons name={APP_ICONS.NOTIFICATIONS as any} size={24} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
-            ),
+            headerShown: false, // Disable tab header - screen has its own
           }}
         />
         
@@ -108,6 +98,7 @@ export default function TabsLayout() {
             tabBarIcon: ({ color, size, focused }) => (
               <Ionicons name="play-circle-outline" color={color} size={size} />
             ),
+            headerShown: false, // Disable tab header - screen has its own
           }}
         />
         
@@ -116,15 +107,14 @@ export default function TabsLayout() {
           options={{
             title: 'Post',
             tabBarIcon: ({ color, size, focused }) => (
-              <View style={styles.addButtonContainer}>
-                <Ionicons name={APP_ICONS.ADD as any} color="#FFFFFF" size={size} />
-              </View>
+              <Ionicons name={focused ? "add-circle" : "add-circle-outline"} color={color} size={size} />
             ),
+            headerShown: false, // Disable tab header - screen has its own
             tabBarButton: (props) => {
               return (
                 <Pressable
                   onPress={() => handleAuthRequiredTab('post')}
-                  style={[props.style, styles.uploadButton]}
+                  style={props.style}
                 >
                   {props.children}
                 </Pressable>
@@ -140,6 +130,7 @@ export default function TabsLayout() {
             tabBarIcon: ({ color, size, focused }) => (
               <Ionicons name={(focused ? APP_ICONS.PROFILE_FILLED : APP_ICONS.PROFILE) as any} color={color} size={size} />
             ),
+            headerShown: false, // Disable tab header - screen has its own
             tabBarButton: (props) => {
               return (
                 <Pressable
@@ -176,13 +167,5 @@ const styles = StyleSheet.create({
   uploadButton: {
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  headerRightContainer: {
-    flexDirection: 'row',
-    marginRight: 16,
-  },
-  headerIconButton: {
-    marginLeft: 20,
-    padding: 4,
   },
 });

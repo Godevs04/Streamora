@@ -3,6 +3,7 @@ const Video = require('../models/Video');
 const { validationResult } = require('express-validator');
 const Subscription = require('../models/Subscription');
 const { sendSuccessResponse, sendErrorResponse } = require('../utils/sendResponse');
+const { notifyNewSubscriber } = require('../utils/notificationService');
 
 // Get user profile
 const getUserProfile = async (req, res) => {
@@ -231,6 +232,12 @@ const subscribeToUser = async (req, res) => {
     }
 
     await Subscription.create({ follower: followerId, following: userId });
+    
+    // Send notification to the user being subscribed to (non-blocking)
+    notifyNewSubscriber(userId, followerId).catch(error => {
+      console.error('Error sending subscription notification:', error);
+    });
+    
     res.json({ success: true, message: 'Subscribed successfully' });
   } catch (error) {
     if (error && error.code === 11000) {

@@ -1,6 +1,7 @@
 const Comment = require('../models/Comment');
 const Video = require('../models/Video');
 const { sendSuccessResponse, sendErrorResponse } = require('../utils/sendResponse');
+const { notifyNewComment } = require('../utils/notificationService');
 
 /**
  * Create a new comment
@@ -27,6 +28,11 @@ const createComment = async (req, res, next) => {
     
     // Populate author
     await comment.populate('author', 'name avatarUrl');
+    
+    // Send notification to video owner (non-blocking)
+    notifyNewComment(video.owner._id, req.user._id, text, videoId).catch(error => {
+      console.error('Error sending comment notification:', error);
+    });
     
     sendSuccessResponse(res, 201, { comment });
   } catch (error) {
