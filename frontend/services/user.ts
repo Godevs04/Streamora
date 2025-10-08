@@ -99,3 +99,11 @@ export const unsubscribeFromUser = async (userId: string, token: string) => {
   });
   return response.data;
 };
+
+// Check if current user is subscribed to another user
+export const checkSubscriptionStatus = async (userId: string, token: string) => {
+  const response = await axios.get(`${API_BASE_URL}/users/${userId}/subscription-status`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};

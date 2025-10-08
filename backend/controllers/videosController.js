@@ -145,10 +145,22 @@ const getVideos = async (req, res, next) => {
       .limit(limit)
       .populate('owner', 'name avatarUrl');
 
+    // Add comment count to each video
+    const Comment = require('../models/Comment');
+    const videosWithComments = await Promise.all(
+      videos.map(async (video) => {
+        const commentsCount = await Comment.countDocuments({ video: video._id });
+        return {
+          ...video.toObject(),
+          commentsCount
+        };
+      })
+    );
+
     // Get total count
     const total = await Video.countDocuments(filterOptions);
 
-    sendSuccessResponse(res, 200, { videos }, {
+    sendSuccessResponse(res, 200, { videos: videosWithComments }, {
       page,
       limit,
       total,
@@ -167,24 +179,22 @@ const getVideos = async (req, res, next) => {
 const getVideoById = async (req, res, next) => {
   try {
     const video = await Video.findById(req.params.id)
-      .populate('owner', 'name avatarUrl')
-      .populate({
-        path: 'comments',
-        options: {
-          sort: { createdAt: -1 },
-          limit: 10
-        },
-        populate: {
-          path: 'author',
-          select: 'name avatarUrl'
-        }
-      });
+      .populate('owner', 'name avatarUrl');
     
     if (!video) {
       return sendErrorResponse(res, 404, 'Video not found');
     }
     
-    sendSuccessResponse(res, 200, { video });
+    // Add comment count
+    const Comment = require('../models/Comment');
+    const commentsCount = await Comment.countDocuments({ video: video._id });
+    
+    const videoWithCommentsCount = {
+      ...video.toObject(),
+      commentsCount
+    };
+    
+    sendSuccessResponse(res, 200, { video: videoWithCommentsCount });
   } catch (error) {
     next(error);
   }

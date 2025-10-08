@@ -276,6 +276,30 @@ const getPublicUserStats = async (req, res) => {
   }
 };
 
+// Check if current user is subscribed to another user
+const checkSubscriptionStatus = async (req, res) => {
+  try {
+    const followerId = req.user.id;
+    const { userId } = req.params; // user to check subscription status for
+
+    const subscription = await Subscription.findOne({ 
+      follower: followerId, 
+      following: userId 
+    });
+
+    res.json({
+      success: true,
+      data: { 
+        isSubscribed: !!subscription,
+        subscriptionId: subscription?._id 
+      }
+    });
+  } catch (error) {
+    console.error('Error checking subscription status:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 /**
  * Get videos by user ID
  * @route GET /api/users/:id/videos
@@ -318,5 +342,6 @@ module.exports = {
   getUserVideos,
   subscribeToUser,
   unsubscribeFromUser,
-  getPublicUserStats
+  getPublicUserStats,
+  checkSubscriptionStatus
 };

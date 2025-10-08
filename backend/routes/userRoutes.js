@@ -11,6 +11,7 @@ const {
   subscribeToUser,
   unsubscribeFromUser,
   getPublicUserStats,
+  checkSubscriptionStatus,
 } = require('../controllers/userController');
 
 const router = express.Router();
@@ -79,6 +80,9 @@ router.delete('/:userId/subscribe', unsubscribeFromUser);
 
 // GET /api/user/:userId/stats - Public stats for a user
 router.get('/:userId/stats', getPublicUserStats);
+
+// GET /api/user/:userId/subscription-status - Check if current user is subscribed to another user
+router.get('/:userId/subscription-status', checkSubscriptionStatus);
 
 // GET /api/user/:userId - Get user by ID (must be last to avoid conflicts)
 router.get('/:userId', getUserById);

@@ -40,6 +40,7 @@ export default function VideoPlayer() {
   const [comments, setComments] = useState<any[]>([]);
   const [commentsSort, setCommentsSort] = useState<'top' | 'newest'>('top');
   const [commentsLoading, setCommentsLoading] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const [moreExpanded, setMoreExpanded] = useState(false);
@@ -49,8 +50,59 @@ export default function VideoPlayer() {
   const [captionsEnabled, setCaptionsEnabled] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [qualityLabel, setQualityLabel] = useState<'Auto (360p)' | 'Auto'>('Auto (360p)');
+  const [selectedQuality, setSelectedQuality] = useState('auto');
+  const [selectedSpeed, setSelectedSpeed] = useState(1.0);
+  const [moreSettingsVisible, setMoreSettingsVisible] = useState(false);
+  const [autoplayEnabled, setAutoplayEnabled] = useState(true);
+  const [dataSaverEnabled, setDataSaverEnabled] = useState(false);
+  const [darkModeEnabled, setDarkModeEnabled] = useState(true);
+  const [qualitySelectionVisible, setQualitySelectionVisible] = useState(false);
+  const [speedSelectionVisible, setSpeedSelectionVisible] = useState(false);
   
   const videoId = Array.isArray(id) ? id[0] : id;
+  
+  // Quality options
+  const qualityOptions = [
+    { value: 'auto', label: 'Auto (360p)', description: 'Automatically adjusts quality' },
+    { value: '144p', label: '144p', description: 'Lowest quality, saves data' },
+    { value: '240p', label: '240p', description: 'Low quality' },
+    { value: '360p', label: '360p', description: 'Standard quality' },
+    { value: '480p', label: '480p', description: 'Good quality' },
+    { value: '720p', label: '720p', description: 'HD quality' },
+    { value: '1080p', label: '1080p', description: 'Full HD quality' },
+  ];
+  
+  // Playback speed options
+  const speedOptions = [
+    { value: 0.25, label: '0.25x', description: 'Very slow' },
+    { value: 0.5, label: '0.5x', description: 'Slow' },
+    { value: 0.75, label: '0.75x', description: 'Slightly slow' },
+    { value: 1.0, label: 'Normal', description: 'Normal speed' },
+    { value: 1.25, label: '1.25x', description: 'Slightly fast' },
+    { value: 1.5, label: '1.5x', description: 'Fast' },
+    { value: 2.0, label: '2x', description: 'Very fast' },
+  ];
+  
+  // RadioButton component for elegant selection
+  const RadioButton = ({ selected, onPress, label, description, value }: {
+    selected: boolean;
+    onPress: () => void;
+    label: string;
+    description: string;
+    value: any;
+  }) => (
+    <TouchableOpacity style={styles.radioOption} onPress={onPress}>
+      <View style={styles.radioContent}>
+        <View style={styles.radioInfo}>
+          <Text style={[styles.radioLabel, selected && styles.radioLabelSelected]}>{label}</Text>
+          <Text style={styles.radioDescription}>{description}</Text>
+        </View>
+        <View style={[styles.radioButton, selected && styles.radioButtonSelected]}>
+          {selected && <View style={styles.radioButtonInner} />}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
   
   useEffect(() => {
     fetchVideo();
@@ -73,30 +125,68 @@ export default function VideoPlayer() {
 
   const loadComments = async (sort: 'top' | 'newest' = commentsSort) => {
     if (!video?._id) return;
+    
     try {
       setCommentsLoading(true);
       const res = await getVideoComments(video._id, { page: 1, limit: 50, sort: sort as any });
-      const payload: any = res as any;
-      const list = Array.isArray(payload?.data)
-        ? payload.data
-        : Array.isArray(payload?.comments)
-          ? payload.comments
-          : Array.isArray(payload?.data?.data)
-            ? payload.data.data
-            : [];
-      setComments(list);
+      
+      // The API interceptor returns response.data directly, so res is already the data
+      let commentsList: any[] = [];
+      
+      if ((res as any)?.data?.comments && Array.isArray((res as any).data.comments)) {
+        // Structure: { data: { comments: [...] } }
+        commentsList = (res as any).data.comments;
+      } else if (Array.isArray((res as any)?.comments)) {
+        // Structure: { comments: [...] }
+        commentsList = (res as any).comments;
+      } else if (Array.isArray((res as any)?.data)) {
+        // Structure: { data: [...] }
+        commentsList = (res as any).data;
+      }
+      
+      setComments(commentsList);
     } catch (e) {
-      // ignore
+      console.error('Error loading comments:', e);
     } finally {
       setCommentsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (commentsVisible) {
+    if (commentsVisible && video?._id) {
       loadComments('top');
     }
   }, [commentsVisible, video?._id]);
+
+  // Also load comments when video is first loaded (for better UX)
+  useEffect(() => {
+    if (video?._id && !commentsVisible) {
+      // Preload comments in background
+      loadComments('top');
+    }
+  }, [video?._id]);
+
+  // Check subscription status when video loads
+  useEffect(() => {
+    const checkSubscription = async () => {
+      if (!user || !video?.owner?._id) return;
+      
+      try {
+        const { checkSubscriptionStatus } = await import('../../services/user');
+        const { token } = useAuthStore.getState();
+        if (!token) return;
+        
+        const response = await checkSubscriptionStatus(video.owner._id, token);
+        if (response?.data?.isSubscribed) {
+          setIsSubscribed(true);
+        }
+      } catch (error) {
+        console.error('Error checking subscription status:', error);
+      }
+    };
+    
+    checkSubscription();
+  }, [user, video?.owner?._id]);
   
   const fetchVideo = async () => {
     if (!videoId) {
@@ -599,7 +689,7 @@ export default function VideoPlayer() {
 
                 <TouchableOpacity style={styles.actionPill} onPress={() => setCommentsVisible(true)}>
                     <MaterialIcons name="chat-bubble-outline" size={20} color={colors.text.primary} />
-                  <Text style={styles.actionPillText}>Comments {comments.length}</Text>
+                  <Text style={styles.actionPillText}>Comments {video?.commentsCount || 0}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity style={styles.actionPill} onPress={toggleMore}>
@@ -635,8 +725,39 @@ export default function VideoPlayer() {
                       </View>
                     </View>
                     
-                    <TouchableOpacity style={styles.subscribeButton}>
-                      <Text style={styles.subscribeText}>Subscribe</Text>
+                    <TouchableOpacity 
+                      style={[styles.subscribeButton, isSubscribed && styles.subscribedButton]}
+                      onPress={async () => {
+                        if (!user) {
+                          Alert.alert('Login Required', 'Please login to subscribe to channels');
+                          return;
+                        }
+                        
+                        try {
+                          const { subscribeToUser, unsubscribeFromUser } = await import('../../services/user');
+                          const { token } = useAuthStore.getState();
+                          
+                          if (!token) {
+                            Alert.alert('Error', 'Authentication token not found');
+                            return;
+                          }
+                          
+                          if (isSubscribed) {
+                            await unsubscribeFromUser(video.owner._id, token);
+                            setIsSubscribed(false);
+                            Alert.alert('Unsubscribed', `You have unsubscribed from ${video.owner.name}`);
+                          } else {
+                            await subscribeToUser(video.owner._id, token);
+                            setIsSubscribed(true);
+                            Alert.alert('Subscribed', `You have subscribed to ${video.owner.name}`);
+                          }
+                        } catch (error: any) {
+                          console.error('Subscription error:', error);
+                          Alert.alert('Error', error.message || 'Failed to update subscription');
+                        }
+                      }}
+                    >
+                      <Text style={styles.subscribeText}>{isSubscribed ? 'Subscribed' : 'Subscribe'}</Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
@@ -652,8 +773,39 @@ export default function VideoPlayer() {
                       </View>
                     </View>
                     
-                    <TouchableOpacity style={styles.subscribeButton}>
-                      <Text style={styles.subscribeText}>Subscribe</Text>
+                    <TouchableOpacity 
+                      style={[styles.subscribeButton, isSubscribed && styles.subscribedButton]}
+                      onPress={async () => {
+                        if (!user) {
+                          Alert.alert('Login Required', 'Please login to subscribe to channels');
+                          return;
+                        }
+                        
+                        try {
+                          const { subscribeToUser, unsubscribeFromUser } = await import('../../services/user');
+                          const { token } = useAuthStore.getState();
+                          
+                          if (!token) {
+                            Alert.alert('Error', 'Authentication token not found');
+                            return;
+                          }
+                          
+                          if (isSubscribed) {
+                            await unsubscribeFromUser(video.owner._id, token);
+                            setIsSubscribed(false);
+                            Alert.alert('Unsubscribed', `You have unsubscribed from ${video.owner.name}`);
+                          } else {
+                            await subscribeToUser(video.owner._id, token);
+                            setIsSubscribed(true);
+                            Alert.alert('Subscribed', `You have subscribed to ${video.owner.name}`);
+                          }
+                        } catch (error: any) {
+                          console.error('Subscription error:', error);
+                          Alert.alert('Error', error.message || 'Failed to update subscription');
+                        }
+                      }}
+                    >
+                      <Text style={styles.subscribeText}>{isSubscribed ? 'Subscribed' : 'Subscribe'}</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -686,24 +838,26 @@ export default function VideoPlayer() {
                   <View style={styles.sheetHandle} />
                 </View>
 
-                <TouchableOpacity style={styles.sheetRow} onPress={() => setQualityLabel('Auto (360p)')}>
+                <TouchableOpacity style={styles.sheetRow} onPress={() => {
+                  setSettingsVisible(false);
+                  setQualitySelectionVisible(true);
+                }}>
                   <View style={styles.sheetRowLeft}>
                     <MaterialIcons name="tune" size={22} color={colors.text.primary} />
                     <Text style={styles.sheetRowText}>Quality</Text>
                   </View>
-                  <Text style={styles.sheetRowValue}>{qualityLabel}</Text>
+                  <Text style={styles.sheetRowValue}>{qualityOptions.find(q => q.value === selectedQuality)?.label}</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.sheetRow} onPress={async () => {
-                  const next = playbackRate === 1 ? 1.25 : playbackRate === 1.25 ? 1.5 : playbackRate === 1.5 ? 2.0 : 1.0;
-                  setPlaybackRate(next);
-                  try { await videoRef.current?.setRateAsync(next, true); } catch {}
+                <TouchableOpacity style={styles.sheetRow} onPress={() => {
+                  setSettingsVisible(false);
+                  setSpeedSelectionVisible(true);
                 }}>
                   <View style={styles.sheetRowLeft}>
                     <MaterialIcons name="slow-motion-video" size={22} color={colors.text.primary} />
                     <Text style={styles.sheetRowText}>Playback speed</Text>
                   </View>
-                  <Text style={styles.sheetRowValue}>{playbackRate === 1 ? 'Normal' : `${playbackRate}x`}</Text>
+                  <Text style={styles.sheetRowValue}>{speedOptions.find(s => s.value === selectedSpeed)?.label}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.sheetRow} onPress={() => setCaptionsEnabled(!captionsEnabled)}>
@@ -722,13 +876,208 @@ export default function VideoPlayer() {
                   <Text style={styles.sheetRowValue}>{isLocked ? 'Locked' : 'Unlocked'}</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.sheetRow} onPress={() => Alert.alert('More', 'Additional settings coming soon')}>
+                <TouchableOpacity style={styles.sheetRow} onPress={() => {
+                  setSettingsVisible(false);
+                  setMoreSettingsVisible(true);
+                }}>
                   <View style={styles.sheetRowLeft}>
                     <MaterialIcons name="more-horiz" size={22} color={colors.text.primary} />
                     <Text style={styles.sheetRowText}>More</Text>
                   </View>
                   <MaterialIcons name="chevron-right" size={22} color={colors.text.primary} />
                 </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+
+          {/* Quality Selection Modal */}
+          <Modal
+            visible={qualitySelectionVisible}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setQualitySelectionVisible(false)}
+          >
+            <View style={styles.modalBackdrop}>
+              <TouchableOpacity
+                style={styles.modalBackdropTouchable}
+                activeOpacity={1}
+                onPress={() => setQualitySelectionVisible(false)}
+              />
+              <View style={styles.sheet}>
+                <View style={styles.sheetHandleContainer}>
+                  <View style={styles.sheetHandle} />
+                </View>
+                
+                <View style={styles.sheetHeader}>
+                  <TouchableOpacity onPress={() => {
+                    setQualitySelectionVisible(false);
+                    setSettingsVisible(true);
+                  }}>
+                    <MaterialIcons name="arrow-back" size={24} color={colors.text.primary} />
+                  </TouchableOpacity>
+                  <Text style={styles.sheetTitle}>Select Quality</Text>
+                  <TouchableOpacity onPress={() => setQualitySelectionVisible(false)}>
+                    <MaterialIcons name="close" size={24} color={colors.text.primary} />
+                  </TouchableOpacity>
+                </View>
+                
+                <ScrollView style={styles.sheetContent}>
+                  {qualityOptions.map((option) => (
+                    <RadioButton
+                      key={option.value}
+                      selected={selectedQuality === option.value}
+                      onPress={() => {
+                        setSelectedQuality(option.value);
+                        setQualityLabel(option.label as any);
+                        setQualitySelectionVisible(false);
+                        setSettingsVisible(true);
+                      }}
+                      label={option.label}
+                      description={option.description}
+                      value={option.value}
+                    />
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
+
+          {/* Speed Selection Modal */}
+          <Modal
+            visible={speedSelectionVisible}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setSpeedSelectionVisible(false)}
+          >
+            <View style={styles.modalBackdrop}>
+              <TouchableOpacity
+                style={styles.modalBackdropTouchable}
+                activeOpacity={1}
+                onPress={() => setSpeedSelectionVisible(false)}
+              />
+              <View style={styles.sheet}>
+                <View style={styles.sheetHandleContainer}>
+                  <View style={styles.sheetHandle} />
+                </View>
+                
+                <View style={styles.sheetHeader}>
+                  <TouchableOpacity onPress={() => {
+                    setSpeedSelectionVisible(false);
+                    setSettingsVisible(true);
+                  }}>
+                    <MaterialIcons name="arrow-back" size={24} color={colors.text.primary} />
+                  </TouchableOpacity>
+                  <Text style={styles.sheetTitle}>Select Playback Speed</Text>
+                  <TouchableOpacity onPress={() => setSpeedSelectionVisible(false)}>
+                    <MaterialIcons name="close" size={24} color={colors.text.primary} />
+                  </TouchableOpacity>
+                </View>
+                
+                <ScrollView style={styles.sheetContent}>
+                  {speedOptions.map((option) => (
+                    <RadioButton
+                      key={option.value}
+                      selected={selectedSpeed === option.value}
+                      onPress={async () => {
+                        setSelectedSpeed(option.value);
+                        setPlaybackRate(option.value);
+                        try { 
+                          await videoRef.current?.setRateAsync(option.value, true); 
+                        } catch (error) {
+                          console.error('Error setting playback rate:', error);
+                        }
+                        setSpeedSelectionVisible(false);
+                        setSettingsVisible(true);
+                      }}
+                      label={option.label}
+                      description={option.description}
+                      value={option.value}
+                    />
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
+
+          {/* More Settings Modal */}
+          <Modal
+            visible={moreSettingsVisible}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setMoreSettingsVisible(false)}
+          >
+            <View style={styles.modalBackdrop}>
+              <TouchableOpacity
+                style={styles.modalBackdropTouchable}
+                activeOpacity={1}
+                onPress={() => setMoreSettingsVisible(false)}
+              />
+              <View style={styles.sheet}>
+                <View style={styles.sheetHandleContainer}>
+                  <View style={styles.sheetHandle} />
+                </View>
+                
+                <View style={styles.sheetHeader}>
+                  <TouchableOpacity onPress={() => {
+                    setMoreSettingsVisible(false);
+                    setSettingsVisible(true);
+                  }}>
+                    <MaterialIcons name="arrow-back" size={24} color={colors.text.primary} />
+                  </TouchableOpacity>
+                  <Text style={styles.sheetTitle}>More Settings</Text>
+                  <TouchableOpacity onPress={() => setMoreSettingsVisible(false)}>
+                    <MaterialIcons name="close" size={24} color={colors.text.primary} />
+                  </TouchableOpacity>
+                </View>
+                
+                <ScrollView style={styles.sheetContent}>
+                  <TouchableOpacity style={styles.sheetRow} onPress={() => setAutoplayEnabled(!autoplayEnabled)}>
+                    <View style={styles.sheetRowLeft}>
+                      <MaterialIcons name="play-arrow" size={22} color={colors.text.primary} />
+                      <Text style={styles.sheetRowText}>Autoplay</Text>
+                    </View>
+                    <Text style={styles.sheetRowValue}>{autoplayEnabled ? 'On' : 'Off'}</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity style={styles.sheetRow} onPress={() => setDataSaverEnabled(!dataSaverEnabled)}>
+                    <View style={styles.sheetRowLeft}>
+                      <MaterialIcons name="data-usage" size={22} color={colors.text.primary} />
+                      <Text style={styles.sheetRowText}>Data Saver</Text>
+                    </View>
+                    <Text style={styles.sheetRowValue}>{dataSaverEnabled ? 'On' : 'Off'}</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity style={styles.sheetRow} onPress={() => setDarkModeEnabled(!darkModeEnabled)}>
+                    <View style={styles.sheetRowLeft}>
+                      <MaterialIcons name="dark-mode" size={22} color={colors.text.primary} />
+                      <Text style={styles.sheetRowText}>Dark Mode</Text>
+                    </View>
+                    <Text style={styles.sheetRowValue}>{darkModeEnabled ? 'On' : 'Off'}</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity style={styles.sheetRow} onPress={() => {
+                    Alert.alert('Video Info', `Title: ${video?.title}\nDuration: ${video?.duration}s\nViews: ${video?.views || 0}`);
+                  }}>
+                    <View style={styles.sheetRowLeft}>
+                      <MaterialIcons name="info" size={22} color={colors.text.primary} />
+                      <Text style={styles.sheetRowText}>Video Info</Text>
+                    </View>
+                    <MaterialIcons name="chevron-right" size={22} color={colors.text.primary} />
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity style={styles.sheetRow} onPress={() => {
+                    Alert.alert('Report Video', 'Report this video for inappropriate content?', [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Report', style: 'destructive', onPress: () => Alert.alert('Reported', 'Thank you for your feedback') }
+                    ]);
+                  }}>
+                    <View style={styles.sheetRowLeft}>
+                      <MaterialIcons name="flag" size={22} color={colors.text.primary} />
+                      <Text style={styles.sheetRowText}>Report Video</Text>
+                    </View>
+                    <MaterialIcons name="chevron-right" size={22} color={colors.text.primary} />
+                  </TouchableOpacity>
+                </ScrollView>
               </View>
             </View>
           </Modal>
@@ -768,71 +1117,108 @@ export default function VideoPlayer() {
                     </TouchableOpacity>
                   </View>
                 </View>
-                <ScrollView style={{ maxHeight: 320 }}>
+                <ScrollView style={styles.commentsScrollView} showsVerticalScrollIndicator={false}>
                   {commentsLoading ? (
-                    <Text style={styles.emptyComments}>Loading...</Text>
+                    <View style={styles.loadingContainer}>
+                      <ActivityIndicator size="small" color={colors.primary} />
+                      <Text style={styles.loadingText}>Loading comments...</Text>
+                    </View>
                   ) : (
                     <>
                       {comments.map((c: any) => (
                         <View key={c._id || Math.random().toString()} style={styles.commentRow}>
-                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Text style={styles.commentAuthor}>{c.author?.name || 'User'}</Text>
-                            <TouchableOpacity onPress={async () => {
-                              try {
-                                const res = await toggleLikeComment(c._id);
-                                const data = res?.data || {};
-                                setComments(prev => prev.map(item => item._id === c._id ? { ...item, likesCount: data.likesCount } : item));
-                              } catch {}
-                            }}>
-                              <Text style={styles.commentLikes}>♥ {c.likesCount || 0}</Text>
+                          <View style={styles.commentHeader}>
+                            <View style={styles.commentAuthorInfo}>
+                              <View style={styles.commentAvatar}>
+                                <Text style={styles.commentAvatarText}>
+                                  {(c.author?.name || 'U').charAt(0).toUpperCase()}
+                                </Text>
+                              </View>
+                              <View style={styles.commentMeta}>
+                                <Text style={styles.commentAuthor}>{c.author?.name || 'User'}</Text>
+                                <Text style={styles.commentTime}>
+                                  {formatRelativeTime(c.createdAt || new Date().toISOString())}
+                                </Text>
+                              </View>
+                            </View>
+                            <TouchableOpacity 
+                              style={styles.likeButton}
+                              onPress={async () => {
+                                try {
+                                  const res = await toggleLikeComment(c._id);
+                                  const data = res?.data || {};
+                                  setComments(prev => prev.map(item => item._id === c._id ? { ...item, likesCount: data.likesCount } : item));
+                                } catch {}
+                              }}
+                            >
+                              <MaterialIcons name="favorite-border" size={16} color={colors.text.secondary} />
+                              <Text style={styles.commentLikes}>{c.likesCount || 0}</Text>
                             </TouchableOpacity>
                           </View>
                           <Text style={styles.commentText}>{c.text}</Text>
                         </View>
                       ))}
                       {comments.length === 0 && (
-                        <Text style={styles.emptyComments}>No comments yet</Text>
+                        <View style={styles.emptyCommentsContainer}>
+                          <MaterialIcons name="chat-bubble-outline" size={48} color={colors.text.secondary} />
+                          <Text style={styles.emptyComments}>No comments yet</Text>
+                          <Text style={styles.emptyCommentsSubtext}>Be the first to comment!</Text>
+                        </View>
                       )}
                     </>
                   )}
                 </ScrollView>
                 <View style={styles.addCommentRow}>
-                  <TextInput
-                    style={styles.commentInput}
-                    placeholder="Add a comment"
-                    placeholderTextColor={colors.text.secondary}
-                    value={newComment}
-                    onChangeText={setNewComment}
-                  />
-                  <TouchableOpacity
-                    style={styles.sendButton}
-                    onPress={async () => {
-                      if (!newComment.trim() || !video?._id) return;
-                      try {
-                        await addComment(video._id, newComment.trim());
-                        setNewComment('');
-                        // Update local comments state immediately for better UX
-                        const optimisticComment = {
-                          _id: 'temp_' + Date.now(),
-                          text: newComment.trim(),
-                          author: { name: 'You' },
-                          video: video._id,
-                          createdAt: new Date().toISOString(),
-                          updatedAt: new Date().toISOString(),
-                          likesCount: 0
-                        };
-                        setComments(prev => [...prev, optimisticComment]);
-                        // Optimistically bump commentsCount on the video
-                        setVideo(prev => prev ? {
-                          ...prev,
-                          commentsCount: ((typeof prev.commentsCount === 'number' ? prev.commentsCount : (Array.isArray(prev.comments) ? prev.comments.length : 0)) + 1)
-                        } : prev);
-                        await loadComments(commentsSort);
-                      } catch {}
-                    }}
-                  >
-                    <MaterialIcons name="send" size={20} color={colors.text.primary} />
-                  </TouchableOpacity>
+                  <View style={styles.commentInputContainer}>
+                    <TextInput
+                      style={styles.commentInput}
+                      placeholder="Add a comment..."
+                      placeholderTextColor={colors.text.secondary}
+                      value={newComment}
+                      onChangeText={setNewComment}
+                      multiline
+                      maxLength={500}
+                    />
+                    <View style={styles.commentInputFooter}>
+                      <Text style={styles.characterCount}>
+                        {newComment.length}/500
+                      </Text>
+                      <TouchableOpacity
+                        style={[styles.sendButton, !newComment.trim() && styles.sendButtonDisabled]}
+                        onPress={async () => {
+                          if (!newComment.trim() || !video?._id) return;
+                          try {
+                            await addComment(video._id, newComment.trim());
+                            setNewComment('');
+                            // Update local comments state immediately for better UX
+                            const optimisticComment = {
+                              _id: 'temp_' + Date.now(),
+                              text: newComment.trim(),
+                              author: { name: user?.name || 'You' },
+                              video: video._id,
+                              createdAt: new Date().toISOString(),
+                              updatedAt: new Date().toISOString(),
+                              likesCount: 0
+                            };
+                            setComments(prev => [...prev, optimisticComment]);
+                            // Optimistically bump commentsCount on the video
+                            setVideo(prev => prev ? {
+                              ...prev,
+                              commentsCount: ((typeof prev.commentsCount === 'number' ? prev.commentsCount : (Array.isArray(prev.comments) ? prev.comments.length : 0)) + 1)
+                            } : prev);
+                            await loadComments(commentsSort);
+                          } catch {}
+                        }}
+                        disabled={!newComment.trim()}
+                      >
+                        <MaterialIcons 
+                          name="send" 
+                          size={20} 
+                          color={newComment.trim() ? colors.text.primary : colors.text.secondary} 
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
                 </View>
               </View>
             </View>
@@ -897,6 +1283,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     gap: 8,
     marginTop: 12,
+    justifyContent: 'center',
   },
   actionsRowSecondary: {
     flexDirection: 'row',
@@ -967,28 +1354,153 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.8)',
     fontSize: 14,
   },
+  sheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  sheetTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: 'white',
+    flex: 1,
+    textAlign: 'center',
+  },
+  sheetContent: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+  },
+  radioOption: {
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  radioContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  radioInfo: {
+    flex: 1,
+  },
+  radioLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: 'white',
+    marginBottom: 4,
+  },
+  radioLabelSelected: {
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  radioDescription: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+  },
+  radioButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radioButtonSelected: {
+    borderColor: colors.primary,
+  },
+  radioButtonInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: colors.primary,
+  },
   commentsHeader: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
   },
+  commentsScrollView: {
+    maxHeight: 320,
+  },
   commentRow: {
-    paddingVertical: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(255,255,255,0.08)'
   },
-  commentAuthor: {
-    color: 'rgba(255,255,255,0.9)',
+  commentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  commentAuthorInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  commentAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  commentAvatarText: {
+    color: 'white',
+    fontSize: 14,
     fontWeight: '600',
-    marginBottom: 4,
+  },
+  commentMeta: {
+    flex: 1,
+  },
+  commentAuthor: {
+    color: colors.text.primary,
+    fontWeight: '600',
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  commentTime: {
+    color: colors.text.secondary,
+    fontSize: 12,
+  },
+  likeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   commentText: {
-    color: 'rgba(255,255,255,0.9)',
+    color: colors.text.primary,
+    fontSize: 14,
+    lineHeight: 20,
+    marginLeft: 42,
+  },
+  emptyCommentsContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
   },
   emptyComments: {
-    color: 'rgba(255,255,255,0.6)',
-    paddingVertical: 12,
+    color: colors.text.secondary,
+    fontSize: 16,
+    fontWeight: '500',
+    marginTop: 12,
+  },
+  emptyCommentsSubtext: {
+    color: colors.text.secondary,
+    fontSize: 14,
+    marginTop: 4,
+    opacity: 0.7,
   },
   sortPill: {
     color: 'rgba(255,255,255,0.8)',
@@ -1004,28 +1516,48 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.18)',
   },
   commentLikes: {
-    color: 'rgba(255,255,255,0.9)',
-    fontWeight: '600',
+    color: colors.text.secondary,
+    fontSize: 12,
+    marginLeft: 4,
   },
   addCommentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  commentInputContainer: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 16,
+    padding: 12,
   },
   commentInput: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    color: 'white',
-    marginRight: 8,
+    color: colors.text.primary,
+    fontSize: 14,
+    minHeight: 40,
+    maxHeight: 120,
+    textAlignVertical: 'top',
+  },
+  commentInputFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  characterCount: {
+    color: colors.text.secondary,
+    fontSize: 12,
   },
   sendButton: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: colors.primary,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sendButtonDisabled: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
   lockOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -1222,6 +1754,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 3,
+  },
+  subscribedButton: {
+    backgroundColor: colors.background.tertiary,
   },
   subscribeText: {
     color: colors.text.primary,

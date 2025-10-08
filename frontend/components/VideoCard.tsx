@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Image, TouchableOpacity, Dimensions, StyleSheet, Share, Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -8,7 +8,7 @@ import { formatCount, formatRelativeTime, formatDuration } from '../utils/format
 import useAuthStore from '../store/useAuthStore';
 // Use real API for likes on home feed
 import { toggleLikeVideo } from '../services/videos';
-import { subscribeToUser as apiSubscribe, unsubscribeFromUser as apiUnsubscribe } from '../services/user';
+import { subscribeToUser as apiSubscribe, unsubscribeFromUser as apiUnsubscribe, checkSubscriptionStatus } from '../services/user';
 import { APP_ICONS } from '../utils/iconLoader';
 import colors from '../constants/colors';
 
@@ -25,6 +25,27 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
   const [likesCount, setLikesCount] = useState(video.likesCount || 0);
   const [subscribed, setSubscribed] = useState(false);
   const [imageLoadError, setImageLoadError] = useState(false);
+  
+  // Check subscription status when component loads
+  useEffect(() => {
+    const checkSubscription = async () => {
+      if (!user || !video?.owner?._id) return;
+      
+      try {
+        const { token } = useAuthStore.getState();
+        if (!token) return;
+        
+        const response = await checkSubscriptionStatus(video.owner._id, token);
+        if (response?.data?.isSubscribed) {
+          setSubscribed(true);
+        }
+      } catch (error) {
+        console.error('Error checking subscription status:', error);
+      }
+    };
+    
+    checkSubscription();
+  }, [user, video?.owner?._id]);
   
   // Function to get proper thumbnail URL
   const getThumbnailUrl = (video: Video) => {
@@ -176,9 +197,14 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
     }
     
     if (!user) return;
+    
     try {
       const { token } = useAuthStore.getState();
-      if (!token) return;
+      if (!token) {
+        Alert.alert('Error', 'Authentication token not found');
+        return;
+      }
+      
       if (subscribed) {
         await apiUnsubscribe(video.owner._id, token);
         setSubscribed(false);
@@ -188,8 +214,9 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
         setSubscribed(true);
         Alert.alert('Subscribed', `You have subscribed to ${video.owner.name}`);
       }
-    } catch (e) {
-      // noop
+    } catch (error: any) {
+      console.error('Subscription error:', error);
+      Alert.alert('Error', error.message || 'Failed to update subscription');
     }
   };
   
@@ -298,7 +325,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
             {variant === 'default' && (
               <TouchableOpacity
                 onPress={handleSubscribePress}
-                style={[styles.subscribeButton, subscribed && styles.subscribedButton, styles.subscribeRight]}
+                style={[styles.subscribeButton, subscribed && styles.subscribedButton]}
               >
                 <Text style={styles.subscribeText}>{subscribed ? 'Subscribed' : 'Subscribe'}</Text>
               </TouchableOpacity>
@@ -403,8 +430,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 12,
-    justifyContent: 'flex-start',
-    paddingLeft: 4,
+    justifyContent: 'center',
+    paddingHorizontal: 4,
   },
   actionsRowCompact: {
     justifyContent: 'flex-start',
@@ -460,9 +487,6 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     fontSize: 14,
     fontWeight: '500',
-  },
-  subscribeRight: {
-    marginLeft: 'auto',
   },
 });
 
