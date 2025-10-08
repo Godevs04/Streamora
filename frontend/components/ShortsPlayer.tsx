@@ -10,6 +10,7 @@ import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { Video as VideoType } from '../types';
 import colors from '../constants/colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface ShortsPlayerProps {
   video: VideoType;
@@ -37,6 +38,10 @@ export default function ShortsPlayer({
   const [isLikedState, setIsLikedState] = useState(isLiked);
   const [isSubscribedState, setIsSubscribedState] = useState(isSubscribed);
   const videoRef = useRef<Video>(null);
+  const insets = useSafeAreaInsets();
+  
+  // Calculate available height considering safe area
+  const availableHeight = screenHeight - insets.top - insets.bottom;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -82,18 +87,18 @@ export default function ShortsPlayer({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { height: availableHeight }]}>
       {/* Video Player */}
       <TouchableOpacity
-        style={styles.videoContainer}
+        style={[styles.videoContainer, { height: availableHeight }]}
         onPress={handleVideoPress}
         activeOpacity={1}
       >
         <Video
           ref={videoRef}
           source={{ uri: video.videoUrl }}
-          style={styles.video}
-          resizeMode={ResizeMode.COVER}
+          style={[styles.video, { height: availableHeight }]}
+          resizeMode={ResizeMode.CONTAIN}
           shouldPlay={isPlaying}
           isLooping={true}
           onPlaybackStatusUpdate={(status: AVPlaybackStatus) => {
@@ -122,10 +127,10 @@ export default function ShortsPlayer({
         {/* Video Info Overlay */}
         <View style={styles.videoInfo}>
           <View style={styles.videoDetails}>
-            <Text style={styles.videoTitle}>{video.title}</Text>
-            <Text style={styles.channelName}>{video.owner.name}</Text>
+            <Text style={styles.videoTitle}>{video.title || 'Untitled Video'}</Text>
+            <Text style={styles.channelName}>{video.owner?.name || 'Unknown User'}</Text>
             <View style={styles.hashtags}>
-              {video.tags.slice(0, 3).map((tag, index) => (
+              {(video.tags || []).slice(0, 3).map((tag, index) => (
                 <Text key={index} style={styles.hashtag}>
                   #{tag}
                 </Text>
@@ -142,7 +147,7 @@ export default function ShortsPlayer({
               size={28}
               color={isLikedState ? colors.error : '#FFFFFF'}
             />
-            <Text style={styles.actionText}>{formatCount(video.likesCount)}</Text>
+            <Text style={styles.actionText}>{formatCount(video.likesCount || 0)}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionButton} onPress={onComment}>
@@ -173,17 +178,22 @@ export default function ShortsPlayer({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    width: screenWidth,
+    height: screenHeight,
     backgroundColor: colors.background.primary,
+    overflow: 'hidden',
   },
   videoContainer: {
     width: screenWidth,
     height: screenHeight,
     position: 'relative',
+    overflow: 'hidden',
   },
   video: {
-    width: '100%',
-    height: '100%',
+    width: screenWidth,
+    height: screenHeight,
+    maxWidth: screenWidth,
+    maxHeight: screenHeight,
   },
   playOverlay: {
     position: 'absolute',

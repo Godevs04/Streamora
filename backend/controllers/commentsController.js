@@ -1,6 +1,7 @@
 const Comment = require('../models/Comment');
 const Video = require('../models/Video');
 const { sendSuccessResponse, sendErrorResponse } = require('../utils/sendResponse');
+const { notifyNewComment } = require('../utils/notificationService');
 
 /**
  * Create a new comment
@@ -28,6 +29,11 @@ const createComment = async (req, res, next) => {
     // Populate author
     await comment.populate('author', 'name avatarUrl');
     
+    // Send notification to video owner (non-blocking)
+    notifyNewComment(video.owner._id, req.user._id, text, videoId).catch(error => {
+      console.error('Error sending comment notification:', error);
+    });
+    
     sendSuccessResponse(res, 201, { comment });
   } catch (error) {
     next(error);
@@ -44,7 +50,7 @@ const getComments = async (req, res, next) => {
     const videoId = req.params.id;
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 20;
-    const sort = req.query.sort || 'newest';
+    const sort = req.query.sort || 'newest'; // 'newest' | 'oldest' | 'top'
     const skip = (page - 1) * limit;
     
     // Check if video exists
@@ -57,6 +63,8 @@ const getComments = async (req, res, next) => {
     let sortOptions = {};
     if (sort === 'oldest') {
       sortOptions = { createdAt: 1 };
+    } else if (sort === 'top') {
+      sortOptions = { likesCount: -1, createdAt: -1 };
     } else {
       sortOptions = { createdAt: -1 };
     }
@@ -111,8 +119,40 @@ const deleteComment = async (req, res, next) => {
   }
 };
 
+/**
+ * Like/unlike a comment (toggle)
+ * @route PUT /api/comments/:commentId/like
+ * @access Private
+ */
+const toggleLikeComment = async (req, res, next) => {
+  try {
+    const { commentId } = req.params;
+    const userId = req.user._id;
+
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+      return sendErrorResponse(res, 404, 'Comment not found');
+    }
+
+    const hasLiked = comment.likedBy?.some(id => id.toString() === userId.toString());
+    if (hasLiked) {
+      comment.likedBy = comment.likedBy.filter(id => id.toString() !== userId.toString());
+      comment.likesCount = Math.max(0, (comment.likesCount || 0) - 1);
+    } else {
+      comment.likedBy = [...(comment.likedBy || []), userId];
+      comment.likesCount = (comment.likesCount || 0) + 1;
+    }
+    await comment.save();
+
+    return sendSuccessResponse(res, 200, { liked: !hasLiked, likesCount: comment.likesCount });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createComment,
   getComments,
-  deleteComment
+  deleteComment,
+  toggleLikeComment
 };

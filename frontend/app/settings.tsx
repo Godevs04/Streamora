@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Switch } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import useAuthStore from '../store/useAuthStore';
@@ -8,6 +8,7 @@ import colors from '../constants/colors';
 
 export default function Settings() {
   const { logout } = useAuthStore();
+  const insets = useSafeAreaInsets();
   const [language, setLanguage] = useState('English');
   const [theme, setTheme] = useState('Dark');
   const [notifications, setNotifications] = useState(true);
@@ -51,7 +52,7 @@ export default function Settings() {
   };
 
   const handleAdminMode = () => {
-    Alert.alert('Admin Mode', 'Creator Studio Analytics will be available soon.');
+    router.push('/admin');
   };
 
   const handleHelpSupport = () => {
@@ -121,19 +122,27 @@ export default function Settings() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={[]}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.safeArea}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Settings</Text>
           <TouchableOpacity 
-            style={styles.closeButton}
+            style={styles.backButton}
             onPress={() => router.back()}
           >
-            <MaterialIcons name="close" size={24} color={colors.text.primary} />
+            <MaterialIcons name="arrow-back" size={24} color={colors.text.primary} />
           </TouchableOpacity>
+          <Text style={styles.headerTitle}>Settings</Text>
+          <View style={styles.headerSpacer} />
         </View>
 
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.scrollView} 
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: Math.max(insets.bottom + 20, 40) }
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
           {renderSettingItem(
             'person',
             'Account Settings',
@@ -211,21 +220,28 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 0,
+    paddingTop: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.background.secondary,
   },
+  backButton: {
+    padding: 8,
+  },
   headerTitle: {
     color: colors.text.primary,
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'center',
   },
-  closeButton: {
-    padding: 8,
+  headerSpacer: {
+    width: 40, // Same width as back button to center the title
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 20,
   },
@@ -237,6 +253,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
+    minHeight: 60, // Ensure consistent height
   },
   highlightedItem: {
     backgroundColor: colors.primary,
@@ -259,6 +276,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
+    flexShrink: 0, // Prevent icon container from shrinking
   },
   highlightedIcon: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -285,6 +303,7 @@ const styles = StyleSheet.create({
   settingRight: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexShrink: 0, // Prevent right side from shrinking
   },
   rightText: {
     color: colors.text.secondary,

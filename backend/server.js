@@ -19,6 +19,7 @@ const videoRoutes = require('./routes/videoRoutes');
 const commentRoutes = require('./routes/commentRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 // Import middleware
 const errorHandler = require('./middlewares/errorHandler');
@@ -70,6 +71,7 @@ app.use('/api/videos', videoRoutes);
 app.use('/api', commentRoutes); // Using /api prefix for nested routes
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check route - accessible without auth
 app.get('/health', (req, res) => {
@@ -124,10 +126,11 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 // Start server
-const PORT = 5001; // Changed from 5000 to avoid conflicts
-app.listen(PORT, () => {
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Accessible at: http://localhost:${PORT} or http://192.168.1.9:${PORT}`);
 });
 
 // Handle unhandled promise rejections

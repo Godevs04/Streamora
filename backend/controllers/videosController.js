@@ -1,6 +1,7 @@
 const Video = require('../models/Video');
 const { cloudinary } = require('../config/cloudinary');
 const { sendSuccessResponse, sendErrorResponse } = require('../utils/sendResponse');
+const { notifyNewVideo, notifyNewLike } = require('../utils/notificationService');
 const fs = require('fs');
 const path = require('path');
 
@@ -35,11 +36,16 @@ const createVideo = async (req, res, next) => {
         
         // If no custom thumbnail provided, generate one from the video
         if (!req.files.thumbnail) {
+          // Determine thumbnail dimensions based on video type
+          const isShorts = type === 'shorts';
+          const thumbnailWidth = isShorts ? 720 : 1280;
+          const thumbnailHeight = isShorts ? 1280 : 720;
+          
           thumbnailUrl = cloudinary.url(videoResult.public_id, {
             resource_type: 'video',
             format: 'jpg',
             transformation: [
-              { width: 1280, height: 720, crop: 'fill', gravity: 'center' }
+              { width: thumbnailWidth, height: thumbnailHeight, crop: 'fill', gravity: 'center' }
             ]
           });
         }
@@ -56,11 +62,16 @@ const createVideo = async (req, res, next) => {
     // Handle thumbnail upload if file is provided
     if (req.files && req.files.thumbnail) {
       try {
+        // Determine thumbnail dimensions based on video type
+        const isShorts = type === 'shorts';
+        const thumbnailWidth = isShorts ? 720 : 1280;
+        const thumbnailHeight = isShorts ? 1280 : 720;
+        
         // Upload thumbnail to Cloudinary
         const thumbnailResult = await cloudinary.uploader.upload(req.files.thumbnail[0].path, {
           folder: 'streamora/thumbnails',
           transformation: [
-            { width: 1280, height: 720, crop: 'fill', gravity: 'center' }
+            { width: thumbnailWidth, height: thumbnailHeight, crop: 'fill', gravity: 'center' }
           ]
         });
         
@@ -74,9 +85,9 @@ const createVideo = async (req, res, next) => {
     } else if (req.body.thumbnailUrl) {
       // If thumbnailUrl is provided directly
       thumbnailUrl = req.body.thumbnailUrl;
-    } else if (!thumbnailUrl) {
-      // If no thumbnail URL has been set yet, use a default or placeholder
-      return sendErrorResponse(res, 400, 'Thumbnail is required');
+    } else if (!thumbnailUrl && type !== 'shorts') {
+      // If no thumbnail URL has been set yet and it's not a shorts video, require thumbnail
+      return sendErrorResponse(res, 400, 'Thumbnail is required for normal videos');
     }
 
     // Create video
@@ -86,7 +97,7 @@ const createVideo = async (req, res, next) => {
       description,
       videoUrl,
       thumbnailUrl,
-      thumbnailAspectRatio: thumbnailAspectRatio || '16:9',
+      thumbnailAspectRatio: type === 'shorts' ? '9:16' : (thumbnailAspectRatio || '16:9'),
       duration: duration || 0,
       tags: tags ? JSON.parse(tags) : [],
       type: type || 'normal'
@@ -94,6 +105,11 @@ const createVideo = async (req, res, next) => {
 
     // Populate owner
     await video.populate('owner', 'name avatarUrl');
+
+    // Send notification to subscribers (non-blocking)
+    notifyNewVideo(req.user._id, title, video._id).catch(error => {
+      console.error('Error sending new video notification:', error);
+    });
 
     sendSuccessResponse(res, 201, { video });
   } catch (error) {
@@ -112,12 +128,22 @@ const getVideos = async (req, res, next) => {
     const limit = parseInt(req.query.limit, 10) || 20;
     const sort = req.query.sort || 'recent';
     const type = req.query.type;
+    const search = req.query.search;
     const skip = (page - 1) * limit;
 
     // Build filter options
     let filterOptions = {};
     if (type) {
       filterOptions.type = type;
+    }
+    
+    // Add search functionality
+    if (search) {
+      filterOptions.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { tags: { $in: [new RegExp(search, 'i')] } }
+      ];
     }
 
     // Build sort options
@@ -135,10 +161,22 @@ const getVideos = async (req, res, next) => {
       .limit(limit)
       .populate('owner', 'name avatarUrl');
 
+    // Add comment count to each video
+    const Comment = require('../models/Comment');
+    const videosWithComments = await Promise.all(
+      videos.map(async (video) => {
+        const commentsCount = await Comment.countDocuments({ video: video._id });
+        return {
+          ...video.toObject(),
+          commentsCount
+        };
+      })
+    );
+
     // Get total count
     const total = await Video.countDocuments(filterOptions);
 
-    sendSuccessResponse(res, 200, { videos }, {
+    sendSuccessResponse(res, 200, { videos: videosWithComments }, {
       page,
       limit,
       total,
@@ -157,24 +195,22 @@ const getVideos = async (req, res, next) => {
 const getVideoById = async (req, res, next) => {
   try {
     const video = await Video.findById(req.params.id)
-      .populate('owner', 'name avatarUrl')
-      .populate({
-        path: 'comments',
-        options: {
-          sort: { createdAt: -1 },
-          limit: 10
-        },
-        populate: {
-          path: 'author',
-          select: 'name avatarUrl'
-        }
-      });
+      .populate('owner', 'name avatarUrl');
     
     if (!video) {
       return sendErrorResponse(res, 404, 'Video not found');
     }
     
-    sendSuccessResponse(res, 200, { video });
+    // Add comment count
+    const Comment = require('../models/Comment');
+    const commentsCount = await Comment.countDocuments({ video: video._id });
+    
+    const videoWithCommentsCount = {
+      ...video.toObject(),
+      commentsCount
+    };
+    
+    sendSuccessResponse(res, 200, { video: videoWithCommentsCount });
   } catch (error) {
     next(error);
   }
@@ -195,6 +231,13 @@ const toggleLike = async (req, res, next) => {
     
     // Toggle like
     const isLiked = await video.toggleLike(req.user._id);
+    
+    // Send notification if video was liked (not unliked)
+    if (isLiked) {
+      notifyNewLike(video.owner._id, req.user._id, video.title, video._id).catch(error => {
+        console.error('Error sending like notification:', error);
+      });
+    }
     
     sendSuccessResponse(res, 200, {
       liked: isLiked,

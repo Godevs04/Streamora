@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, FlatList, ActivityIndicator, StyleSheet, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import Avatar from '../../components/Avatar';
 import VideoCard from '../../components/VideoCard';
 import useAuthStore from '../../store/useAuthStore';
-import { getUserProfile, getUserStats } from '../../services/user';
+import { getUserProfile, getPublicUserStats, subscribeToUser as apiSubscribe, unsubscribeFromUser as apiUnsubscribe } from '../../services/user';
 import { getVideos } from '../../services/videos';
 import { Video, User } from '../../types';
 import colors from '../../constants/colors';
@@ -16,6 +16,7 @@ import { formatCount } from '../../utils/formatDate';
 export default function ProfileView() {
   const { userId } = useLocalSearchParams<{ userId: string }>();
   const { user: currentUser } = useAuthStore();
+  const insets = useSafeAreaInsets();
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,8 +36,28 @@ export default function ProfileView() {
     if (userId) {
       fetchUserProfile();
       fetchUserVideos();
+      fetchStats();
     }
   }, [userId]);
+  const fetchStats = async () => {
+    try {
+      const { token } = useAuthStore.getState();
+      if (!token) return;
+      const response = await getPublicUserStats(userId || '', token);
+      if (response?.success) {
+        const data = response.data;
+        setProfileStats((prev) => ({
+          ...prev,
+          followers: data.followers || 0,
+          following: data.following || 0,
+          uploads: data.totalVideos || prev.uploads,
+        }));
+      }
+    } catch (err) {
+      // ignore, keep defaults
+    }
+  };
+
 
   const fetchUserProfile = async () => {
     try {
@@ -92,12 +113,46 @@ export default function ProfileView() {
   const fetchUserVideos = async () => {
     try {
       setIsVideosLoading(true);
-      // In a real app, you would fetch videos by user ID
-      // For now, we'll use the general videos API
-      const response = await getVideos({ page: 1, limit: 20 });
-      if (response && response.success) {
-        const apiResponse = response as any;
-        setVideos(apiResponse.data.videos);
+      
+      if (isOwnProfile) {
+        // For own profile, fetch all videos and filter by user
+        const response = await getVideos({ page: 1, limit: 20 });
+        if (response && response.success) {
+          const apiResponse = response as any;
+          const userVideos = apiResponse.data.videos.filter((video: Video) => video.owner._id === userId);
+          setVideos(userVideos);
+        }
+      } else {
+        // For other user's profile, fetch videos by user ID
+        try {
+          const { token } = useAuthStore.getState();
+          if (!token) {
+            throw new Error('No authentication token');
+          }
+          
+          const response = await fetch(`${config.API.BASE_URL}/users/${userId}/videos`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setVideos(data.data.videos || []);
+          } else {
+            throw new Error('Failed to fetch user videos');
+          }
+        } catch (apiError) {
+          console.error('API error:', apiError);
+          // Fallback: fetch all videos and filter by user
+          const response = await getVideos({ page: 1, limit: 20 });
+          if (response && response.success) {
+            const apiResponse = response as any;
+            const userVideos = apiResponse.data.videos.filter((video: Video) => video.owner._id === userId);
+            setVideos(userVideos);
+          }
+        }
       }
     } catch (error) {
       console.error('Error fetching user videos:', error);
@@ -106,12 +161,24 @@ export default function ProfileView() {
     }
   };
 
-  const handleSubscribe = () => {
-    setIsSubscribed(!isSubscribed);
-    Alert.alert(
-      isSubscribed ? 'Unsubscribed' : 'Subscribed',
-      `You have ${isSubscribed ? 'unsubscribed from' : 'subscribed to'} ${profileUser?.name}`
-    );
+  const handleSubscribe = async () => {
+    try {
+      const { token } = useAuthStore.getState();
+      if (!token || !userId) return;
+      if (isSubscribed) {
+        await apiUnsubscribe(userId, token);
+        setIsSubscribed(false);
+        setProfileStats((s) => ({ ...s, followers: Math.max(0, (s.followers || 0) - 1) }));
+        Alert.alert('Unsubscribed', `You have unsubscribed from ${profileUser?.name}`);
+      } else {
+        await apiSubscribe(userId, token);
+        setIsSubscribed(true);
+        setProfileStats((s) => ({ ...s, followers: (s.followers || 0) + 1 }));
+        Alert.alert('Subscribed', `You have subscribed to ${profileUser?.name}`);
+      }
+    } catch (e) {
+      // fall back toast
+    }
   };
 
   const handleShare = () => {
@@ -173,19 +240,19 @@ export default function ProfileView() {
   const renderStats = () => (
     <View style={styles.statsContainer}>
       <View style={styles.statCard}>
-        <Text style={styles.statNumber}>{formatCount(profileStats.followers)}</Text>
+        <Text style={styles.statNumber}>{formatCount(typeof profileStats.followers === 'number' ? profileStats.followers : 0)}</Text>
         <Text style={styles.statLabel}>FOLLOWERS</Text>
       </View>
       <View style={styles.statCard}>
-        <Text style={styles.statNumber}>{formatCount(profileStats.following)}</Text>
+        <Text style={styles.statNumber}>{formatCount(typeof profileStats.following === 'number' ? profileStats.following : 0)}</Text>
         <Text style={styles.statLabel}>FOLLOWING</Text>
       </View>
       <View style={styles.statCard}>
-        <Text style={styles.statNumber}>{formatCount(profileStats.likes)}</Text>
+        <Text style={styles.statNumber}>{formatCount(typeof profileStats.likes === 'number' ? profileStats.likes : 0)}</Text>
         <Text style={styles.statLabel}>LIKES</Text>
       </View>
       <View style={styles.statCard}>
-        <Text style={styles.statNumber}>{formatCount(profileStats.uploads)}</Text>
+        <Text style={styles.statNumber}>{formatCount(typeof profileStats.uploads === 'number' ? profileStats.uploads : 0)}</Text>
         <Text style={styles.statLabel}>UPLOADS</Text>
       </View>
     </View>
@@ -232,7 +299,7 @@ export default function ProfileView() {
     return (
       <FlatList
         data={videos}
-        keyExtractor={(item) => item._id}
+        keyExtractor={(item, index) => item._id || `user-video-${index}`}
         renderItem={({ item }) => (
           <VideoCard 
             video={item} 
@@ -262,10 +329,17 @@ export default function ProfileView() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={[]}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.safeArea}>
         {renderHeader()}
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.scrollView} 
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: Math.max(insets.bottom + 20, 40) }
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
           {renderProfileCard()}
           {renderStats()}
           {renderTabs()}
@@ -287,6 +361,9 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  scrollContent: {
+    paddingHorizontal: 0,
+  },
   
   // Header Styles
   header: {
@@ -294,7 +371,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 0,
+    paddingTop: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.background.secondary,

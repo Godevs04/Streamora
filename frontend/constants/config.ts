@@ -1,12 +1,14 @@
 export default {
   // API endpoints
   API: {
-    BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:5001/api',
+    BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL || 'http://192.168.1.9:5001/api',
     ENDPOINTS: {
       AUTH: {
         REGISTER: '/auth/register',
         LOGIN: '/auth/login',
         ME: '/auth/me',
+        VERIFY_EMAIL: '/auth/verify-email',
+        RESEND_OTP: '/auth/resend-otp',
       },
       USERS: {
         GET_BY_ID: (id: string) => `/users/${id}`,
@@ -22,11 +24,37 @@ export default {
           LIST: (videoId: string) => `/videos/${videoId}/comments`,
           CREATE: (videoId: string) => `/videos/${videoId}/comments`,
           DELETE: (commentId: string) => `/comments/${commentId}`,
+          LIKE: (commentId: string) => `/comments/${commentId}/like`,
         },
       },
       NOTIFICATIONS: {
         REGISTER: '/notifications/register',
         SEND: '/notifications/send',
+      },
+      ADMIN: {
+        CREATOR: {
+          STATS: '/admin/creator/stats',
+          LATEST_VIDEOS: '/admin/creator/latest-videos',
+          ANALYTICS: '/admin/creator/analytics',
+          MONETIZATION: '/admin/creator/monetization',
+          CONTENT: '/admin/creator/content',
+          COMMUNITY: '/admin/creator/community',
+          SETTINGS: '/admin/creator/settings',
+        },
+        CHANNEL: {
+          UPDATE: '/admin/channel/update',
+          UPLOAD_PROFILE: '/admin/channel/upload-profile',
+          UPLOAD_BANNER: '/admin/channel/upload-banner',
+        },
+        PAYMENTS: {
+          LIST: '/admin/payments/methods',
+          ADD: '/admin/payments/methods',
+          DELETE: (id: string) => `/admin/payments/methods/${id}`,
+          SET_DEFAULT: (id: string) => `/admin/payments/methods/${id}/default`,
+        },
+        POLICIES: {
+          GET: '/admin/policies',
+        },
       },
     },
   },

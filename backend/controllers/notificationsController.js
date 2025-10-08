@@ -71,42 +71,39 @@ const sendNotification = async (req, res, next) => {
 };
 
 /**
- * Helper function to send FCM push notifications
- * @param {Array} tokens - Array of FCM tokens
+ * Helper function to send push notifications via Expo Push Service
+ * @param {Array} tokens - Array of Expo push tokens
  * @param {string} title - Notification title
  * @param {string} body - Notification body
  * @param {object} data - Additional data (optional)
- * @returns {Promise<object>} FCM response
+ * @returns {Promise<object>} Expo response
  */
 const sendPushNotification = async (tokens, title, body, data = {}) => {
   try {
-    // Using FCM HTTP v1 API
-    const message = {
-      notification: {
-        title,
-        body
-      },
-      data,
-      tokens
-    };
+    // For development and testing, use Expo Push Service
+    const expoPushMessages = tokens.map(token => ({
+      to: token,
+      title: title,
+      body: body,
+      data: data,
+      sound: 'default',
+      badge: 1
+    }));
     
-    // FCM endpoint with project ID from FCM_SENDER_ID
-    const fcmEndpoint = `https://fcm.googleapis.com/v1/projects/${process.env.FCM_SENDER_ID}/messages:send`;
-    
-    const response = await axios.post(
-      fcmEndpoint,
-      { message },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.FCM_KEY_PAIR}`
-        }
+    const response = await axios.post('https://exp.host/--/api/v2/push/send', {
+      messages: expoPushMessages
+    }, {
+      headers: {
+        'Accept': 'application/json',
+        'Accept-encoding': 'gzip, deflate',
+        'Content-Type': 'application/json'
       }
-    );
+    });
     
+    console.log('✅ Expo push notification sent successfully');
     return response.data;
   } catch (error) {
-    console.error('Error sending push notification:', error);
+    console.error('Error sending Expo push notification:', error);
     throw new Error('Failed to send push notification');
   }
 };

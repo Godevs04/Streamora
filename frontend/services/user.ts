@@ -24,6 +24,7 @@ export const updateUserProfile = async (token: string, profileData: {
   username?: string;
   bio?: string;
   email?: string;
+  avatarUrl?: string;
 }) => {
   try {
     const response = await axios.put(`${API_BASE_URL}/users/profile`, profileData, {
@@ -66,4 +67,43 @@ export const getUserStats = async (token: string) => {
     console.error('Error fetching user stats:', error);
     throw error;
   }
+};
+
+// Get public stats for any user
+export const getPublicUserStats = async (userId: string, token: string) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/users/${userId}/stats`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching public user stats:', error);
+    throw error;
+  }
+};
+
+// Subscribe to a user
+export const subscribeToUser = async (userId: string, token: string) => {
+  const response = await axios.post(`${API_BASE_URL}/users/${userId}/subscribe`, {}, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
+
+// Unsubscribe from a user
+export const unsubscribeFromUser = async (userId: string, token: string) => {
+  const response = await axios.delete(`${API_BASE_URL}/users/${userId}/subscribe`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
+
+// Check if current user is subscribed to another user
+export const checkSubscriptionStatus = async (userId: string, token: string) => {
+  const response = await axios.get(`${API_BASE_URL}/users/${userId}/subscription-status`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
 };

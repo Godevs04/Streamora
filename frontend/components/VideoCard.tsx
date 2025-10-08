@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Image, TouchableOpacity, Dimensions, StyleSheet, Share, Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -6,7 +6,9 @@ import Avatar from './Avatar';
 import { PreviousIntent, Video } from '../types';
 import { formatCount, formatRelativeTime, formatDuration } from '../utils/formatDate';
 import useAuthStore from '../store/useAuthStore';
-import { toggleDummyVideoLike, subscribeToDummyUser } from '../services/dummyData';
+// Use real API for likes on home feed
+import { toggleLikeVideo } from '../services/videos';
+import { subscribeToUser as apiSubscribe, unsubscribeFromUser as apiUnsubscribe, checkSubscriptionStatus } from '../services/user';
 import { APP_ICONS } from '../utils/iconLoader';
 import colors from '../constants/colors';
 
@@ -23,6 +25,27 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
   const [likesCount, setLikesCount] = useState(video.likesCount || 0);
   const [subscribed, setSubscribed] = useState(false);
   const [imageLoadError, setImageLoadError] = useState(false);
+  
+  // Check subscription status when component loads
+  useEffect(() => {
+    const checkSubscription = async () => {
+      if (!user || !video?.owner?._id) return;
+      
+      try {
+        const { token } = useAuthStore.getState();
+        if (!token) return;
+        
+        const response = await checkSubscriptionStatus(video.owner._id, token);
+        if (response?.data?.isSubscribed) {
+          setSubscribed(true);
+        }
+      } catch (error) {
+        console.error('Error checking subscription status:', error);
+      }
+    };
+    
+    checkSubscription();
+  }, [user, video?.owner?._id]);
   
   // Function to get proper thumbnail URL
   const getThumbnailUrl = (video: Video) => {
@@ -106,19 +129,22 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
   };
   
   // Handle like press
-  const handleLikePress = () => {
+  const handleLikePress = async () => {
     // Check if user is authenticated
     if (!showAuthModal({ type: 'like', data: { videoId: video._id } })) {
       return;
     }
     
-    // Toggle like
-    if (user) {
-      const updatedVideo = toggleDummyVideoLike(video._id, user._id);
-      if (updatedVideo) {
-        setLiked(!liked);
-        setLikesCount(updatedVideo.likesCount);
-      }
+    if (!video?._id) return;
+    try {
+      const resp = await toggleLikeVideo(video._id);
+      const { liked: isLiked, likesCount: newLikes } = resp.data || {};
+      setLiked(Boolean(isLiked));
+      if (typeof newLikes === 'number') setLikesCount(newLikes);
+    } catch (e) {
+      // Fallback local toggle
+      setLiked(!liked);
+      setLikesCount(liked ? Math.max(0, likesCount - 1) : likesCount + 1);
     }
   };
   
@@ -128,9 +154,12 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
     if (!showAuthModal({ type: 'dislike', data: { videoId: video._id } })) {
       return;
     }
-    
-    // In a real app, this would handle disliking
-    Alert.alert('Dislike', 'Video disliked');
+    // Local-only dislike: toggle like off and decrement count if currently liked
+    if (liked) {
+      setLiked(false);
+      setLikesCount(Math.max(0, likesCount - 1));
+    }
+    Alert.alert('Feedback', 'Thanks for your feedback');
   };
   
   // Handle share press
@@ -161,18 +190,33 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
   };
   
   // Handle subscribe press
-  const handleSubscribePress = () => {
+  const handleSubscribePress = async () => {
     // Check if user is authenticated
     if (!showAuthModal({ type: 'subscribe', data: { userId: video.owner._id } })) {
       return;
     }
     
-    // Subscribe to channel
-    if (user) {
-      const success = subscribeToDummyUser(video.owner._id, user._id);
-      if (success) {
-        setSubscribed(true);
+    if (!user) return;
+    
+    try {
+      const { token } = useAuthStore.getState();
+      if (!token) {
+        Alert.alert('Error', 'Authentication token not found');
+        return;
       }
+      
+      if (subscribed) {
+        await apiUnsubscribe(video.owner._id, token);
+        setSubscribed(false);
+        Alert.alert('Unsubscribed', `You have unsubscribed from ${video.owner.name}`);
+      } else {
+        await apiSubscribe(video.owner._id, token);
+        setSubscribed(true);
+        Alert.alert('Subscribed', `You have subscribed to ${video.owner.name}`);
+      }
+    } catch (error: any) {
+      console.error('Subscription error:', error);
+      Alert.alert('Error', error.message || 'Failed to update subscription');
     }
   };
   
@@ -204,10 +248,10 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
           )}
           
           {/* Duration badge (if available) */}
-          {video.duration > 0 && (
+          {video.duration && video.duration > 0 && (
             <View style={styles.durationBadge}>
               <Text style={styles.durationText}>
-                {formatDuration(video.duration)}
+                {formatDuration(typeof video.duration === 'number' && video.duration > 1000 ? Math.round(video.duration / 1000) : (video.duration || 0))}
               </Text>
             </View>
           )}
@@ -215,7 +259,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
           {/* Views badge */}
           <View style={styles.viewsBadge}>
             <Text style={styles.viewsText}>
-              {formatCount(video.views)} views
+              {formatCount(typeof video.views === 'number' ? video.views : 0)} views
             </Text>
           </View>
         </View>
@@ -225,42 +269,68 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
       <View style={styles.infoContainer}>
         {variant === 'default' && (
           <TouchableOpacity onPress={handleProfilePress} style={styles.avatarContainer}>
-            <Avatar uri={video.owner.avatarUrl} name={video.owner.name} size="sm" />
+            <Avatar uri={video.owner?.avatarUrl} name={video.owner?.name || 'User'} size="sm" />
           </TouchableOpacity>
         )}
         
         <View style={styles.textContainer}>
           <Text numberOfLines={2} style={styles.titleText}>
-            {video.title}
+            {video.title || 'Untitled Video'}
           </Text>
           
           <View style={styles.metaContainer}>
             <TouchableOpacity onPress={handleProfilePress}>
               <Text style={styles.channelText}>
-                {video.owner.name}
+                {video.owner?.name || 'Unknown User'}
               </Text>
             </TouchableOpacity>
             <Text style={styles.dotSeparator}>•</Text>
             <Text style={styles.timeText}>
-              {formatRelativeTime(video.createdAt)}
+              {formatRelativeTime(video.createdAt || new Date().toISOString())}
             </Text>
           </View>
           
-          {variant === 'default' && (
-            <View style={styles.actionsContainer}>
-              <TouchableOpacity
-                onPress={handleSubscribePress}
-                style={[
-                  styles.subscribeButton,
-                  subscribed && styles.subscribedButton
-                ]}
-              >
-                <Text style={styles.subscribeText}>
-                  {subscribed ? 'Subscribed' : 'Subscribe'}
-                </Text>
+          <View style={[styles.actionsRow, variant === 'compact' && styles.actionsRowCompact]}>
+            {/* Like/Dislike */}
+            <View style={styles.likeDislikeContainer}>
+              <TouchableOpacity style={styles.actionButton} onPress={handleLikePress}>
+                <Ionicons name={liked ? 'heart' : 'heart-outline'} size={18} color={liked ? colors.text.primary : colors.text.secondary} />
+                <Text style={[styles.actionText, liked && styles.likedText]}>{formatCount(typeof likesCount === 'number' ? likesCount : 0)}</Text>
+              </TouchableOpacity>
+              <View style={styles.actionDivider} />
+              <TouchableOpacity style={styles.actionButton} onPress={handleDislikePress}>
+                <Ionicons name="thumbs-down-outline" size={18} color={colors.text.secondary} />
               </TouchableOpacity>
             </View>
-          )}
+
+            {/* Comments */}
+            <TouchableOpacity style={styles.commentContainer} onPress={() => router.push({ pathname: `/video/${video._id}`, params: { focus: 'comments' } as any })}>
+              <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.text.secondary} />
+              <Text style={styles.actionText}>
+                {formatCount(
+                  typeof (video as any).commentsCount === 'number'
+                    ? (video as any).commentsCount
+                    : (Array.isArray(video.comments) ? video.comments.length : 0)
+                )}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Share */}
+            <TouchableOpacity style={styles.commentContainer} onPress={handleSharePress}>
+              <Ionicons name="share-social-outline" size={18} color={colors.text.secondary} />
+              <Text style={styles.actionText}>Share</Text>
+            </TouchableOpacity>
+
+            {/* Subscribe */}
+            {variant === 'default' && (
+              <TouchableOpacity
+                onPress={handleSubscribePress}
+                style={[styles.subscribeButton, subscribed && styles.subscribedButton]}
+              >
+                <Text style={styles.subscribeText}>{subscribed ? 'Subscribed' : 'Subscribe'}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
     </View>
@@ -356,6 +426,16 @@ const styles = StyleSheet.create({
     marginTop: 16,
     justifyContent: 'flex-end',
   },
+  actionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  actionsRowCompact: {
+    justifyContent: 'flex-start',
+  },
   statsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -366,7 +446,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.tertiary,
     borderRadius: 18,
     overflow: 'hidden',
-    marginRight: 8,
+    marginRight: 6,
   },
   actionButton: {
     flexDirection: 'row',
@@ -382,7 +462,8 @@ const styles = StyleSheet.create({
   commentContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 12,
+    marginLeft: 8,
+    marginRight: 6,
   },
   actionText: {
     color: colors.text.secondary,

@@ -7,11 +7,14 @@ import { ApiResponse, Comment, PaginationParams, Video, VideoUpload, VideosApiRe
  * @param params - Pagination parameters
  * @returns Promise with videos response
  */
-export const getVideos = async (params: PaginationParams & { type?: string } = {}): Promise<VideosApiResponse> => {
-  const { page = config.PAGINATION.DEFAULT_PAGE, limit = config.PAGINATION.DEFAULT_LIMIT, type } = params;
+export const getVideos = async (params: PaginationParams & { type?: string; search?: string } = {}): Promise<VideosApiResponse> => {
+  const { page = config.PAGINATION.DEFAULT_PAGE, limit = config.PAGINATION.DEFAULT_LIMIT, type, search } = params;
   const queryParams: any = { page, limit };
   if (type) {
     queryParams.type = type;
+  }
+  if (search) {
+    queryParams.search = search;
   }
   return api.get(config.API.ENDPOINTS.VIDEOS.LIST, { params: queryParams });
 };
@@ -125,7 +128,7 @@ export const getVideoComments = async (
   videoId: string,
   params: PaginationParams = {}
 ): Promise<ApiResponse<Comment[]>> => {
-  const { page = config.PAGINATION.DEFAULT_PAGE, limit = config.PAGINATION.DEFAULT_LIMIT, sort = 'newest' } = params;
+  const { page = config.PAGINATION.DEFAULT_PAGE, limit = config.PAGINATION.DEFAULT_LIMIT, sort = 'newest' } = params as any;
   return api.get(config.API.ENDPOINTS.VIDEOS.COMMENTS.LIST(videoId), { params: { page, limit, sort } });
 };
 
@@ -146,4 +149,11 @@ export const addComment = async (videoId: string, text: string): Promise<ApiResp
  */
 export const deleteComment = async (commentId: string): Promise<ApiResponse<{ message: string }>> => {
   return api.delete(config.API.ENDPOINTS.VIDEOS.COMMENTS.DELETE(commentId));
+};
+
+/**
+ * Toggle like/unlike a comment
+ */
+export const toggleLikeComment = async (commentId: string): Promise<ApiResponse<{ liked: boolean, likesCount: number }>> => {
+  return api.put(config.API.ENDPOINTS.VIDEOS.COMMENTS.LIKE(commentId));
 };

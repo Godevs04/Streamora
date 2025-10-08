@@ -105,8 +105,16 @@ export default function RootLayout() {
   // Set up notification listeners when authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      // Register device for notifications
-      registerDeviceForNotifications();
+      // Register device for notifications (non-blocking)
+      registerDeviceForNotifications().then(success => {
+        if (success) {
+          console.log('Device registered for notifications successfully');
+        } else {
+          console.log('Notification registration skipped or failed');
+        }
+      }).catch(error => {
+        console.log('Notification registration failed, but app continues:', error.message);
+      });
       
       // Set up notification listeners
       notificationListener.current = addNotificationListener((notification) => {
@@ -148,6 +156,7 @@ export default function RootLayout() {
           ) : (
             <Stack
               screenOptions={{
+                headerShown: false, // Disable headers globally - each screen handles its own
                 headerStyle: {
                   backgroundColor: colors.background.primary,
                 },

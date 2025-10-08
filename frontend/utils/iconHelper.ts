@@ -29,7 +29,7 @@ export const getTabBarIconName = (name: string): string => {
   // Map of icon names to their respective components
   const iconMap: Record<string, string> = {
     home: 'home',
-    explore: 'compass',
+    shorts: 'play-circle',
     post: 'add-circle',
     profile: 'person',
     // Add more icon mappings as needed
