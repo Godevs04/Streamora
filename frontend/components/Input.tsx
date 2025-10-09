@@ -66,7 +66,7 @@ const Input: React.FC<InputProps> = ({
           placeholderTextColor={colors.gray}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          secureTextEntry={isPassword && !isPasswordVisible}
+          secureTextEntry={isPassword ? !isPasswordVisible : rest.secureTextEntry}
           {...rest}
         />
         

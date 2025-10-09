@@ -199,10 +199,117 @@ const resendOTP = async (req, res, next) => {
   }
 };
 
+/**
+ * Send forgot password OTP
+ * @route POST /api/auth/forgot-password
+ * @access Public
+ */
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    // Find user
+    const user = await User.findOne({ email });
+    
+    if (!user) {
+      return sendErrorResponse(res, 404, 'User not found');
+    }
+
+    // Generate password reset OTP
+    const otp = user.generatePasswordResetOTP();
+    await user.save();
+
+    // Send OTP email
+    const emailResult = await sendOTPEmail(email, user.name, otp, 'password-reset');
+    
+    if (!emailResult.success) {
+      console.error('Failed to send password reset OTP:', emailResult.error);
+      // Still return success even if email fails
+      return sendSuccessResponse(res, 200, {
+        message: 'Password reset OTP sent successfully!'
+      });
+    }
+
+    sendSuccessResponse(res, 200, {
+      message: 'Password reset OTP sent successfully!'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Verify forgot password OTP
+ * @route POST /api/auth/verify-forgot-otp
+ * @access Public
+ */
+const verifyForgotOTP = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+
+    // Find user with OTP fields
+    const user = await User.findOne({ email }).select('+passwordResetOTP +passwordResetOTPExpires');
+    
+    if (!user) {
+      return sendErrorResponse(res, 404, 'User not found');
+    }
+
+    // Verify OTP
+    if (!user.verifyPasswordResetOTP(otp)) {
+      return sendErrorResponse(res, 400, 'Invalid or expired OTP');
+    }
+
+    sendSuccessResponse(res, 200, {
+      message: 'OTP verified successfully!',
+      verified: true
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Reset password with OTP
+ * @route POST /api/auth/reset-password
+ * @access Public
+ */
+const resetPassword = async (req, res, next) => {
+  try {
+    const { email, otp, password } = req.body;
+
+    // Find user with OTP fields
+    const user = await User.findOne({ email }).select('+passwordResetOTP +passwordResetOTPExpires +password');
+    
+    if (!user) {
+      return sendErrorResponse(res, 404, 'User not found');
+    }
+
+    // Verify OTP
+    if (!user.verifyPasswordResetOTP(otp)) {
+      return sendErrorResponse(res, 400, 'Invalid or expired OTP');
+    }
+
+    // Update password
+    user.password = password;
+    user.passwordResetOTP = undefined;
+    user.passwordResetOTPExpires = undefined;
+    await user.save();
+
+    sendSuccessResponse(res, 200, {
+      message: 'Password reset successfully!'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
   getMe,
   verifyEmail,
-  resendOTP
+  resendOTP,
+  forgotPassword,
+  verifyForgotOTP,
+  resetPassword
 };

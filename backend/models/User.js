@@ -51,9 +51,13 @@ const UserSchema = new mongoose.Schema({
     _id: String,
     type: {
       type: String,
-      enum: ['paypal', 'bank', 'crypto']
+      enum: ['paypal', 'bank', 'stripe'],
+      required: true
     },
-    identifier: String,
+    identifier: {
+      type: String,
+      required: true
+    },
     isDefault: {
       type: Boolean,
       default: false
@@ -81,6 +85,14 @@ const UserSchema = new mongoose.Schema({
     select: false
   },
   otpExpires: {
+    type: Date,
+    select: false
+  },
+  passwordResetOTP: {
+    type: String,
+    select: false
+  },
+  passwordResetOTPExpires: {
     type: Date,
     select: false
   },
@@ -136,6 +148,26 @@ UserSchema.methods.verifyEmailOTP = function(enteredOTP) {
   );
 };
 
+// Method to generate OTP for password reset
+UserSchema.methods.generatePasswordResetOTP = function() {
+  // Generate 6-digit OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  
+  // Set OTP and expiration (10 minutes)
+  this.passwordResetOTP = otp;
+  this.passwordResetOTPExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+  
+  return otp;
+};
+
+// Method to verify password reset OTP
+UserSchema.methods.verifyPasswordResetOTP = function(enteredOTP) {
+  return (
+    this.passwordResetOTP === enteredOTP &&
+    this.passwordResetOTPExpires > Date.now()
+  );
+};
+
 // Method to get public profile (no sensitive data)
 UserSchema.methods.getPublicProfile = function() {
   const userObject = this.toObject();
@@ -143,6 +175,8 @@ UserSchema.methods.getPublicProfile = function() {
   delete userObject.fcmTokens;
   delete userObject.emailVerificationOTP;
   delete userObject.otpExpires;
+  delete userObject.passwordResetOTP;
+  delete userObject.passwordResetOTPExpires;
   
   return userObject;
 };

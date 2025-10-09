@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, router } from 'expo-router';
+import Icon from 'react-native-vector-icons/Ionicons';
 import useAuthStore from '../../store/useAuthStore';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
@@ -78,74 +79,158 @@ export default function Register() {
       style={{ flex: 1 }}
     >
       <SafeAreaView style={{ flex: 1 }}>
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1, padding: 24 }}
-          keyboardShouldPersistTaps="handled"
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
         >
-          <View style={{ alignItems: 'center', marginBottom: 32 }}>
-            <Text style={{ color: 'white', fontSize: 24, fontWeight: 'bold' }}>Streamora</Text>
-            <Text style={{ color: '#9CA3AF', fontSize: 16, marginTop: 8 }}>Create your account</Text>
-          </View>
-          
-          <View style={{ marginBottom: 24 }}>
-            <Input
-              label="Full Name"
-              placeholder="Enter your full name"
-              value={name}
-              onChangeText={setName}
-              error={errors.name}
-              leftIcon="person-outline"
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1, padding: 24, justifyContent: 'center' }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Header */}
+            <View style={{ alignItems: 'center', marginBottom: 32 }}>
+              <View style={{
+                width: 80,
+                height: 80,
+                borderRadius: 40,
+                backgroundColor: colors.primary,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 24
+              }}>
+                <Icon name="person-add" size={40} color="white" />
+              </View>
+              
+              <Text style={{ 
+                color: 'white', 
+                fontSize: 32, 
+                fontWeight: 'bold',
+                textAlign: 'center',
+                marginBottom: 8
+              }}>
+                Join Streamora
+              </Text>
+              
+              <Text style={{ 
+                color: colors.text.secondary, 
+                fontSize: 16, 
+                textAlign: 'center',
+                lineHeight: 24
+              }}>
+                Create your account and start streaming today
+              </Text>
+            </View>
+            
+            {/* Form */}
+            <View style={{ marginBottom: 32 }}>
+              <Input
+                label="Full Name"
+                placeholder="Enter your full name"
+                value={name}
+                onChangeText={setName}
+                error={errors.name}
+                leftIcon="person-outline"
+                autoFocus
+              />
+              
+              <Input
+                label="Email Address"
+                placeholder="Enter your email address"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
+                error={errors.email}
+                leftIcon="mail-outline"
+              />
+              
+              <Input
+                label="Username (Optional)"
+                placeholder="Choose a unique username"
+                autoCapitalize="none"
+                value={username}
+                onChangeText={setUsername}
+                error={errors.username}
+                leftIcon="at-outline"
+              />
+              
+              <Input
+                label="Password"
+                placeholder="Create a strong password"
+                value={password}
+                onChangeText={setPassword}
+                error={errors.password}
+                leftIcon="lock-closed-outline"
+                isPassword
+              />
+            </View>
+            
+            {/* Terms and Conditions */}
+            <View style={{ marginBottom: 24 }}>
+              <Text style={{ 
+                color: colors.text.secondary, 
+                fontSize: 12, 
+                textAlign: 'center',
+                lineHeight: 18
+              }}>
+                By creating an account, you agree to our{' '}
+                <Text style={{ color: colors.primary }}>Terms of Service</Text>
+                {' '}and{' '}
+                <Text style={{ color: colors.primary }}>Privacy Policy</Text>
+              </Text>
+            </View>
+            
+            {/* Submit Button */}
+            <Button
+              title="Create Account"
+              onPress={handleRegister}
+              isLoading={isLoading}
+              fullWidth
+              size="lg"
             />
             
-            <Input
-              label="Email"
-              placeholder="Enter your email"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={email}
-              onChangeText={setEmail}
-              error={errors.email}
-              leftIcon="mail-outline"
-            />
+            {/* Divider */}
+            <View style={{ 
+              flexDirection: 'row', 
+              alignItems: 'center', 
+              marginVertical: 32 
+            }}>
+              <View style={{ 
+                flex: 1, 
+                height: 1, 
+                backgroundColor: colors.border 
+              }} />
+              <Text style={{ 
+                color: colors.text.secondary, 
+                marginHorizontal: 16, 
+                fontSize: 14 
+              }}>
+                or
+              </Text>
+              <View style={{ 
+                flex: 1, 
+                height: 1, 
+                backgroundColor: colors.border 
+              }} />
+            </View>
             
-            <Input
-              label="Username (optional)"
-              placeholder="Choose a username"
-              autoCapitalize="none"
-              value={username}
-              onChangeText={setUsername}
-              error={errors.username}
-              leftIcon="at-outline"
-            />
-            
-            <Input
-              label="Password"
-              placeholder="Create a password"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              error={errors.password}
-              leftIcon="lock-closed-outline"
-              isPassword
-            />
-          </View>
-          
-          <Button
-            title="Create Account"
-            onPress={handleRegister}
-            isLoading={isLoading}
-            fullWidth
-          />
-          
-          <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 24 }}>
-            <Text style={{ color: '#9CA3AF' }}>Already have an account? </Text>
-            <Link href="/(auth)/login" asChild>
-              <TouchableOpacity>
-                <Text style={{ color: colors.primary, fontWeight: '500' }}>Sign In</Text>
-              </TouchableOpacity>
-            </Link>
-          </View>
-        </ScrollView>
+            {/* Sign In Link */}
+            <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+              <Text style={{ color: colors.text.secondary }}>Already have an account? </Text>
+              <Link href="/(auth)/login" asChild>
+                <TouchableOpacity>
+                  <Text style={{ 
+                    color: colors.primary, 
+                    fontWeight: '600' 
+                  }}>
+                    Sign In
+                  </Text>
+                </TouchableOpacity>
+              </Link>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </LinearGradient>
   );

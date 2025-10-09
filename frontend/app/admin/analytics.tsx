@@ -1,13 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import colors from '../../constants/colors';
 import { fetchAnalytics } from '../../services/admin';
 import { AnalyticsData, EngagementPoint, PerVideoKpis } from '../../types';
 import { formatCount } from '../../utils/formatDate';
+import AdminLayout from '../../components/AdminLayout';
 
 export default function AdminAnalytics() {
   const [loading, setLoading] = useState(true);
@@ -34,44 +33,8 @@ export default function AdminAnalytics() {
   const perVideo = useMemo<PerVideoKpis[]>(() => data?.perVideo || [], [data]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <AdminLayout title="Analytics" subtitle="Performance Insights">
       <Stack.Screen options={{ headerShown: false }} />
-      <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.gradient}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <MaterialIcons name="arrow-back" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.title}>Creator Studio</Text>
-            <Text style={styles.subtitle}>Admin Mode</Text>
-          </View>
-          <View style={{ width: 40 }} />
-        </View>
-
-        {/* Tabs header mimic */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsRow}>
-          {['Dashboard','Analytics','Monetization','Content','Community','Settings'].map((tab, index) => (
-            <TouchableOpacity
-              key={`analytics-tab-${tab}-${index}`}
-              style={[styles.tab, tab === 'Analytics' && styles.tabActive]}
-              onPress={() => {
-                if (tab === 'Dashboard') router.push('/admin');
-                if (tab === 'Monetization') router.push('/admin/monetization');
-                if (tab === 'Content') router.push('/admin/content');
-                if (tab === 'Community') router.push('/admin/community');
-                if (tab === 'Settings') router.push('/admin/settings');
-              }}
-            >
-              <Text style={[styles.tabText, tab === 'Analytics' && styles.tabTextActive]}>{tab}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Progress bar */}
-        <View style={styles.progressBarBg}>
-          <View style={[styles.progressBarFill, { width: '40%' }]} />
-        </View>
 
         {loading ? (
           <View style={styles.centerWrap}>
@@ -133,8 +96,7 @@ export default function AdminAnalytics() {
             </View>
           </ScrollView>
         )}
-      </LinearGradient>
-    </SafeAreaView>
+    </AdminLayout>
   );
 }
 
@@ -179,19 +141,6 @@ function KpiPill({ label, value, icon }: { label: string; value: string; icon: a
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  gradient: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8 },
-  backButton: { padding: 8 },
-  title: { color: colors.text.primary, fontSize: 20, fontWeight: '700' },
-  subtitle: { color: colors.text.secondary, fontSize: 13, marginTop: 2 },
-  tabsRow: { paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
-  tab: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.08)' },
-  tabActive: { backgroundColor: 'rgba(255,255,255,0.2)' },
-  tabText: { color: colors.text.secondary, fontWeight: '600' },
-  tabTextActive: { color: colors.text.primary },
-  progressBarBg: { height: 8, backgroundColor: '#ffffff', opacity: 0.6, marginHorizontal: 16, borderRadius: 4, marginTop: 6 },
-  progressBarFill: { height: 8, backgroundColor: colors.primary, borderRadius: 4 },
   content: { paddingHorizontal: 16, paddingTop: 16 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 8 },
   sectionTitle: { color: colors.text.primary, fontSize: 16, fontWeight: '700' },

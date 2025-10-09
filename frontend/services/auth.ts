@@ -46,3 +46,33 @@ export const verifyEmail = async (email: string, otp: string): Promise<AuthRespo
 export const resendOTP = async (email: string): Promise<{ success: boolean; message: string }> => {
   return api.post(config.API.ENDPOINTS.AUTH.RESEND_OTP, { email });
 };
+
+/**
+ * Send forgot password OTP
+ * @param email - User email
+ * @returns Promise with success response
+ */
+export const forgotPassword = async (email: string): Promise<{ success: boolean; data: { message: string } }> => {
+  return api.post(config.API.ENDPOINTS.AUTH.FORGOT_PASSWORD, { email });
+};
+
+/**
+ * Verify forgot password OTP
+ * @param email - User email
+ * @param otp - 6-digit OTP code
+ * @returns Promise with success response
+ */
+export const verifyForgotOTP = async (email: string, otp: string): Promise<{ success: boolean; data: { message: string; verified: boolean } }> => {
+  return api.post(config.API.ENDPOINTS.AUTH.VERIFY_FORGOT_OTP, { email, otp });
+};
+
+/**
+ * Reset password with OTP
+ * @param email - User email
+ * @param otp - 6-digit OTP code
+ * @param password - New password
+ * @returns Promise with success response
+ */
+export const resetPassword = async (email: string, otp: string, password: string): Promise<{ success: boolean; data: { message: string } }> => {
+  return api.post(config.API.ENDPOINTS.AUTH.RESET_PASSWORD, { email, otp, password });
+};
