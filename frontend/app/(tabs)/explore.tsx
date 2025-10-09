@@ -288,7 +288,7 @@ export default function Shorts() {
           Upload your first short video to get started!
         </Text>
         <TouchableOpacity style={styles.uploadButton} onPress={() => {/* Navigate to upload */}}>
-          <Ionicons name="add" size={20} color="#FFFFFF" />
+          <Ionicons name="add" size={20} color={colors.text.primary} />
           <Text style={styles.uploadButtonText}>Upload Short</Text>
         </TouchableOpacity>
       </View>
@@ -301,7 +301,7 @@ export default function Shorts() {
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Shorts</Text>
           <TouchableOpacity style={styles.headerButton}>
-            <Ionicons name="search" size={24} color="#FFFFFF" />
+            <Ionicons name="search" size={24} color={colors.text.primary} />
           </TouchableOpacity>
         </View>
         
@@ -510,7 +510,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginTop: 24,
   },
   uploadButtonText: {
-    color: '#FFFFFF',
+    color: colors.text.primary,
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,

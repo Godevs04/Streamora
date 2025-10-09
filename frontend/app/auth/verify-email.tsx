@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
-import colors from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import { verifyEmail, resendOTP } from '../../services/auth';
 import useAuthStore from '../../store/useAuthStore';
 
@@ -17,6 +17,8 @@ export default function VerifyEmailScreen() {
   const [canResend, setCanResend] = useState(false);
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const { setUser, setToken } = useAuthStore();
+  const colors = useColors();
+  const styles = createStyles(colors);
 
   useEffect(() => {
     if (timer > 0) {
@@ -230,7 +232,7 @@ export default function VerifyEmailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
   },

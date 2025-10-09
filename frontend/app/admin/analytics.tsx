@@ -2,13 +2,17 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
-import colors from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import { fetchAnalytics } from '../../services/admin';
 import { AnalyticsData, EngagementPoint, PerVideoKpis } from '../../types';
 import { formatCount } from '../../utils/formatDate';
 import AdminLayout from '../../components/AdminLayout';
 
+
+
 export default function AdminAnalytics() {
+  const colors = useColors();
+  const styles = createStyles(colors);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AnalyticsData | null>(null);
@@ -52,9 +56,9 @@ export default function AdminAnalytics() {
         ) : (
           <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 40 }}>
             {/* Engagement */}
-            <SectionHeader key="analytics-engagement" title="Engagement (Views over time)" />
+            <SectionHeader key="analytics-engagement" title="Engagement (Views over time)" colors={colors} styles={styles} />
             <View style={styles.card}>
-              <LineBar data={data?.engagement?.map((p: EngagementPoint) => p.views) || []} />
+              <LineBar data={data?.engagement?.map((p: EngagementPoint) => p.views) || []} colors={colors} />
             </View>
 
             {/* Traffic + Audience */}
@@ -62,10 +66,10 @@ export default function AdminAnalytics() {
               <View style={[styles.card, styles.trafficCard]}> 
                 <Text style={styles.cardTitle}>Traffic Sources</Text>
                 <View style={styles.trafficChart}>
-                  {renderBar('Direct', data?.traffic?.direct || 0, 'direct')}
-                  {renderBar('External', data?.traffic?.external || 0, 'external')}
-                  {renderBar('Search', data?.traffic?.search || 0, 'search')}
-                  {renderBar('Suggested', data?.traffic?.suggested || 0, 'suggested')}
+                  {renderBar('Direct', data?.traffic?.direct || 0, 'direct', colors, styles)}
+                  {renderBar('External', data?.traffic?.external || 0, 'external', colors, styles)}
+                  {renderBar('Search', data?.traffic?.search || 0, 'search', colors, styles)}
+                  {renderBar('Suggested', data?.traffic?.suggested || 0, 'suggested', colors, styles)}
                 </View>
               </View>
               <View style={[styles.card, styles.demographicsCard]}> 
@@ -79,7 +83,7 @@ export default function AdminAnalytics() {
             </View>
 
             {/* Per-Video */}
-            <SectionHeader key="analytics-per-video" title="Per-Video Analytics" />
+            <SectionHeader key="analytics-per-video" title="Per-Video Analytics" colors={colors} styles={styles} />
             <View style={[styles.card, { padding: 0 }]}>
               {perVideo.map((kpi) => (
                 <View key={kpi.videoId} style={styles.videoKpiRow}>
@@ -87,10 +91,10 @@ export default function AdminAnalytics() {
                     <Text style={styles.videoTitle} numberOfLines={1}>{kpi.title}</Text>
                     <Text style={styles.videoMeta}>Retention {Math.round(kpi.retentionPercent || 0)}%</Text>
                   </View>
-                  <KpiPill key={`${kpi.videoId}-views`} label="Views" value={formatCount(kpi.views)} icon="visibility" />
-                  <KpiPill key={`${kpi.videoId}-likes`} label="Likes" value={formatCount(kpi.likes)} icon="trending-up" />
-                  <KpiPill key={`${kpi.videoId}-comments`} label="Comments" value={formatCount(kpi.comments)} icon="chat-bubble-outline" />
-                  <KpiPill key={`${kpi.videoId}-shares`} label="Shares" value={formatCount(kpi.shares || 0)} icon="share" />
+                  <KpiPill key={`${kpi.videoId}-views`} label="Views" value={formatCount(kpi.views)} icon="visibility" colors={colors} styles={styles} />
+                  <KpiPill key={`${kpi.videoId}-likes`} label="Likes" value={formatCount(kpi.likes)} icon="trending-up" colors={colors} styles={styles} />
+                  <KpiPill key={`${kpi.videoId}-comments`} label="Comments" value={formatCount(kpi.comments)} icon="chat-bubble-outline" colors={colors} styles={styles} />
+                  <KpiPill key={`${kpi.videoId}-shares`} label="Shares" value={formatCount(kpi.shares || 0)} icon="share" colors={colors} styles={styles} />
                 </View>
               ))}
             </View>
@@ -100,7 +104,7 @@ export default function AdminAnalytics() {
   );
 }
 
-function SectionHeader({ title }: { title: string }) {
+function SectionHeader({ title, colors, styles }: { title: string; colors: any; styles: any }) {
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -109,7 +113,7 @@ function SectionHeader({ title }: { title: string }) {
   );
 }
 
-function LineBar({ data }: { data: number[] }) {
+function LineBar({ data, colors }: { data: number[]; colors: any }) {
   const max = Math.max(1, ...data);
   return (
     <View style={{ height: 140, flexDirection: 'row', alignItems: 'flex-end', gap: 6, padding: 12 }}>
@@ -120,7 +124,7 @@ function LineBar({ data }: { data: number[] }) {
   );
 }
 
-function renderBar(label: string, value: number, key: string) {
+function renderBar(label: string, value: number, key: string, colors: any, styles: any) {
   const height = Math.max(6, Math.min(120, value));
   return (
     <View key={key} style={{ alignItems: 'center' }}>
@@ -130,7 +134,7 @@ function renderBar(label: string, value: number, key: string) {
   );
 }
 
-function KpiPill({ label, value, icon }: { label: string; value: string; icon: any; }) {
+function KpiPill({ label, value, icon, colors, styles }: { label: string; value: string; icon: any; colors: any; styles: any }) {
   return (
     <View style={styles.kpiPill}>
       <View style={styles.kpiIconWrapper}>
@@ -144,7 +148,7 @@ function KpiPill({ label, value, icon }: { label: string; value: string; icon: a
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 16 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 8 },
   sectionTitle: { color: colors.text.primary, fontSize: 16, fontWeight: '700' },

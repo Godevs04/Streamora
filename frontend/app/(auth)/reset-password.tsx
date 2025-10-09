@@ -6,7 +6,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
-import colors from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import { getPasswordError } from '../../utils/validators';
 import { resetPassword } from '../../services/auth';
 import CustomAlert from '../../components/CustomAlert';
@@ -21,6 +21,7 @@ export default function ResetPassword() {
     confirmPassword: '',
   });
   const customAlert = useCustomAlert();
+  const colors = useColors();
   const [isLoading, setIsLoading] = useState(false);
   
   const validateForm = () => {

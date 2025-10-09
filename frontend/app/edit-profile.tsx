@@ -7,9 +7,11 @@ import { MaterialIcons } from '@expo/vector-icons';
 import Avatar from '../components/Avatar';
 import useAuthStore from '../store/useAuthStore';
 import { uploadImage } from '../services/upload';
-import colors from '../constants/colors';
+import { useColors } from '../hooks/useColors';
 
 export default function EditProfile() {
+  const colors = useColors();
+  const styles = createStyles(colors);
   const { user, updateUser } = useAuthStore();
   const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState(false);
@@ -234,7 +236,7 @@ export default function EditProfile() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.primary,

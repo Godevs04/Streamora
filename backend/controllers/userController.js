@@ -8,7 +8,7 @@ const { notifyNewSubscriber } = require('../utils/notificationService');
 // Get user profile
 const getUserProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-password -fcmTokens');
+    const user = await User.findById(req.user._id).select('-password -fcmTokens');
     
     if (!user) {
       return res.status(404).json({
@@ -69,7 +69,7 @@ const updateUserProfile = async (req, res) => {
     }
 
     const { name, username, bio, email, avatarUrl } = req.body;
-    const userId = req.user.id;
+    const userId = req.user._id;
 
     // Check if username is already taken by another user
     if (username) {
@@ -140,7 +140,7 @@ const updateUserProfile = async (req, res) => {
 const updateUserAvatar = async (req, res) => {
   try {
     const { avatarUrl } = req.body;
-    const userId = req.user.id;
+    const userId = req.user._id;
 
     if (!avatarUrl) {
       return res.status(400).json({
@@ -179,7 +179,7 @@ const updateUserAvatar = async (req, res) => {
 // Get user statistics (real counts)
 const getUserStats = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id;
 
     const [followers, following, totalVideos] = await Promise.all([
       Subscription.countDocuments({ following: userId }),
@@ -224,10 +224,10 @@ const getUserStats = async (req, res) => {
 // Subscribe to a user
 const subscribeToUser = async (req, res) => {
   try {
-    const followerId = req.user.id;
+    const followerId = req.user._id;
     const { userId } = req.params; // user to follow
 
-    if (followerId === userId) {
+    if (followerId.toString() === userId) {
       return res.status(400).json({ success: false, message: 'Cannot subscribe to yourself' });
     }
 
@@ -251,7 +251,7 @@ const subscribeToUser = async (req, res) => {
 // Unsubscribe from a user
 const unsubscribeFromUser = async (req, res) => {
   try {
-    const followerId = req.user.id;
+    const followerId = req.user._id;
     const { userId } = req.params; // user to unfollow
 
     await Subscription.deleteOne({ follower: followerId, following: userId });
@@ -286,7 +286,7 @@ const getPublicUserStats = async (req, res) => {
 // Check if current user is subscribed to another user
 const checkSubscriptionStatus = async (req, res) => {
   try {
-    const followerId = req.user.id;
+    const followerId = req.user._id;
     const { userId } = req.params; // user to check subscription status for
 
     const subscription = await Subscription.findOne({ 

@@ -4,7 +4,7 @@ import { Stack, router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
-import colors from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import { fetchContent } from '../../services/admin';
 import { ContentData, UploadVideo, ThumbnailSlot, ScheduledPost } from '../../types';
 import AdminLayout from '../../components/AdminLayout';
@@ -12,6 +12,8 @@ import CustomAlert from '../../components/CustomAlert';
 import { useCustomAlert } from '../../hooks/useCustomAlert';
 
 export default function AdminContent() {
+  const colors = useColors();
+  const styles = createStyles(colors);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<ContentData | null>(null);
@@ -160,7 +162,7 @@ export default function AdminContent() {
         ) : (
           <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 40 }}>
             {/* Upload Manager */}
-            <SectionHeader key="content-upload-manager" title="Upload Manager" />
+            <SectionHeader key="content-upload-manager" title="Upload Manager" colors={colors} styles={styles} />
             <View style={styles.card}>
               {uploads.slice(0, 4).map((upload) => (
                 <UploadVideoItem 
@@ -169,6 +171,8 @@ export default function AdminContent() {
                   onEdit={handleEditVideo}
                   onDelete={handleDeleteVideo}
                   isUpdating={isUpdating}
+                  colors={colors}
+                  styles={styles}
                 />
               ))}
               {uploads.length > 4 && (
@@ -179,7 +183,7 @@ export default function AdminContent() {
             </View>
 
             {/* Thumbnail Manager */}
-            <SectionHeader key="content-thumbnail-manager" title="Thumbnail Manager" />
+            <SectionHeader key="content-thumbnail-manager" title="Thumbnail Manager" colors={colors} styles={styles} />
             <View style={styles.thumbnailGrid}>
               {thumbnails.map((thumbnail) => (
                 <ThumbnailSlotItem 
@@ -188,15 +192,17 @@ export default function AdminContent() {
                   customAlert={customAlert}
                   data={data}
                   setData={setData}
+                  colors={colors}
+                  styles={styles}
                 />
               ))}
             </View>
 
             {/* Scheduled Posts */}
-            <SectionHeader key="content-scheduled-posts" title="Scheduled Posts" />
+            <SectionHeader key="content-scheduled-posts" title="Scheduled Posts" colors={colors} styles={styles} />
             <View style={styles.card}>
               {scheduledPosts.map((post) => (
-                <ScheduledPostItem key={post._id} post={post} customAlert={customAlert} />
+                <ScheduledPostItem key={post._id} post={post} customAlert={customAlert} colors={colors} styles={styles} />
               ))}
             </View>
           </ScrollView>
@@ -288,7 +294,7 @@ export default function AdminContent() {
   );
 }
 
-function SectionHeader({ title }: { title: string }) {
+function SectionHeader({ title, colors, styles }: { title: string; colors: any; styles: any }) {
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -301,12 +307,16 @@ function UploadVideoItem({
   upload, 
   onEdit, 
   onDelete, 
-  isUpdating 
+  isUpdating,
+  colors,
+  styles
 }: { 
   upload: UploadVideo; 
   onEdit: (upload: UploadVideo) => void;
   onDelete: (upload: UploadVideo) => void;
   isUpdating: boolean;
+  colors: any;
+  styles: any;
 }) {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -386,12 +396,16 @@ function ThumbnailSlotItem({
   thumbnail, 
   customAlert,
   data,
-  setData
+  setData,
+  colors,
+  styles
 }: { 
   thumbnail: ThumbnailSlot;
   customAlert: any;
   data: ContentData | null;
   setData: (data: ContentData) => void;
+  colors: any;
+  styles: any;
 }) {
   const handleThumbnailAction = () => {
     if (thumbnail.status === 'empty') {
@@ -571,10 +585,14 @@ function ThumbnailSlotItem({
 
 function ScheduledPostItem({ 
   post, 
-  customAlert 
+  customAlert,
+  colors,
+  styles
 }: { 
   post: ScheduledPost;
   customAlert: any;
+  colors: any;
+  styles: any;
 }) {
   const formatScheduledTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -693,7 +711,7 @@ function ScheduledPostItem({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 16 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 8 },
   sectionTitle: { color: colors.text.primary, fontSize: 16, fontWeight: '700' },

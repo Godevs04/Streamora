@@ -51,11 +51,12 @@ export default function TabsLayout() {
             elevation: 0,
             height: 50 + insets.bottom,
             paddingBottom: insets.bottom,
-            backgroundColor: '#0F0F0F', // YouTube's dark background
-            borderTopWidth: 0,
+            backgroundColor: colors.background.secondary,
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
           },
-          tabBarActiveTintColor: '#FFFFFF', // White for active items like YouTube
-          tabBarInactiveTintColor: '#909090', // YouTube's inactive gray
+          tabBarActiveTintColor: colors.primary,
+          tabBarInactiveTintColor: colors.text.secondary,
           tabBarShowLabel: true,
           tabBarLabelStyle: {
             fontSize: 10,
@@ -66,13 +67,14 @@ export default function TabsLayout() {
             marginTop: 0,
           },
           headerStyle: {
-            backgroundColor: '#0F0F0F', // YouTube's dark background
+            backgroundColor: colors.background.primary,
             shadowColor: 'transparent',
             elevation: 0,
-            borderBottomWidth: 0,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
             height: 60,
           },
-          headerTintColor: '#FFFFFF',
+          headerTintColor: colors.text.primary,
           headerTitleStyle: {
             fontWeight: 'bold',
             fontSize: 20,

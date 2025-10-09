@@ -116,6 +116,19 @@ function ThemedLoadingScreen() {
   );
 }
 
+// Component that uses theme-aware colors for status bar
+function ThemedStatusBar() {
+  const colors = useColors();
+  
+  return (
+    <StatusBar 
+      style={colors.background.primary === '#FFFFFF' ? 'dark' : 'light'} 
+      backgroundColor={colors.background.primary}
+      translucent={false}
+    />
+  );
+}
+
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     // Add any custom fonts here if needed
@@ -236,7 +249,7 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
           <ThemeProvider>
-            <StatusBar style="light" />
+            <ThemedStatusBar />
             {(!fontsLoaded || isLoading) && !forceRender ? (
               <ThemedLoadingScreen />
             ) : (

@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Button from '../../components/Button';
-import colors from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import { verifyForgotOTP, forgotPassword } from '../../services/auth';
 import CustomAlert from '../../components/CustomAlert';
 import { useCustomAlert } from '../../hooks/useCustomAlert';
@@ -18,6 +18,7 @@ export default function VerifyOTP() {
   const [canResend, setCanResend] = useState(false);
   const inputRefs = useRef<TextInput[]>([]);
   const customAlert = useCustomAlert();
+  const colors = useColors();
   
   useEffect(() => {
     let interval: NodeJS.Timeout;

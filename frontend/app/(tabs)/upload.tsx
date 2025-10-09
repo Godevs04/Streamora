@@ -440,7 +440,7 @@ customAlert.show({
                       style={[styles.videoTypeButton, videoType === 'normal' && styles.videoTypeButtonActive]}
                       onPress={() => handleVideoTypeChange('normal')}
                     >
-                      <Ionicons name="play-circle-outline" size={20} color={videoType === 'normal' ? '#FFFFFF' : colors.gray} />
+                      <Ionicons name="play-circle-outline" size={20} color={videoType === 'normal' ? colors.text.primary : colors.text.secondary} />
                       <Text style={[styles.videoTypeText, videoType === 'normal' && styles.videoTypeTextActive]}>
                         Normal Video
                       </Text>
@@ -450,7 +450,7 @@ customAlert.show({
                       style={[styles.videoTypeButton, videoType === 'shorts' && styles.videoTypeButtonActive]}
                       onPress={() => handleVideoTypeChange('shorts')}
                     >
-                      <Ionicons name="play-circle" size={20} color={videoType === 'shorts' ? '#FFFFFF' : colors.gray} />
+                      <Ionicons name="play-circle" size={20} color={videoType === 'shorts' ? colors.text.primary : colors.text.secondary} />
                       <Text style={[styles.videoTypeText, videoType === 'shorts' && styles.videoTypeTextActive]}>
                         Shorts
                       </Text>
@@ -539,7 +539,7 @@ customAlert.show({
                   <TextInput
                     style={styles.textInput}
                     placeholder="Enter video title"
-                    placeholderTextColor={colors.gray}
+                    placeholderTextColor={colors.text.secondary}
                     value={title}
                     onChangeText={setTitle}
                     maxLength={100}
@@ -551,7 +551,7 @@ customAlert.show({
                   <TextInput
                     style={[styles.textInput, styles.textAreaInput]}
                     placeholder="Enter video description"
-                    placeholderTextColor={colors.gray}
+                    placeholderTextColor={colors.text.secondary}
                     value={description}
                     onChangeText={setDescription}
                     multiline
@@ -566,7 +566,7 @@ customAlert.show({
                   <TextInput
                     style={styles.textInput}
                     placeholder="e.g. music, tutorial, vlog"
-                    placeholderTextColor={colors.gray}
+                    placeholderTextColor={colors.text.secondary}
                     value={tags}
                     onChangeText={setTags}
                   />
@@ -709,7 +709,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: 24,
   },
   videoPickerContainer: {
-    backgroundColor: '#1F2937',
+    backgroundColor: colors.background.secondary,
     borderRadius: 8,
     overflow: 'hidden',
     marginBottom: 24,
@@ -761,12 +761,12 @@ const createStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   uploadPromptText: {
-    color: 'white',
+    color: colors.text.primary,
     marginTop: 8,
     fontWeight: '500',
   },
   uploadLimitText: {
-    color: '#9CA3AF',
+    color: colors.text.secondary,
     fontSize: 14,
     marginTop: 4,
   },
@@ -780,7 +780,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    color: 'white',
+    color: colors.text.primary,
     fontSize: 16,
     fontWeight: '500',
   },
@@ -792,21 +792,21 @@ const createStyles = (colors: any) => StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 4,
     marginLeft: 8,
-    backgroundColor: '#374151',
+    backgroundColor: colors.background.tertiary,
   },
   aspectRatioButtonActive: {
     backgroundColor: colors.primary,
   },
   aspectRatioText: {
-    color: '#9CA3AF',
+    color: colors.text.secondary,
     fontSize: 12,
     fontWeight: '500',
   },
   aspectRatioTextActive: {
-    color: 'white',
+    color: colors.text.primary,
   },
   thumbnailContainer: {
-    backgroundColor: '#1F2937',
+    backgroundColor: colors.background.secondary,
     borderRadius: 8,
     overflow: 'hidden',
     position: 'relative',
@@ -816,10 +816,10 @@ const createStyles = (colors: any) => StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1F2937',
+    backgroundColor: colors.background.secondary,
   },
   thumbnailGeneratingText: {
-    color: 'white',
+    color: colors.text.primary,
     marginTop: 12,
   },
   thumbnailPlaceholder: {
@@ -827,10 +827,10 @@ const createStyles = (colors: any) => StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1F2937',
+    backgroundColor: colors.background.secondary,
   },
   thumbnailPlaceholderText: {
-    color: '#9CA3AF',
+    color: colors.text.secondary,
     marginTop: 8,
   },
   thumbnailActions: {
@@ -861,12 +861,12 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: 16,
   },
   inputLabel: {
-    color: 'white',
+    color: colors.text.primary,
     marginBottom: 4,
   },
   textInput: {
-    backgroundColor: '#1F2937',
-    color: 'white',
+    backgroundColor: colors.background.secondary,
+    color: colors.text.primary,
     padding: 12,
     borderRadius: 8,
   },
@@ -888,26 +888,26 @@ const createStyles = (colors: any) => StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     marginHorizontal: 4,
-    backgroundColor: '#374151',
+    backgroundColor: colors.background.tertiary,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#4B5563',
+    borderColor: colors.background.secondary,
   },
   videoTypeButtonActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
   videoTypeText: {
-    color: colors.gray,
+    color: colors.text.secondary,
     marginLeft: 8,
     fontSize: 14,
     fontWeight: '500',
   },
   videoTypeTextActive: {
-    color: '#FFFFFF',
+    color: colors.text.primary,
   },
   videoTypeDescription: {
-    color: '#9CA3AF',
+    color: colors.text.secondary,
     fontSize: 12,
     lineHeight: 16,
     textAlign: 'center',
@@ -948,7 +948,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     width: 44,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#374151',
+    backgroundColor: colors.background.tertiary,
     justifyContent: 'center',
     paddingHorizontal: 2,
   },
@@ -977,12 +977,12 @@ const createStyles = (colors: any) => StyleSheet.create({
   dateTimeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#374151',
+    backgroundColor: colors.background.tertiary,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: '#4B5563',
+    borderColor: colors.background.secondary,
     gap: 8,
   },
   dateTimeText: {

@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, usePathname } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
-import colors from '../constants/colors';
+import { useColors } from '../hooks/useColors';
 
 const { width } = Dimensions.get('window');
 
@@ -26,6 +26,8 @@ const MENU_ITEMS = [
 export default function AdminLayout({ children, title, subtitle = 'Admin Mode' }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const colors = useColors();
+  const styles = createStyles(colors);
 
   const handleMenuPress = (path: string) => {
     // Use replace to prevent navigation stacking
@@ -147,7 +149,7 @@ export default function AdminLayout({ children, title, subtitle = 'Admin Mode' }
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: { 
     flex: 1 
   },

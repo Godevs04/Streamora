@@ -34,6 +34,7 @@ export default function CustomAlert({
   verticalButtons = false
 }: CustomAlertProps) {
   const colors = useColors();
+  const styles = createStyles(colors);
   const getTypeConfig = () => {
     switch (type) {
       case 'success':
@@ -109,20 +110,17 @@ export default function CustomAlert({
     >
       <View style={styles.backdrop}>
         <View style={styles.alertContainer}>
-          <LinearGradient
-            colors={['rgba(0,0,0,0.8)', 'rgba(0,0,0,0.9)']}
-            style={styles.alertBackground}
-          >
+          <View style={styles.alertBackground}>
             <View style={styles.iconContainer}>
               <View style={[styles.iconBackground, { backgroundColor: config.backgroundColor }]}>
                 <MaterialIcons name={config.icon as any} size={32} color={config.iconColor} />
               </View>
             </View>
             
-            <Text style={[styles.title, { color: colors.text.primary }]}>{title}</Text>
+            <Text style={styles.title}>{title}</Text>
             
             {message && (
-              <Text style={[styles.message, { color: colors.text.secondary }]}>{message}</Text>
+              <Text style={styles.message}>{message}</Text>
             )}
             
             <View style={[
@@ -146,17 +144,17 @@ export default function CustomAlert({
                 </TouchableOpacity>
               ))}
             </View>
-          </LinearGradient>
+          </View>
         </View>
       </View>
     </Modal>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: colors.isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -166,10 +164,14 @@ const styles = StyleSheet.create({
     maxWidth: 340,
     borderRadius: 16,
     overflow: 'hidden',
+    backgroundColor: colors.background.primary,
+    borderWidth: 1,
+    borderColor: colors.background.secondary,
   },
   alertBackground: {
     padding: 24,
     alignItems: 'center',
+    backgroundColor: colors.background.primary,
   },
   iconContainer: {
     marginBottom: 16,
@@ -182,14 +184,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    color: 'white',
+    color: colors.text.primary,
     fontSize: 20,
     fontWeight: '700',
     textAlign: 'center',
     marginBottom: 8,
   },
   message: {
-    color: 'rgba(255,255,255,0.8)',
+    color: colors.text.secondary,
     fontSize: 16,
     textAlign: 'center',
     lineHeight: 22,
@@ -221,23 +223,23 @@ const styles = StyleSheet.create({
     minWidth: 120,
   },
   defaultButton: {
-    backgroundColor: '#6366F1', // Primary color
+    backgroundColor: colors.primary,
   },
   cancelButton: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: colors.background.secondary,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: colors.background.tertiary,
   },
   destructiveButton: {
     backgroundColor: '#EF4444',
   },
   defaultButtonText: {
-    color: 'white',
+    color: colors.text.primary,
     fontSize: 16,
     fontWeight: '600',
   },
   cancelButtonText: {
-    color: 'white',
+    color: colors.text.secondary,
     fontSize: 16,
     fontWeight: '600',
   },

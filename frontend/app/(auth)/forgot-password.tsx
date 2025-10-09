@@ -6,7 +6,7 @@ import { Link, router } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
-import colors from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import { getEmailError } from '../../utils/validators';
 import { forgotPassword } from '../../services/auth';
 import CustomAlert from '../../components/CustomAlert';
@@ -17,6 +17,7 @@ export default function ForgotPassword() {
   const [errors, setErrors] = useState({ email: '' });
   const [isLoading, setIsLoading] = useState(false);
   const customAlert = useCustomAlert();
+  const colors = useColors();
   
   const validateForm = () => {
     const emailError = getEmailError(email);

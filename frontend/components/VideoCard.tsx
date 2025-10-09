@@ -29,6 +29,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
   const [imageLoadError, setImageLoadError] = useState(false);
   const customAlert = useCustomAlert();
   const colors = useColors();
+  const styles = createStyles(colors);
   
   // Check subscription status when component loads
   useEffect(() => {
@@ -224,6 +225,12 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
         return;
       }
       
+      console.log('Subscription attempt:', {
+        currentUserId: user._id,
+        targetUserId: video.owner._id,
+        subscribed: subscribed
+      });
+      
       if (subscribed) {
         await apiUnsubscribe(video.owner._id, token);
         setSubscribed(false);
@@ -245,9 +252,18 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
       }
     } catch (error: any) {
       console.error('Subscription error:', error);
+      
+      // Extract specific error message from API response
+      let errorMessage = 'Failed to update subscription';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       customAlert.show({
-        title: 'Error',
-        message: error.message || 'Failed to update subscription',
+        title: 'Subscription Error',
+        message: errorMessage,
         type: 'error',
         icon: 'error-outline'
       });
@@ -276,7 +292,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
             />
           ) : (
             <View style={[{ width, height }, styles.placeholderContainer]}>
-              <MaterialIcons name="image" size={48} color="#666" />
+              <MaterialIcons name="image" size={48} color={colors.text.secondary} />
               <Text style={styles.placeholderText}>No thumbnail</Text>
             </View>
           )}
@@ -356,7 +372,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
             </TouchableOpacity>
 
             {/* Subscribe */}
-            {variant === 'default' && (
+            {variant === 'default' && user && user._id !== video.owner._id && (
               <TouchableOpacity
                 onPress={handleSubscribePress}
                 style={[styles.subscribeButton, subscribed && styles.subscribedButton]}
@@ -382,7 +398,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     marginBottom: 16,
     width: '100%',
@@ -390,15 +406,15 @@ const styles = StyleSheet.create({
   thumbnailContainer: {
     borderRadius: 0, // YouTube doesn't use rounded corners
     overflow: 'hidden',
-    backgroundColor: '#0F0F23', // Dark background
+    backgroundColor: colors.background.secondary,
   },
   placeholderContainer: {
-    backgroundColor: '#1E1B4B', // Secondary background
+    backgroundColor: colors.background.tertiary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   placeholderText: {
-    color: '#A1A1AA', // Secondary text
+    color: colors.text.secondary,
     marginTop: 8,
     fontSize: 12,
   },
@@ -442,7 +458,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   titleText: {
-    color: '#FFFFFF', // Primary text
+    color: colors.text.primary,
     fontWeight: '500',
     fontSize: 15,
     lineHeight: 20,
@@ -453,16 +469,16 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   channelText: {
-    color: '#A1A1AA', // Secondary text
+    color: colors.text.secondary,
     fontSize: 13,
   },
   dotSeparator: {
-    color: '#A1A1AA', // Secondary text
+    color: colors.text.secondary,
     fontSize: 13,
     marginHorizontal: 4,
   },
   timeText: {
-    color: '#A1A1AA', // Secondary text
+    color: colors.text.secondary,
     fontSize: 13,
   },
   actionsContainer: {
@@ -488,7 +504,7 @@ const styles = StyleSheet.create({
   likeDislikeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#312E81', // Tertiary background
+    backgroundColor: colors.background.tertiary,
     borderRadius: 18,
     overflow: 'hidden',
     marginRight: 6,
@@ -502,7 +518,7 @@ const styles = StyleSheet.create({
   actionDivider: {
     width: 1,
     height: '60%',
-    backgroundColor: '#374151', // Dark gray
+    backgroundColor: colors.background.secondary,
   },
   commentContainer: {
     flexDirection: 'row',
@@ -511,25 +527,25 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   actionText: {
-    color: '#A1A1AA', // Secondary text
+    color: colors.text.secondary,
     fontSize: 13,
     marginLeft: 6,
     fontWeight: '500',
   },
   likedText: {
-    color: '#FFFFFF', // Primary text
+    color: colors.text.primary,
   },
   subscribeButton: {
-    backgroundColor: '#6366F1', // Primary color
+    backgroundColor: colors.primary,
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 18,
   },
   subscribedButton: {
-    backgroundColor: '#312E81', // Tertiary background
+    backgroundColor: colors.background.tertiary,
   },
   subscribeText: {
-    color: '#FFFFFF', // Primary text
+    color: colors.text.primary,
     fontSize: 14,
     fontWeight: '500',
   },

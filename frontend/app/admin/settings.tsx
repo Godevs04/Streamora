@@ -3,12 +3,14 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { Stack, router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import colors from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import { fetchAdminSettings, updateChannelInfo, uploadProfileImage, uploadBannerImage, addPaymentMethod, deletePaymentMethod } from '../../services/admin';
 import { AdminSettingsData, PaymentMethod } from '../../types';
 import AdminLayout from '../../components/AdminLayout';
 
 export default function AdminSettings() {
+  const colors = useColors();
+  const styles = createStyles(colors);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AdminSettingsData | null>(null);
@@ -159,7 +161,7 @@ export default function AdminSettings() {
         ) : (
           <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 40 }}>
             {/* Channel Customization */}
-            <SectionHeader key="settings-channel-customization" title="Channel Customization" />
+            <SectionHeader key="settings-channel-customization" title="Channel Customization" colors={colors} styles={styles} />
             <View style={styles.card}>
               <View style={styles.profileSection}>
                 <View style={styles.profileImageContainer}>
@@ -219,7 +221,7 @@ export default function AdminSettings() {
             </View>
 
             {/* Payment Settings */}
-            <SectionHeader key="settings-payment-settings" title="Payment Settings" />
+            <SectionHeader key="settings-payment-settings" title="Payment Settings" colors={colors} styles={styles} />
             <View style={styles.card}>
               <View style={styles.paymentHeader}>
                 <MaterialIcons name="account-balance-wallet" size={20} color={colors.text.primary} />
@@ -237,13 +239,15 @@ export default function AdminSettings() {
                     key={method._id} 
                     method={method} 
                     onDelete={() => handleDeletePaymentMethod(method)}
+                    colors={colors}
+                    styles={styles}
                   />
                 ))
               )}
             </View>
 
             {/* Policy & Guidelines */}
-            <SectionHeader key="settings-policy-guidelines" title="Policy & Guidelines" />
+            <SectionHeader key="settings-policy-guidelines" title="Policy & Guidelines" colors={colors} styles={styles} />
             <View style={styles.card}>
               <Text style={styles.policyText}>
                 {data?.policyGuidelines.communityGuidelines}
@@ -261,7 +265,7 @@ export default function AdminSettings() {
   );
 }
 
-function SectionHeader({ title }: { title: string }) {
+function SectionHeader({ title, colors, styles }: { title: string; colors: any; styles: any }) {
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -270,7 +274,7 @@ function SectionHeader({ title }: { title: string }) {
   );
 }
 
-function PaymentMethodItem({ method, onDelete }: { method: PaymentMethod; onDelete: () => void }) {
+function PaymentMethodItem({ method, onDelete, colors, styles }: { method: PaymentMethod; onDelete: () => void; colors: any; styles: any }) {
   return (
     <View style={styles.paymentMethodItem}>
       <MaterialIcons 
@@ -286,7 +290,7 @@ function PaymentMethodItem({ method, onDelete }: { method: PaymentMethod; onDele
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 16 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 8 },
   sectionTitle: { color: colors.text.primary, fontSize: 16, fontWeight: '700' },

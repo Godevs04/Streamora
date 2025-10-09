@@ -756,9 +756,10 @@ export default function VideoPlayer() {
                       </View>
                     </View>
                     
-                    <TouchableOpacity 
-                      style={[styles.subscribeButton, isSubscribed && styles.subscribedButton]}
-                      onPress={async () => {
+                    {user && user._id !== video.owner._id && (
+                      <TouchableOpacity 
+                        style={[styles.subscribeButton, isSubscribed && styles.subscribedButton]}
+                        onPress={async () => {
                         if (!user) {
                           customAlert.show({
   title: 'Login Required',
@@ -811,6 +812,7 @@ export default function VideoPlayer() {
                     >
                       <Text style={styles.subscribeText}>{isSubscribed ? 'Subscribed' : 'Subscribe'}</Text>
                     </TouchableOpacity>
+                    )}
                   </View>
                 ) : (
                   <View style={styles.channelContainer}>
@@ -825,9 +827,10 @@ export default function VideoPlayer() {
                       </View>
                     </View>
                     
-                    <TouchableOpacity 
-                      style={[styles.subscribeButton, isSubscribed && styles.subscribedButton]}
-                      onPress={async () => {
+                    {user && (
+                      <TouchableOpacity 
+                        style={[styles.subscribeButton, isSubscribed && styles.subscribedButton]}
+                        onPress={async () => {
                         if (!user) {
                           customAlert.show({
   title: 'Login Required',
@@ -880,6 +883,7 @@ export default function VideoPlayer() {
                     >
                       <Text style={styles.subscribeText}>{isSubscribed ? 'Subscribed' : 'Subscribe'}</Text>
                     </TouchableOpacity>
+                    )}
                   </View>
                 )}
                 

@@ -7,7 +7,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import useAuthStore from '../../store/useAuthStore';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
-import colors from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import { getEmailError, getNameError, getPasswordError, getUsernameError } from '../../utils/validators';
 import CustomAlert from '../../components/CustomAlert';
 import { useCustomAlert } from '../../hooks/useCustomAlert';
@@ -26,6 +26,7 @@ export default function Register() {
   
   const { register, isLoading } = useAuthStore();
   const customAlert = useCustomAlert();
+  const colors = useColors();
   
   const validateForm = () => {
     const nameError = getNameError(name);

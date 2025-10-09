@@ -2,12 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
-import colors from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import { fetchCommunity } from '../../services/admin';
 import { CommunityData, ModerationComment, ReportedComment, CommunityPost } from '../../types';
 import AdminLayout from '../../components/AdminLayout';
 
 export default function AdminCommunity() {
+  const colors = useColors();
+  const styles = createStyles(colors);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<CommunityData | null>(null);
@@ -53,10 +55,10 @@ export default function AdminCommunity() {
         ) : (
           <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 40 }}>
             {/* Comment Moderation */}
-            <SectionHeader key="community-comment-moderation" title="Comment Moderation" />
+            <SectionHeader key="community-comment-moderation" title="Comment Moderation" colors={colors} styles={styles} />
             <View style={styles.card}>
               {moderationComments.slice(0, 3).map((comment) => (
-                <ModerationCommentItem key={comment._id} comment={comment} />
+                <ModerationCommentItem key={comment._id} comment={comment} colors={colors} styles={styles} />
               ))}
               {moderationComments.length > 3 && (
                 <TouchableOpacity style={styles.showMoreBtn}>
@@ -66,18 +68,18 @@ export default function AdminCommunity() {
             </View>
 
             {/* Reported Comments */}
-            <SectionHeader key="community-reported-comments" title="Reported Comments" />
+            <SectionHeader key="community-reported-comments" title="Reported Comments" colors={colors} styles={styles} />
             <View style={styles.card}>
               {reportedComments.map((comment) => (
-                <ReportedCommentItem key={comment._id} comment={comment} />
+                <ReportedCommentItem key={comment._id} comment={comment} colors={colors} styles={styles} />
               ))}
             </View>
 
             {/* Community Posts */}
-            <SectionHeader key="community-posts-section" title="Community Posts" />
+            <SectionHeader key="community-posts-section" title="Community Posts" colors={colors} styles={styles} />
             <View style={styles.card}>
               {communityPosts.map((post) => (
-                <CommunityPostItem key={post._id} post={post} />
+                <CommunityPostItem key={post._id} post={post} colors={colors} styles={styles} />
               ))}
             </View>
           </ScrollView>
@@ -86,7 +88,7 @@ export default function AdminCommunity() {
   );
 }
 
-function SectionHeader({ title }: { title: string }) {
+function SectionHeader({ title, colors, styles }: { title: string; colors: any; styles: any }) {
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -95,7 +97,7 @@ function SectionHeader({ title }: { title: string }) {
   );
 }
 
-function ModerationCommentItem({ comment }: { comment: ModerationComment }) {
+function ModerationCommentItem({ comment, colors, styles }: { comment: ModerationComment; colors: any; styles: any }) {
   return (
     <View style={styles.commentItem}>
       <View style={styles.commentHeader}>
@@ -119,7 +121,7 @@ function ModerationCommentItem({ comment }: { comment: ModerationComment }) {
   );
 }
 
-function ReportedCommentItem({ comment }: { comment: ReportedComment }) {
+function ReportedCommentItem({ comment, colors, styles }: { comment: ReportedComment; colors: any; styles: any }) {
   return (
     <View style={styles.reportedItem}>
       <View style={styles.reportedHeader}>
@@ -137,7 +139,7 @@ function ReportedCommentItem({ comment }: { comment: ReportedComment }) {
   );
 }
 
-function CommunityPostItem({ post }: { post: CommunityPost }) {
+function CommunityPostItem({ post, colors, styles }: { post: CommunityPost; colors: any; styles: any }) {
   return (
     <View style={styles.postItem}>
       <Text style={styles.postTitle}>{post.title}</Text>
@@ -149,7 +151,7 @@ function CommunityPostItem({ post }: { post: CommunityPost }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 16 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 8 },
   sectionTitle: { color: colors.text.primary, fontSize: 16, fontWeight: '700' },

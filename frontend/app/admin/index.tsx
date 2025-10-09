@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { Stack, router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import colors from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import { fetchAdminDashboard } from '../../services/admin';
 import { AdminDashboardData, Video } from '../../types';
 import { formatCount } from '../../utils/formatDate';
@@ -14,6 +14,8 @@ const TABS = ['Dashboard', 'Analytics', 'Monetization', 'Content', 'Community', 
 type TabKey = typeof TABS[number];
 
 export default function AdminDashboard() {
+  const colors = useColors();
+  const styles = createStyles(colors);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AdminDashboardData | null>(null);
@@ -65,9 +67,9 @@ export default function AdminDashboard() {
 
           {/* Stats Row */}
           <View style={styles.cardsRow}>
-            <StatCard key="subscribers" icon="people-outline" label="Subscribers" value={formatCount(Number(data?.stats?.subscribers || 0))} />
-            <StatCard key="totalViews" icon="visibility" label="Total Views" value={formatCount(Number(data?.stats?.totalViews || 0))} />
-            <StatCard key="watchTime" icon="schedule" label="Watch Time" value={`${formatCount(Number(data?.stats?.watchTimeHours || 0))}h`} />
+            <StatCard key="subscribers" icon="people-outline" label="Subscribers" value={formatCount(Number(data?.stats?.subscribers || 0))} colors={colors} styles={styles} />
+            <StatCard key="totalViews" icon="visibility" label="Total Views" value={formatCount(Number(data?.stats?.totalViews || 0))} colors={colors} styles={styles} />
+            <StatCard key="watchTime" icon="schedule" label="Watch Time" value={`${formatCount(Number(data?.stats?.watchTimeHours || 0))}h`} colors={colors} styles={styles} />
           </View>
 
           {/* Performance Overview */}
@@ -80,10 +82,10 @@ export default function AdminDashboard() {
           </View>
 
           {/* Latest Videos */}
-          <SectionHeader key="dashboard-latest-videos" title="Latest Videos" />
+          <SectionHeader key="dashboard-latest-videos" title="Latest Videos" colors={colors} styles={styles} />
           <View style={{ gap: 12 }}>
             {(showAllVideos ? latestVideos : latestVideos.slice(0, 3)).map((v) => (
-              <LatestVideoItem key={v._id} video={v} />
+              <LatestVideoItem key={v._id} video={v} colors={colors} styles={styles} />
             ))}
             {latestVideos.length > 3 && (
               <TouchableOpacity style={styles.showMore} onPress={() => {
@@ -111,7 +113,7 @@ export default function AdminDashboard() {
   );
 }
 
-function StatCard({ icon, label, value }: { icon: any; label: string; value: string; }) {
+function StatCard({ icon, label, value, colors, styles }: { icon: any; label: string; value: string; colors: any; styles: any }) {
   return (
     <View style={styles.statCard}>
       <View style={styles.statIconWrap}>
@@ -123,7 +125,7 @@ function StatCard({ icon, label, value }: { icon: any; label: string; value: str
   );
 }
 
-function SectionHeader({ title }: { title: string }) {
+function SectionHeader({ title, colors, styles }: { title: string; colors: any; styles: any }) {
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -132,7 +134,7 @@ function SectionHeader({ title }: { title: string }) {
   );
 }
 
-function LatestVideoItem({ video }: { video: Video }) {
+function LatestVideoItem({ video, colors, styles }: { video: Video; colors: any; styles: any }) {
   const views = formatCount(typeof video.views === 'number' ? video.views : 0);
   const likes = formatCount(typeof video.likesCount === 'number' ? video.likesCount : 0);
   const comments = formatCount(typeof (video as any).commentsCount === 'number' ? (video as any).commentsCount : (Array.isArray(video.comments) ? video.comments.length : 0));
@@ -175,7 +177,7 @@ function LatestVideoItem({ video }: { video: Video }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   content: { 
     paddingHorizontal: 16, 
     paddingTop: 16 
