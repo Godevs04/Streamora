@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, router } from 'expo-router';
@@ -9,6 +9,8 @@ import Button from '../../components/Button';
 import Input from '../../components/Input';
 import colors from '../../constants/colors';
 import { getEmailError, getNameError, getPasswordError, getUsernameError } from '../../utils/validators';
+import CustomAlert from '../../components/CustomAlert';
+import { useCustomAlert } from '../../hooks/useCustomAlert';
 
 export default function Register() {
   const [name, setName] = useState('');
@@ -23,6 +25,7 @@ export default function Register() {
   });
   
   const { register, isLoading } = useAuthStore();
+  const customAlert = useCustomAlert();
   
   const validateForm = () => {
     const nameError = getNameError(name);
@@ -66,10 +69,12 @@ export default function Register() {
         router.replace('/(tabs)/home');
       }
     } catch (error: any) {
-      Alert.alert(
-        'Registration Failed',
-        error.message || 'Failed to register. Please try again.'
-      );
+      customAlert.show({
+        title: 'Registration Failed',
+        message: error.message || 'Failed to register. Please try again.',
+        type: 'error',
+        icon: 'error-outline'
+      });
     }
   };
   
@@ -231,6 +236,17 @@ export default function Register() {
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
+        
+        {/* Custom Alert */}
+        <CustomAlert
+          visible={customAlert.visible}
+          title={customAlert.config.title}
+          message={customAlert.config.message}
+          buttons={customAlert.config.buttons}
+          type={customAlert.config.type}
+          icon={customAlert.config.icon}
+          onClose={customAlert.hide}
+        />
       </SafeAreaView>
     </LinearGradient>
   );

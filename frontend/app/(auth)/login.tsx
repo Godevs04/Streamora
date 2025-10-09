@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, router } from 'expo-router';
@@ -9,6 +9,8 @@ import Button from '../../components/Button';
 import Input from '../../components/Input';
 import colors from '../../constants/colors';
 import { getEmailError, getPasswordError } from '../../utils/validators';
+import CustomAlert from '../../components/CustomAlert';
+import { useCustomAlert } from '../../hooks/useCustomAlert';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -17,6 +19,7 @@ export default function Login() {
     email: '',
     password: '',
   });
+  const customAlert = useCustomAlert();
   
   const { login, isLoading } = useAuthStore();
   
@@ -64,10 +67,12 @@ export default function Login() {
         router.replace('/(tabs)/home');
       }
     } catch (error: any) {
-      Alert.alert(
-        'Login Failed',
-        error.message || 'Failed to login. Please check your credentials and try again.'
-      );
+      customAlert.show({
+        title: 'Login Failed',
+        message: error.message || 'Failed to login. Please check your credentials and try again.',
+        type: 'error',
+        icon: 'error-outline'
+      });
     }
   };
   
@@ -207,6 +212,17 @@ export default function Login() {
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
+        
+        {/* Custom Alert */}
+        <CustomAlert
+          visible={customAlert.visible}
+          title={customAlert.config.title}
+          message={customAlert.config.message}
+          buttons={customAlert.config.buttons}
+          type={customAlert.config.type}
+          icon={customAlert.config.icon}
+          onClose={customAlert.hide}
+        />
       </SafeAreaView>
     </LinearGradient>
   );

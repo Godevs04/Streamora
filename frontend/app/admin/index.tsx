@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,6 +17,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AdminDashboardData | null>(null);
+  const [showAllVideos, setShowAllVideos] = useState(false);
 
   const load = async () => {
     try {
@@ -81,12 +82,26 @@ export default function AdminDashboard() {
           {/* Latest Videos */}
           <SectionHeader key="dashboard-latest-videos" title="Latest Videos" />
           <View style={{ gap: 12 }}>
-            {latestVideos.slice(0, 3).map((v) => (
+            {(showAllVideos ? latestVideos : latestVideos.slice(0, 3)).map((v) => (
               <LatestVideoItem key={v._id} video={v} />
             ))}
             {latestVideos.length > 3 && (
-              <TouchableOpacity style={styles.showMore} onPress={() => router.push('/admin/content')}>
-                <Text style={styles.showMoreText}>Show {latestVideos.length - 3} More</Text>
+              <TouchableOpacity style={styles.showMore} onPress={() => {
+                if (showAllVideos) {
+                  setShowAllVideos(false);
+                } else {
+                  setShowAllVideos(true);
+                }
+              }}>
+                <Text style={styles.showMoreText}>
+                  {showAllVideos ? 'Show Less' : `Show ${latestVideos.length - 3} More`}
+                </Text>
+              </TouchableOpacity>
+            )}
+            {latestVideos.length > 3 && (
+              <TouchableOpacity style={styles.manageContentBtn} onPress={() => router.replace('/admin/content')}>
+                <MaterialIcons name="video-library" size={16} color={colors.primary} />
+                <Text style={styles.manageContentText}>Manage All Content</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -121,14 +136,39 @@ function LatestVideoItem({ video }: { video: Video }) {
   const views = formatCount(typeof video.views === 'number' ? video.views : 0);
   const likes = formatCount(typeof video.likesCount === 'number' ? video.likesCount : 0);
   const comments = formatCount(typeof (video as any).commentsCount === 'number' ? (video as any).commentsCount : (Array.isArray(video.comments) ? video.comments.length : 0));
+  
+  const handleViewVideo = () => {
+    // Check if it's a short video and navigate accordingly
+    if (video.type === 'shorts' || (video.duration && video.duration <= 60)) {
+      router.push('/(tabs)/explore');
+    } else {
+      router.push(`/video/${video._id}`);
+    }
+  };
+
   return (
     <View style={styles.latestItem}>
-      <LinearGradient colors={[colors.primary, '#7b61ff']} style={styles.latestThumb} />
+      {video.thumbnailUrl ? (
+        <View style={styles.latestThumb}>
+          <Image 
+            source={{ uri: video.thumbnailUrl }} 
+            style={styles.thumbnailImage}
+            resizeMode="cover"
+          />
+        </View>
+      ) : (
+        <LinearGradient colors={[colors.primary, '#7b61ff']} style={styles.latestThumb}>
+          <MaterialIcons name="play-circle-filled" size={24} color="white" />
+        </LinearGradient>
+      )}
       <View style={{ flex: 1 }}>
         <Text style={styles.latestTitle} numberOfLines={1}>{video.title || 'Untitled Upload'}</Text>
         <Text style={styles.latestMeta}>{`${views} views • ${likes} likes • ${comments} comments`}</Text>
+        {video.type === 'shorts' && (
+          <Text style={styles.videoType}>Short</Text>
+        )}
       </View>
-      <TouchableOpacity style={styles.viewBtn} onPress={() => router.push(`/video/${video._id}`)}>
+      <TouchableOpacity style={styles.viewBtn} onPress={handleViewVideo}>
         <Text style={styles.viewBtnText}>View</Text>
       </TouchableOpacity>
     </View>
@@ -259,7 +299,20 @@ const styles = StyleSheet.create({
   latestThumb: { 
     width: 64, 
     height: 48, 
-    borderRadius: 12 
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  thumbnailImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+  },
+  videoType: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
   },
   latestTitle: { 
     color: colors.text.primary, 
@@ -297,6 +350,23 @@ const styles = StyleSheet.create({
     color: colors.primary, 
     fontSize: 16, 
     fontWeight: '700' 
+  },
+  manageContentBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.3)',
+    marginTop: 8,
+    gap: 8,
+  },
+  manageContentText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '600',
   },
   centerWrap: { 
     flex: 1, 

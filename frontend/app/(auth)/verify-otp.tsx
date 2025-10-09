@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, TextInput } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -7,6 +7,8 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import Button from '../../components/Button';
 import colors from '../../constants/colors';
 import { verifyForgotOTP, forgotPassword } from '../../services/auth';
+import CustomAlert from '../../components/CustomAlert';
+import { useCustomAlert } from '../../hooks/useCustomAlert';
 
 export default function VerifyOTP() {
   const { email } = useLocalSearchParams<{ email: string }>();
@@ -15,6 +17,7 @@ export default function VerifyOTP() {
   const [timer, setTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
   const inputRefs = useRef<TextInput[]>([]);
+  const customAlert = useCustomAlert();
   
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -48,7 +51,12 @@ export default function VerifyOTP() {
   const handleVerifyOTP = async () => {
     const otpCode = otp.join('');
     if (otpCode.length !== 6) {
-      Alert.alert('Error', 'Please enter a valid 6-digit OTP');
+      customAlert.show({
+        title: 'Error',
+        message: 'Please enter a valid 6-digit OTP',
+        type: 'error',
+        icon: 'error-outline'
+      });
       return;
     }
     
@@ -63,13 +71,20 @@ export default function VerifyOTP() {
           params: { email, otp: otpCode }
         });
       } else {
-        Alert.alert('Verification Failed', 'Invalid OTP. Please try again.');
+        customAlert.show({
+          title: 'Verification Failed',
+          message: 'Invalid OTP. Please try again.',
+          type: 'error',
+          icon: 'error-outline'
+        });
       }
     } catch (error: any) {
-      Alert.alert(
-        'Verification Failed',
-        error.message || 'Invalid OTP. Please try again.'
-      );
+      customAlert.show({
+        title: 'Verification Failed',
+        message: error.message || 'Invalid OTP. Please try again.',
+        type: 'error',
+        icon: 'error-outline'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -85,12 +100,19 @@ export default function VerifyOTP() {
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
       
-      Alert.alert('Success', 'OTP has been resent to your email');
+      customAlert.show({
+        title: 'Success',
+        message: 'OTP has been resent to your email',
+        type: 'success',
+        icon: 'check-circle'
+      });
     } catch (error: any) {
-      Alert.alert(
-        'Error',
-        error.message || 'Failed to resend OTP. Please try again.'
-      );
+      customAlert.show({
+        title: 'Error',
+        message: error.message || 'Failed to resend OTP. Please try again.',
+        type: 'error',
+        icon: 'error-outline'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -262,6 +284,17 @@ export default function VerifyOTP() {
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
+        
+        {/* Custom Alert */}
+        <CustomAlert
+          visible={customAlert.visible}
+          title={customAlert.config.title}
+          message={customAlert.config.message}
+          buttons={customAlert.config.buttons}
+          type={customAlert.config.type}
+          icon={customAlert.config.icon}
+          onClose={customAlert.hide}
+        />
       </SafeAreaView>
     </LinearGradient>
   );

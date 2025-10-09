@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity, RefreshControl, Dimensions, Alert, Modal, TextInput, ScrollView } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity, RefreshControl, Dimensions, Modal, TextInput, ScrollView } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import ShortsPlayer from '../../components/ShortsPlayer';
@@ -9,6 +9,8 @@ import { Video, Comment } from '../../types';
 import colors from '../../constants/colors';
 import useAuthStore from '../../store/useAuthStore';
 import Avatar from '../../components/Avatar';
+import CustomAlert from '../../components/CustomAlert';
+import { useCustomAlert } from '../../hooks/useCustomAlert';
 
 export default function Shorts() {
   const [videos, setVideos] = useState<Video[]>([]);
@@ -18,6 +20,7 @@ export default function Shorts() {
   const [subscribedUsers, setSubscribedUsers] = useState<Set<string>>(new Set());
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [currentVideoId, setCurrentVideoId] = useState<string | null>(null);
+  const customAlert = useCustomAlert();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -88,7 +91,12 @@ export default function Shorts() {
   // Handle like functionality
   const handleLike = async (videoId: string) => {
     if (!user || !token) {
-      Alert.alert('Login Required', 'Please login to like videos');
+      customAlert.show({
+        title: 'Login Required',
+        message: 'Please login to like videos',
+        type: 'warning',
+        icon: 'warning'
+      });
       return;
     }
     
@@ -119,14 +127,24 @@ export default function Shorts() {
       ));
     } catch (error: any) {
       console.error('Error toggling like:', error);
-      Alert.alert('Error', error.message || 'Failed to update like status');
+      customAlert.show({
+        title: 'Error',
+        message: error.message || 'Failed to update like status',
+        type: 'error',
+        icon: 'error-outline'
+      });
     }
   };
   
   // Handle subscribe functionality
   const handleSubscribe = async (userId: string, userName: string) => {
     if (!user || !token) {
-      Alert.alert('Login Required', 'Please login to subscribe to channels');
+      customAlert.show({
+        title: 'Login Required',
+        message: 'Please login to subscribe to channels',
+        type: 'warning',
+        icon: 'warning'
+      });
       return;
     }
     
@@ -140,22 +158,42 @@ export default function Shorts() {
           newSet.delete(userId);
           return newSet;
         });
-        Alert.alert('Unsubscribed', `You have unsubscribed from ${userName}`);
+        customAlert.show({
+          title: 'Unsubscribed',
+          message: `You have unsubscribed from ${userName}`,
+          type: 'success',
+          icon: 'check-circle'
+        });
       } else {
         await subscribeToUser(userId, token);
         setSubscribedUsers(prev => new Set([...prev, userId]));
-        Alert.alert('Subscribed', `You have subscribed to ${userName}`);
+        customAlert.show({
+          title: 'Subscribed',
+          message: `You have subscribed to ${userName}`,
+          type: 'success',
+          icon: 'check-circle'
+        });
       }
     } catch (error: any) {
       console.error('Error toggling subscription:', error);
-      Alert.alert('Error', error.message || 'Failed to update subscription');
+      customAlert.show({
+        title: 'Error',
+        message: error.message || 'Failed to update subscription',
+        type: 'error',
+        icon: 'error-outline'
+      });
     }
   };
   
   // Handle comment functionality
   const handleComment = async (videoId: string) => {
     if (!user) {
-      Alert.alert('Login Required', 'Please login to view comments');
+      customAlert.show({
+        title: 'Login Required',
+        message: 'Please login to view comments',
+        type: 'warning',
+        icon: 'warning'
+      });
       return;
     }
     
@@ -182,7 +220,12 @@ export default function Shorts() {
       setComments(commentsList);
     } catch (error) {
       console.error('Error loading comments:', error);
-      Alert.alert('Error', 'Failed to load comments');
+      customAlert.show({
+        title: 'Error',
+        message: 'Failed to load comments',
+        type: 'error',
+        icon: 'error-outline'
+      });
     } finally {
       setCommentsLoading(false);
     }
@@ -198,7 +241,12 @@ export default function Shorts() {
       const response = await addComment(currentVideoId, newComment.trim());
       if (response?.data) {
         setNewComment('');
-        Alert.alert('Success', 'Comment added successfully');
+        customAlert.show({
+          title: 'Success',
+          message: 'Comment added successfully',
+          type: 'success',
+          icon: 'check-circle'
+        });
         
         // Refresh comments to get complete data from server
         if (currentVideoId) {
@@ -207,14 +255,24 @@ export default function Shorts() {
       }
     } catch (error: any) {
       console.error('Error adding comment:', error);
-      Alert.alert('Error', error.message || 'Failed to add comment');
+      customAlert.show({
+        title: 'Error',
+        message: error.message || 'Failed to add comment',
+        type: 'error',
+        icon: 'error-outline'
+      });
     }
   };
   
   // Handle share functionality
   const handleShare = (videoId: string) => {
     // For now, just show an alert. In a real app, you'd implement sharing
-    Alert.alert('Share', 'Share feature coming soon!');
+    customAlert.show({
+      title: 'Share',
+      message: 'Share feature coming soon!',
+      type: 'info',
+      icon: 'info'
+    });
   };
   
   const renderEmpty = () => {
@@ -361,6 +419,17 @@ export default function Shorts() {
           </View>
         </View>
       </Modal>
+      
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={customAlert.visible}
+        title={customAlert.config.title}
+        message={customAlert.config.message}
+        buttons={customAlert.config.buttons}
+        type={customAlert.config.type}
+        icon={customAlert.config.icon}
+        onClose={customAlert.hide}
+      />
     </SafeAreaView>
   );
 }

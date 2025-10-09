@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity, Dimensions, StyleSheet, Share, Alert, Platform } from 'react-native';
+import { View, Text, Image, TouchableOpacity, Dimensions, StyleSheet, Share, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import Avatar from './Avatar';
@@ -11,6 +11,8 @@ import { toggleLikeVideo } from '../services/videos';
 import { subscribeToUser as apiSubscribe, unsubscribeFromUser as apiUnsubscribe, checkSubscriptionStatus } from '../services/user';
 import { APP_ICONS } from '../utils/iconLoader';
 import colors from '../constants/colors';
+import CustomAlert from './CustomAlert';
+import { useCustomAlert } from '../hooks/useCustomAlert';
 
 interface VideoCardProps {
   video: Video;
@@ -25,6 +27,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
   const [likesCount, setLikesCount] = useState(video.likesCount || 0);
   const [subscribed, setSubscribed] = useState(false);
   const [imageLoadError, setImageLoadError] = useState(false);
+  const customAlert = useCustomAlert();
   
   // Check subscription status when component loads
   useEffect(() => {
@@ -159,7 +162,12 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
       setLiked(false);
       setLikesCount(Math.max(0, likesCount - 1));
     }
-    Alert.alert('Feedback', 'Thanks for your feedback');
+    customAlert.show({
+      title: 'Feedback',
+      message: 'Thanks for your feedback',
+      type: 'success',
+      icon: 'check-circle'
+    });
   };
   
   // Handle share press
@@ -185,7 +193,12 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
       }
     } catch (error) {
       console.error('Error sharing video:', error);
-      Alert.alert('Error', 'Could not share the video');
+      customAlert.show({
+        title: 'Error',
+        message: 'Could not share the video',
+        type: 'error',
+        icon: 'error-outline'
+      });
     }
   };
   
@@ -201,22 +214,42 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
     try {
       const { token } = useAuthStore.getState();
       if (!token) {
-        Alert.alert('Error', 'Authentication token not found');
+        customAlert.show({
+          title: 'Error',
+          message: 'Authentication token not found',
+          type: 'error',
+          icon: 'error-outline'
+        });
         return;
       }
       
       if (subscribed) {
         await apiUnsubscribe(video.owner._id, token);
         setSubscribed(false);
-        Alert.alert('Unsubscribed', `You have unsubscribed from ${video.owner.name}`);
+        customAlert.show({
+          title: 'Unsubscribed',
+          message: `You have unsubscribed from ${video.owner.name}`,
+          type: 'success',
+          icon: 'check-circle'
+        });
       } else {
         await apiSubscribe(video.owner._id, token);
         setSubscribed(true);
-        Alert.alert('Subscribed', `You have subscribed to ${video.owner.name}`);
+        customAlert.show({
+          title: 'Subscribed',
+          message: `You have subscribed to ${video.owner.name}`,
+          type: 'success',
+          icon: 'check-circle'
+        });
       }
     } catch (error: any) {
       console.error('Subscription error:', error);
-      Alert.alert('Error', error.message || 'Failed to update subscription');
+      customAlert.show({
+        title: 'Error',
+        message: error.message || 'Failed to update subscription',
+        type: 'error',
+        icon: 'error-outline'
+      });
     }
   };
   
@@ -333,6 +366,17 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
           </View>
         </View>
       </View>
+      
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={customAlert.visible}
+        title={customAlert.config.title}
+        message={customAlert.config.message}
+        buttons={customAlert.config.buttons}
+        type={customAlert.config.type}
+        icon={customAlert.config.icon}
+        onClose={customAlert.hide}
+      />
     </View>
   );
 };

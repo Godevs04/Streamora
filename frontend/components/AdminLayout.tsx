@@ -28,7 +28,8 @@ export default function AdminLayout({ children, title, subtitle = 'Admin Mode' }
   const pathname = usePathname();
 
   const handleMenuPress = (path: string) => {
-    router.push(path);
+    // Use replace to prevent navigation stacking
+    router.replace(path);
     setSidebarOpen(false);
   };
 
@@ -53,7 +54,16 @@ export default function AdminLayout({ children, title, subtitle = 'Admin Mode' }
             <Text style={styles.subtitle}>{subtitle}</Text>
           </View>
           
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => {
+            // Check if we're in admin section and navigate appropriately
+            if (pathname.startsWith('/admin/')) {
+              // If we're in a sub-page, go back to dashboard
+              router.replace('/admin');
+            } else {
+              // If we're in dashboard, go back to main app
+              router.back();
+            }
+          }}>
             <MaterialIcons name="arrow-back" size={24} color={colors.text.primary} />
           </TouchableOpacity>
         </View>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, Alert, Image, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, Image, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -13,6 +13,9 @@ import AuthRequiredWrapper from '../../components/AuthRequiredWrapper';
 import { uploadVideo } from '../../services/videos';
 import colors from '../../constants/colors';
 import config from '../../constants/config';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import CustomAlert from '../../components/CustomAlert';
+import { useCustomAlert } from '../../hooks/useCustomAlert';
 
 export default function Upload() {
   const [title, setTitle] = useState('');
@@ -26,6 +29,28 @@ export default function Upload() {
   const [videoType, setVideoType] = useState<'normal' | 'shorts'>('normal');
   const [isLoading, setIsLoading] = useState(false);
   const [thumbnailGenerating, setThumbnailGenerating] = useState(false);
+  const [isScheduled, setIsScheduled] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(12, 0, 0, 0); // Set to 12:00 PM tomorrow
+    return tomorrow;
+  });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const customAlert = useCustomAlert();
+
+  // Initialize date/time pickers when scheduled is enabled
+  const handleScheduleToggle = () => {
+    if (!isScheduled) {
+      // When enabling schedule, set to tomorrow at 12 PM
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(12, 0, 0, 0);
+      setScheduledDate(tomorrow);
+    }
+    setIsScheduled(!isScheduled);
+  };
   
   const screenWidth = Dimensions.get('window').width;
   
@@ -54,10 +79,12 @@ export default function Upload() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (status !== 'granted') {
-      Alert.alert(
-        'Permission Required',
-        'Please allow access to your media library to upload videos.'
-      );
+      customAlert.show({
+        title: 'Permission Required',
+        message: 'Please allow access to your media library to upload videos.',
+        type: 'warning',
+        icon: 'warning'
+      });
       return;
     }
     
@@ -74,10 +101,12 @@ export default function Upload() {
         
         // Check file size
         if (asset.fileSize && asset.fileSize > config.UPLOAD.MAX_VIDEO_SIZE) {
-          Alert.alert(
-            'File Too Large',
-            `Video size should be less than ${config.UPLOAD.MAX_VIDEO_SIZE / (1024 * 1024)}MB`
-          );
+          customAlert.show({
+            title: 'File Too Large',
+            message: `Video size should be less than ${config.UPLOAD.MAX_VIDEO_SIZE / (1024 * 1024)}MB`,
+            type: 'error',
+            icon: 'error-outline'
+          });
           return;
         }
         
@@ -93,7 +122,12 @@ export default function Upload() {
       }
     } catch (error) {
       console.error('Error picking video:', error);
-      Alert.alert('Error', 'Failed to select video. Please try again.');
+      customAlert.show({
+        title: 'Error',
+        message: 'Failed to select video. Please try again.',
+        type: 'error',
+        icon: 'error-outline'
+      });
     }
   };
   
@@ -102,10 +136,12 @@ export default function Upload() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (status !== 'granted') {
-      Alert.alert(
-        'Permission Required',
-        'Please allow access to your media library to select a thumbnail.'
-      );
+      customAlert.show({
+        title: 'Permission Required',
+        message: 'Please allow access to your media library to select a thumbnail.',
+        type: 'warning',
+        icon: 'warning'
+      });
       return;
     }
     
@@ -123,24 +159,60 @@ export default function Upload() {
       }
     } catch (error) {
       console.error('Error picking thumbnail:', error);
-      Alert.alert('Error', 'Failed to select thumbnail. Please try again.');
+      customAlert.show({
+        title: 'Error',
+        message: 'Failed to select thumbnail. Please try again.',
+        type: 'error',
+        icon: 'error-outline'
+      });
     }
   };
   
   const handleUpload = async () => {
     if (!title.trim()) {
-      Alert.alert('Error', 'Please enter a title for your video');
+      customAlert.show({
+        title: 'Error',
+        message: 'Please enter a title for your video',
+        type: 'error',
+        icon: 'error-outline'
+      });
       return;
     }
     
     if (!videoUri) {
-      Alert.alert('Error', 'Please select a video to upload');
+      customAlert.show({
+        title: 'Error',
+        message: 'Please select a video to upload',
+        type: 'error',
+        icon: 'error-outline'
+      });
       return;
     }
     
     if (videoType === 'normal' && !thumbnailUri) {
-      Alert.alert('Error', 'Please select or generate a thumbnail for normal videos');
+      customAlert.show({
+        title: 'Error',
+        message: 'Please select or generate a thumbnail for normal videos',
+        type: 'error',
+        icon: 'error-outline'
+      });
       return;
+    }
+    
+    // For shorts, auto-generate thumbnail if not provided
+    if (videoType === 'shorts' && !thumbnailUri && videoUri) {
+      try {
+        const { uri } = await VideoThumbnails.getThumbnailAsync(
+          videoUri,
+          {
+            time: 1000,
+            quality: 0.8,
+          }
+        );
+        setThumbnailUri(uri);
+      } catch (e) {
+        console.warn('Cannot generate thumbnail for shorts', e);
+      }
     }
     
     setIsLoading(true);
@@ -156,18 +228,46 @@ export default function Upload() {
         description,
         tags: tagsArray,
         videoUri,
-        thumbnailUri: videoType === 'shorts' ? undefined : (thumbnailUri || undefined),
-        thumbnailAspectRatio: videoType === 'shorts' ? undefined : aspectRatio,
+        thumbnailUri: thumbnailUri || undefined, // Include thumbnail for both shorts and normal videos
+        thumbnailAspectRatio: videoType === 'shorts' ? '9:16' : aspectRatio,
         duration: videoDuration,
         type: videoType
       });
       
-      Alert.alert(
-        'Upload Successful',
-        'Your video has been uploaded successfully!',
-        [
+      customAlert.show({
+        title: 'Upload Successful',
+        message: 'Your video has been uploaded successfully!',
+        type: 'success',
+        icon: 'check-circle',
+        buttons: [
           {
-            text: 'OK',
+            text: 'View Content',
+            onPress: () => {
+              // Navigate to admin content page
+              router.push('/admin/content');
+            },
+          },
+          {
+            text: 'Upload Another',
+            onPress: () => {
+              // Reset form for another upload
+              setTitle('');
+              setDescription('');
+              setTags('');
+              setVideoUri(null);
+              setThumbnailUri(null);
+              setVideoDuration(0);
+              setVideoType('normal');
+              setAspectRatio('16:9');
+              setIsScheduled(false);
+              const tomorrow = new Date();
+              tomorrow.setDate(tomorrow.getDate() + 1);
+              tomorrow.setHours(12, 0, 0, 0);
+              setScheduledDate(tomorrow);
+            },
+          },
+          {
+            text: 'Go Home',
             onPress: () => {
               // Reset form and navigate to home
               setTitle('');
@@ -176,16 +276,23 @@ export default function Upload() {
               setVideoUri(null);
               setThumbnailUri(null);
               setVideoDuration(0);
+              setIsScheduled(false);
+              const tomorrow = new Date();
+              tomorrow.setDate(tomorrow.getDate() + 1);
+              tomorrow.setHours(12, 0, 0, 0);
+              setScheduledDate(tomorrow);
               router.push('/(tabs)/home');
             },
           },
         ]
-      );
+      });
     } catch (error: any) {
-      Alert.alert(
-        'Upload Failed',
-        error.message || 'Failed to upload video. Please try again.'
-      );
+      customAlert.show({
+        title: 'Upload Failed',
+        message: error.message || 'Failed to upload video. Please try again.',
+        type: 'error',
+        icon: 'error-outline'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -227,10 +334,12 @@ export default function Upload() {
   };
   
   const handleCancel = () => {
-    Alert.alert(
-      'Cancel Upload',
-      'Are you sure you want to cancel? All progress will be lost.',
-      [
+    customAlert.show({
+      title: 'Cancel Upload',
+      message: 'Are you sure you want to cancel? All progress will be lost.',
+      type: 'warning',
+      icon: 'warning',
+      buttons: [
         { text: 'Keep Editing', style: 'cancel' },
         { 
           text: 'Cancel', 
@@ -244,11 +353,16 @@ export default function Upload() {
             setThumbnailUri(null);
             setVideoDuration(0);
             setVideoType('normal');
+            setIsScheduled(false);
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(12, 0, 0, 0);
+            setScheduledDate(tomorrow);
             router.back();
           }
         }
       ]
-    );
+    });
   };
   
   const handleVideoTypeChange = (type: 'normal' | 'shorts') => {
@@ -267,19 +381,22 @@ export default function Upload() {
   return (
     <AuthRequiredWrapper>
       {(showAuthModal) => (
-        <LinearGradient
-          colors={[colors.gradientStart, colors.gradientEnd]}
-          style={styles.container}
-        >
-          <SafeAreaView style={styles.safeArea}>
-            {/* Header with Back Button */}
-            <View style={styles.header}>
-              <TouchableOpacity onPress={handleCancel} style={styles.backButton}>
-                <Ionicons name="arrow-back" size={24} color="white" />
-              </TouchableOpacity>
-              <Text style={styles.headerTitle}>Upload Video</Text>
-              <View style={styles.headerSpacer} />
-            </View>
+        <>
+          <LinearGradient
+            colors={[colors.gradientStart, colors.gradientEnd]}
+            style={styles.container}
+          >
+            <SafeAreaView style={styles.safeArea}>
+              {/* Header with Back Button */}
+              <View style={styles.header}>
+                <TouchableOpacity onPress={handleCancel} style={styles.backButton}>
+                  <Ionicons name="arrow-back" size={24} color="white" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Upload Video</Text>
+                <TouchableOpacity onPress={() => router.push('/admin')} style={styles.adminButton}>
+                  <MaterialIcons name="admin-panel-settings" size={20} color="white" />
+                </TouchableOpacity>
+              </View>
             
             <ScrollView
               contentContainerStyle={styles.scrollContent}
@@ -463,6 +580,59 @@ export default function Upload() {
                     onChangeText={setTags}
                   />
                 </View>
+
+                {/* Schedule Options */}
+                <View style={styles.inputContainer}>
+                  <View style={styles.scheduleHeader}>
+                    <Text style={styles.inputLabel}>Schedule</Text>
+                    <TouchableOpacity 
+                      style={styles.scheduleToggle}
+                      onPress={handleScheduleToggle}
+                    >
+                      <View style={[styles.toggleSwitch, isScheduled && styles.toggleSwitchActive]}>
+                        <View style={[styles.toggleThumb, isScheduled && styles.toggleThumbActive]} />
+                      </View>
+                      <Text style={styles.toggleLabel}>
+                        {isScheduled ? 'Scheduled' : 'Publish Now'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  {isScheduled && (
+                    <View style={styles.scheduleInputs}>
+                      <TouchableOpacity 
+                        style={styles.dateTimeButton}
+                        onPress={() => setShowDatePicker(true)}
+                      >
+                        <MaterialIcons name="calendar-today" size={20} color={colors.text.primary} />
+                        <Text style={styles.dateTimeText}>
+                          {scheduledDate.toLocaleDateString('en-US', { 
+                            weekday: 'short', 
+                            year: 'numeric', 
+                            month: 'short', 
+                            day: 'numeric' 
+                          })}
+                        </Text>
+                        <MaterialIcons name="keyboard-arrow-down" size={20} color={colors.text.secondary} />
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity 
+                        style={styles.dateTimeButton}
+                        onPress={() => setShowTimePicker(true)}
+                      >
+                        <MaterialIcons name="access-time" size={20} color={colors.text.primary} />
+                        <Text style={styles.dateTimeText}>
+                          {scheduledDate.toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit',
+                            hour12: true 
+                          })}
+                        </Text>
+                        <MaterialIcons name="keyboard-arrow-down" size={20} color={colors.text.secondary} />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
               </View>
               
               <Button
@@ -475,6 +645,52 @@ export default function Upload() {
             </ScrollView>
           </SafeAreaView>
         </LinearGradient>
+        
+        {/* Date Picker */}
+        {showDatePicker && (
+          <DateTimePicker
+            value={scheduledDate}
+            mode="date"
+            display="default"
+            onChange={(event: any, selectedDate?: Date) => {
+              setShowDatePicker(false);
+              if (selectedDate) {
+                setScheduledDate(selectedDate);
+              }
+            }}
+            minimumDate={new Date()}
+          />
+        )}
+        
+        {/* Time Picker */}
+        {showTimePicker && (
+          <DateTimePicker
+            value={scheduledDate}
+            mode="time"
+            display="default"
+            onChange={(event: any, selectedTime?: Date) => {
+              setShowTimePicker(false);
+              if (selectedTime) {
+                const newDate = new Date(scheduledDate);
+                newDate.setHours(selectedTime.getHours());
+                newDate.setMinutes(selectedTime.getMinutes());
+                setScheduledDate(newDate);
+              }
+            }}
+          />
+        )}
+        
+        {/* Custom Alert */}
+        <CustomAlert
+          visible={customAlert.visible}
+          title={customAlert.config.title}
+          message={customAlert.config.message}
+          buttons={customAlert.config.buttons}
+          type={customAlert.config.type}
+          icon={customAlert.config.icon}
+          onClose={customAlert.hide}
+        />
+        </>
       )}
     </AuthRequiredWrapper>
   );
@@ -718,7 +934,67 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  headerSpacer: {
-    width: 40, // Same width as back button to center the title
+  adminButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  // Schedule styles
+  scheduleHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  scheduleToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  toggleSwitch: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#374151',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  toggleSwitchActive: {
+    backgroundColor: colors.primary,
+  },
+  toggleThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'white',
+    alignSelf: 'flex-start',
+  },
+  toggleThumbActive: {
+    alignSelf: 'flex-end',
+  },
+  toggleLabel: {
+    color: colors.text.primary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  scheduleInputs: {
+    marginTop: 8,
+    gap: 8,
+  },
+  dateTimeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#374151',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#4B5563',
+    gap: 8,
+  },
+  dateTimeText: {
+    color: colors.text.primary,
+    fontSize: 14,
+    fontWeight: '500',
   },
 });

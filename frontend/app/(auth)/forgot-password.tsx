@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, router } from 'expo-router';
@@ -9,11 +9,14 @@ import Input from '../../components/Input';
 import colors from '../../constants/colors';
 import { getEmailError } from '../../utils/validators';
 import { forgotPassword } from '../../services/auth';
+import CustomAlert from '../../components/CustomAlert';
+import { useCustomAlert } from '../../hooks/useCustomAlert';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [errors, setErrors] = useState({ email: '' });
   const [isLoading, setIsLoading] = useState(false);
+  const customAlert = useCustomAlert();
   
   const validateForm = () => {
     const emailError = getEmailError(email);
@@ -28,10 +31,12 @@ export default function ForgotPassword() {
     try {
       const response = await forgotPassword(email);
       
-      Alert.alert(
-        'OTP Sent Successfully',
-        'Please check your email for the verification code.',
-        [
+      customAlert.show({
+        title: 'OTP Sent Successfully',
+        message: 'Please check your email for the verification code.',
+        type: 'success',
+        icon: 'check-circle',
+        buttons: [
           {
             text: 'OK',
             onPress: () => {
@@ -42,12 +47,14 @@ export default function ForgotPassword() {
             }
           }
         ]
-      );
+      });
     } catch (error: any) {
-      Alert.alert(
-        'Error',
-        error.message || 'Failed to send OTP. Please try again.'
-      );
+      customAlert.show({
+        title: 'Error',
+        message: error.message || 'Failed to send OTP. Please try again.',
+        type: 'error',
+        icon: 'error-outline'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -153,6 +160,17 @@ export default function ForgotPassword() {
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
+        
+        {/* Custom Alert */}
+        <CustomAlert
+          visible={customAlert.visible}
+          title={customAlert.config.title}
+          message={customAlert.config.message}
+          buttons={customAlert.config.buttons}
+          type={customAlert.config.type}
+          icon={customAlert.config.icon}
+          onClose={customAlert.hide}
+        />
       </SafeAreaView>
     </LinearGradient>
   );

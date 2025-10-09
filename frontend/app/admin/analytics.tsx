@@ -133,9 +133,13 @@ function renderBar(label: string, value: number, key: string) {
 function KpiPill({ label, value, icon }: { label: string; value: string; icon: any; }) {
   return (
     <View style={styles.kpiPill}>
-      <MaterialIcons name={icon} size={16} color={colors.text.primary} />
-      <Text style={styles.kpiText}>{label}</Text>
-      <Text style={styles.kpiValue}>{value}</Text>
+      <View style={styles.kpiIconWrapper}>
+        <MaterialIcons name={icon} size={12} color={colors.text.primary} />
+      </View>
+      <View style={styles.kpiContent}>
+        <Text style={styles.kpiText}>{label}</Text>
+        <Text style={styles.kpiValue}>{value}</Text>
+      </View>
     </View>
   );
 }
@@ -157,9 +161,45 @@ const styles = StyleSheet.create({
   videoKpiRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.1)' },
   videoTitle: { color: colors.text.primary, fontWeight: '700', fontSize: 14 },
   videoMeta: { color: colors.text.secondary, fontSize: 12, marginTop: 2 },
-  kpiPill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.08)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12 },
-  kpiText: { color: colors.text.secondary, fontSize: 12, fontWeight: '600' },
-  kpiValue: { color: colors.text.primary, fontSize: 12, fontWeight: '700' },
+  kpiPill: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: 'rgba(255,255,255,0.1)', 
+    paddingHorizontal: 8, 
+    paddingVertical: 6, 
+    borderRadius: 8,
+    minWidth: 70,
+    marginLeft: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  kpiIconWrapper: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: 'rgba(99, 102, 241, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
+  },
+  kpiContent: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  kpiText: { 
+    color: colors.text.secondary, 
+    fontSize: 9, 
+    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 11,
+  },
+  kpiValue: { 
+    color: colors.text.primary, 
+    fontSize: 10, 
+    fontWeight: '700',
+    textAlign: 'center',
+    lineHeight: 12,
+  },
   centerWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 40 },
   loadingText: { color: colors.text.secondary, marginTop: 8 },
   errorText: { color: colors.error, marginTop: 8 },

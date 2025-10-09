@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -9,6 +9,8 @@ import Input from '../../components/Input';
 import colors from '../../constants/colors';
 import { getPasswordError } from '../../utils/validators';
 import { resetPassword } from '../../services/auth';
+import CustomAlert from '../../components/CustomAlert';
+import { useCustomAlert } from '../../hooks/useCustomAlert';
 
 export default function ResetPassword() {
   const { email, otp } = useLocalSearchParams<{ email: string; otp: string }>();
@@ -18,6 +20,7 @@ export default function ResetPassword() {
     password: '',
     confirmPassword: '',
   });
+  const customAlert = useCustomAlert();
   const [isLoading, setIsLoading] = useState(false);
   
   const validateForm = () => {
@@ -39,21 +42,25 @@ export default function ResetPassword() {
     try {
       const response = await resetPassword(email!, otp!, password);
       
-      Alert.alert(
-        'Password Reset Successful',
-        'Your password has been reset successfully. You can now sign in with your new password.',
-        [
+      customAlert.show({
+        title: 'Password Reset Successful',
+        message: 'Your password has been reset successfully. You can now sign in with your new password.',
+        type: 'success',
+        icon: 'check-circle',
+        buttons: [
           {
             text: 'OK',
             onPress: () => router.replace('/(auth)/login')
           }
         ]
-      );
+      });
     } catch (error: any) {
-      Alert.alert(
-        'Reset Failed',
-        error.message || 'Failed to reset password. Please try again.'
-      );
+      customAlert.show({
+        title: 'Reset Failed',
+        message: error.message || 'Failed to reset password. Please try again.',
+        type: 'error',
+        icon: 'error-outline'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -174,6 +181,17 @@ export default function ResetPassword() {
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
+        
+        {/* Custom Alert */}
+        <CustomAlert
+          visible={customAlert.visible}
+          title={customAlert.config.title}
+          message={customAlert.config.message}
+          buttons={customAlert.config.buttons}
+          type={customAlert.config.type}
+          icon={customAlert.config.icon}
+          onClose={customAlert.hide}
+        />
       </SafeAreaView>
     </LinearGradient>
   );
