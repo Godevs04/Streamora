@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, FlatList, ActivityIndicator, RefreshControl, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, RefreshControl, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -10,7 +10,9 @@ import AuthRequiredWrapper from '../../components/AuthRequiredWrapper';
 import { getVideos } from '../../services/videos';
 import { Video, VideosApiResponse } from '../../types';
 import { useFocusEffect } from 'expo-router';
-import colors from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
+import CustomAlert from '../../components/CustomAlert';
+import { useCustomAlert } from '../../hooks/useCustomAlert';
 
 export default function Home() {
   const [videos, setVideos] = useState<Video[]>([]);
@@ -18,6 +20,9 @@ export default function Home() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Trending');
   const [searchQuery, setSearchQuery] = useState('');
+  const customAlert = useCustomAlert();
+  const colors = useColors();
+  const styles = createStyles(colors);
 
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -86,14 +91,16 @@ export default function Home() {
         console.error('API error:', apiError);
         // Don't fallback to dummy data - show empty state instead
         setVideos([]);
-        Alert.alert(
-          'Connection Error', 
-          'Unable to load videos. Please check your internet connection and try again.',
-          [
+        customAlert.show({
+          title: 'Connection Error',
+          message: 'Unable to load videos. Please check your internet connection and try again.',
+          type: 'error',
+          icon: 'error-outline',
+          buttons: [
             { text: 'Retry', onPress: () => fetchVideos(true) },
             { text: 'Cancel', style: 'cancel' }
           ]
-        );
+        });
       }
     } catch (error) {
       console.error('Error fetching videos:', error);
@@ -235,45 +242,58 @@ export default function Home() {
   return (
     <AuthRequiredWrapper>
       {(showAuthModal) => (
-        <SafeAreaView style={styles.container} edges={['top']}>
-          <View style={styles.safeArea}>
-            {renderHeader()}
-            <FlatList
-              data={videos}
-              keyExtractor={(item, index) => item._id || `video-${index}`}
-              renderItem={({ item }) => (
-                <VideoCard 
-                  video={item} 
-                  showAuthModal={(intent) => Boolean(showAuthModal(intent))} 
-                />
-              )}
-              contentContainerStyle={styles.listContent}
-              showsVerticalScrollIndicator={false}
-              ListEmptyComponent={renderEmpty}
-              ListFooterComponent={renderFooter}
-              refreshControl={
-                <RefreshControl
-                  refreshing={isRefreshing}
-                  onRefresh={handleRefresh}
-                  tintColor={colors.primary}
-                  colors={[colors.primary]}
-                />
-              }
-              onEndReached={() => {
-                if (hasMore && !isLoading && !isRefreshing) {
-                  fetchVideos();
+        <>
+          <SafeAreaView style={styles.container} edges={['top']}>
+            <View style={styles.safeArea}>
+              {renderHeader()}
+              <FlatList
+                data={videos}
+                keyExtractor={(item, index) => item._id || `video-${index}`}
+                renderItem={({ item }) => (
+                  <VideoCard 
+                    video={item} 
+                    showAuthModal={(intent) => Boolean(showAuthModal(intent))} 
+                  />
+                )}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+                ListEmptyComponent={renderEmpty}
+                ListFooterComponent={renderFooter}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={isRefreshing}
+                    onRefresh={handleRefresh}
+                    tintColor={colors.primary}
+                    colors={[colors.primary]}
+                  />
                 }
-              }}
-              onEndReachedThreshold={0.5}
-            />
-          </View>
-        </SafeAreaView>
+                onEndReached={() => {
+                  if (hasMore && !isLoading && !isRefreshing) {
+                    fetchVideos();
+                  }
+                }}
+                onEndReachedThreshold={0.5}
+              />
+            </View>
+          </SafeAreaView>
+          
+          {/* Custom Alert */}
+          <CustomAlert
+            visible={customAlert.visible}
+            title={customAlert.config.title}
+            message={customAlert.config.message}
+            buttons={customAlert.config.buttons}
+            type={customAlert.config.type}
+            icon={customAlert.config.icon}
+            onClose={customAlert.hide}
+          />
+        </>
       )}
     </AuthRequiredWrapper>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.primary,

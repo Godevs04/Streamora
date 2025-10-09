@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { TextInput, Text, View, TextInputProps, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import colors from '../constants/colors';
+import { useColors } from '../hooks/useColors';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -23,6 +23,7 @@ const Input: React.FC<InputProps> = ({
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const colors = useColors();
   
   // Handle password visibility toggle
   const togglePasswordVisibility = () => {
@@ -66,7 +67,7 @@ const Input: React.FC<InputProps> = ({
           placeholderTextColor={colors.gray}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          secureTextEntry={isPassword && !isPasswordVisible}
+          secureTextEntry={isPassword ? !isPasswordVisible : rest.secureTextEntry}
           {...rest}
         />
         

@@ -2,9 +2,11 @@ import React, { useEffect } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { Redirect } from 'expo-router';
 import useAuthStore from '../store/useAuthStore';
-import colors from '../constants/colors';
+import { useColors } from '../hooks/useColors';
 
 export default function Index() {
+  const colors = useColors();
+  const styles = createStyles(colors);
   const { isAuthenticated, isLoading } = useAuthStore();
   const [showRedirect, setShowRedirect] = React.useState(false);
   
@@ -31,15 +33,15 @@ export default function Index() {
   return <Redirect href="/(tabs)/home" />;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'black',
+    backgroundColor: colors.background.primary,
   },
   loadingText: {
-    color: 'white',
+    color: colors.text.primary,
     marginTop: 16,
   },
 });

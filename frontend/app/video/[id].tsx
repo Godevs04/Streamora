@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, Share, Alert, Platform, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, Share, Platform, Modal } from 'react-native';
 import { TextInput } from 'react-native-gesture-handler';
 import { getVideoComments, addComment, toggleLikeComment } from '../../services/videos';
 import { useLocalSearchParams, useRouter, Stack, useNavigation, usePathname } from 'expo-router';
@@ -12,16 +12,22 @@ import { StatusBar } from 'expo-status-bar';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import Avatar from '../../components/Avatar';
 import { getVideoById, incrementVideoView, toggleLikeVideo } from '../../services/videos';
+import { checkSubscriptionStatus, subscribeToUser, unsubscribeFromUser } from '../../services/user';
 import { formatCount, formatRelativeTime, formatDuration } from '../../utils/formatDate';
 import { Video as VideoType } from '../../types';
-import colors from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import config from '../../constants/config';
 import useAuthStore from '../../store/useAuthStore';
+import CustomAlert from '../../components/CustomAlert';
+import { useCustomAlert } from '../../hooks/useCustomAlert';
 
 export default function VideoPlayer() {
   const { id, focus } = useLocalSearchParams();
   const router = useRouter();
   const videoRef = useRef<Video>(null);
+  const customAlert = useCustomAlert();
+  const colors = useColors();
+  const styles = createStyles(colors);
   const { user } = useAuthStore();
   const [video, setVideo] = useState<VideoType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -172,7 +178,6 @@ export default function VideoPlayer() {
       if (!user || !video?.owner?._id) return;
       
       try {
-        const { checkSubscriptionStatus } = await import('../../services/user');
         const { token } = useAuthStore.getState();
         if (!token) return;
         
@@ -409,16 +414,29 @@ export default function VideoPlayer() {
     try {
       await Linking.openURL(video.videoUrl);
     } catch (e) {
-      Alert.alert('Download', 'Opening video URL...');
+      customAlert.show({
+        title: 'Download',
+        message: 'Opening video URL...',
+        type: 'info',
+        verticalButtons: true
+      });
     }
   };
 
   const handleSavePress = () => {
-    Alert.alert('Saved', 'Added to your saved list');
+    customAlert.show({
+      title: 'Saved',
+      message: 'Added to your saved list',
+      type: 'success'
+    });
   };
 
   const handleReportPress = () => {
-    Alert.alert('Reported', 'Thank you for your report. Our team will review it.');
+    customAlert.show({
+      title: 'Reported',
+      message: 'Thank you for your report. Our team will review it.',
+      type: 'success'
+    });
   };
   
   const handleVideoPress = async () => {
@@ -524,12 +542,19 @@ export default function VideoPlayer() {
             >
               <Video
                 ref={videoRef}
-                source={{ uri: video.videoUrl }}
+                source={{ 
+                  uri: video.videoUrl,
+                  headers: Platform.OS === 'android' ? {
+                    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36'
+                  } : undefined
+                }}
                 style={[styles.video, isFullscreen && styles.fullscreenVideo]}
                 resizeMode={isFullscreen ? ResizeMode.COVER : ResizeMode.CONTAIN}
                 shouldPlay={true}
                 useNativeControls={false}
                 isLooping={false}
+                progressUpdateIntervalMillis={1000}
+                positionMillis={0}
                 onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
                 onLoad={() => {
                   console.log('Video loaded successfully');
@@ -538,6 +563,12 @@ export default function VideoPlayer() {
                 onError={(error) => {
                   console.error('Video error:', error);
                   setIsVideoLoading(false);
+                  // Try to reload video on Android decoder errors
+                  if (Platform.OS === 'android' && typeof error === 'string' && error.includes('decoder')) {
+                    setTimeout(() => {
+                      videoRef.current?.replayAsync();
+                    }, 1000);
+                  }
                 }}
                 onLoadStart={() => {
                   console.log('Video loading started');
@@ -725,40 +756,63 @@ export default function VideoPlayer() {
                       </View>
                     </View>
                     
-                    <TouchableOpacity 
-                      style={[styles.subscribeButton, isSubscribed && styles.subscribedButton]}
-                      onPress={async () => {
+                    {user && user._id !== video.owner._id && (
+                      <TouchableOpacity 
+                        style={[styles.subscribeButton, isSubscribed && styles.subscribedButton]}
+                        onPress={async () => {
                         if (!user) {
-                          Alert.alert('Login Required', 'Please login to subscribe to channels');
+                          customAlert.show({
+  title: 'Login Required',
+  message: 'Please login to subscribe to channels',
+  type: 'warning',
+  verticalButtons: true
+});
                           return;
                         }
                         
                         try {
-                          const { subscribeToUser, unsubscribeFromUser } = await import('../../services/user');
                           const { token } = useAuthStore.getState();
                           
                           if (!token) {
-                            Alert.alert('Error', 'Authentication token not found');
+                            customAlert.show({
+  title: 'Error',
+  message: 'Authentication token not found',
+  type: 'error',
+  verticalButtons: true
+});
                             return;
                           }
                           
                           if (isSubscribed) {
                             await unsubscribeFromUser(video.owner._id, token);
                             setIsSubscribed(false);
-                            Alert.alert('Unsubscribed', `You have unsubscribed from ${video.owner.name}`);
+                            customAlert.show({
+  title: 'Unsubscribed',
+  message: `You have unsubscribed from ${video.owner.name}`,
+  type: 'success'
+});
                           } else {
                             await subscribeToUser(video.owner._id, token);
                             setIsSubscribed(true);
-                            Alert.alert('Subscribed', `You have subscribed to ${video.owner.name}`);
+                            customAlert.show({
+  title: 'Subscribed',
+  message: `You have subscribed to ${video.owner.name}`,
+  type: 'success'
+});
                           }
                         } catch (error: any) {
                           console.error('Subscription error:', error);
-                          Alert.alert('Error', error.message || 'Failed to update subscription');
+                          customAlert.show({
+  title: 'Error',
+  message: error.message || 'Failed to update subscription',
+  type: 'error'
+});
                         }
                       }}
                     >
                       <Text style={styles.subscribeText}>{isSubscribed ? 'Subscribed' : 'Subscribe'}</Text>
                     </TouchableOpacity>
+                    )}
                   </View>
                 ) : (
                   <View style={styles.channelContainer}>
@@ -773,40 +827,63 @@ export default function VideoPlayer() {
                       </View>
                     </View>
                     
-                    <TouchableOpacity 
-                      style={[styles.subscribeButton, isSubscribed && styles.subscribedButton]}
-                      onPress={async () => {
+                    {user && (
+                      <TouchableOpacity 
+                        style={[styles.subscribeButton, isSubscribed && styles.subscribedButton]}
+                        onPress={async () => {
                         if (!user) {
-                          Alert.alert('Login Required', 'Please login to subscribe to channels');
+                          customAlert.show({
+  title: 'Login Required',
+  message: 'Please login to subscribe to channels',
+  type: 'warning',
+  verticalButtons: true
+});
                           return;
                         }
                         
                         try {
-                          const { subscribeToUser, unsubscribeFromUser } = await import('../../services/user');
                           const { token } = useAuthStore.getState();
                           
                           if (!token) {
-                            Alert.alert('Error', 'Authentication token not found');
+                            customAlert.show({
+  title: 'Error',
+  message: 'Authentication token not found',
+  type: 'error',
+  verticalButtons: true
+});
                             return;
                           }
                           
                           if (isSubscribed) {
                             await unsubscribeFromUser(video.owner._id, token);
                             setIsSubscribed(false);
-                            Alert.alert('Unsubscribed', `You have unsubscribed from ${video.owner.name}`);
+                            customAlert.show({
+  title: 'Unsubscribed',
+  message: `You have unsubscribed from ${video.owner.name}`,
+  type: 'success'
+});
                           } else {
                             await subscribeToUser(video.owner._id, token);
                             setIsSubscribed(true);
-                            Alert.alert('Subscribed', `You have subscribed to ${video.owner.name}`);
+                            customAlert.show({
+  title: 'Subscribed',
+  message: `You have subscribed to ${video.owner.name}`,
+  type: 'success'
+});
                           }
                         } catch (error: any) {
                           console.error('Subscription error:', error);
-                          Alert.alert('Error', error.message || 'Failed to update subscription');
+                          customAlert.show({
+  title: 'Error',
+  message: error.message || 'Failed to update subscription',
+  type: 'error'
+});
                         }
                       }}
                     >
                       <Text style={styles.subscribeText}>{isSubscribed ? 'Subscribed' : 'Subscribe'}</Text>
                     </TouchableOpacity>
+                    )}
                   </View>
                 )}
                 
@@ -1056,7 +1133,11 @@ export default function VideoPlayer() {
                   </TouchableOpacity>
                   
                   <TouchableOpacity style={styles.sheetRow} onPress={() => {
-                    Alert.alert('Video Info', `Title: ${video?.title}\nDuration: ${video?.duration}s\nViews: ${video?.views || 0}`);
+                    customAlert.show({
+                      title: 'Video Info',
+                      message: `Title: ${video?.title}\nDuration: ${video?.duration}s\nViews: ${video?.views || 0}`,
+                      type: 'info'
+                    });
                   }}>
                     <View style={styles.sheetRowLeft}>
                       <MaterialIcons name="info" size={22} color={colors.text.primary} />
@@ -1066,10 +1147,23 @@ export default function VideoPlayer() {
                   </TouchableOpacity>
                   
                   <TouchableOpacity style={styles.sheetRow} onPress={() => {
-                    Alert.alert('Report Video', 'Report this video for inappropriate content?', [
-                      { text: 'Cancel', style: 'cancel' },
-                      { text: 'Report', style: 'destructive', onPress: () => Alert.alert('Reported', 'Thank you for your feedback') }
-                    ]);
+                    customAlert.show({
+                      title: 'Report Video',
+                      message: 'Report this video for inappropriate content?',
+                      type: 'warning',
+                      buttons: [
+                        { text: 'Cancel', style: 'cancel' },
+                        { 
+                          text: 'Report', 
+                          style: 'destructive', 
+                          onPress: () => customAlert.show({
+                            title: 'Reported',
+                            message: 'Thank you for your feedback',
+                            type: 'success'
+                          })
+                        }
+                      ]
+                    });
                   }}>
                     <View style={styles.sheetRowLeft}>
                       <MaterialIcons name="flag" size={22} color={colors.text.primary} />
@@ -1225,11 +1319,22 @@ export default function VideoPlayer() {
           </Modal>
         </LinearGradient>
       </SafeAreaView>
+      
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={customAlert.visible}
+        title={customAlert.config.title}
+        message={customAlert.config.message}
+        buttons={customAlert.config.buttons}
+        type={customAlert.config.type}
+        icon={customAlert.config.icon}
+        onClose={customAlert.hide}
+      />
     </>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
   },

@@ -1,54 +1,308 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Switch } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, Linking } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import useAuthStore from '../store/useAuthStore';
-import colors from '../constants/colors';
+import { useSettingsStore } from '../store/useSettingsStore';
+import { useColors } from '../hooks/useColors';
+import CustomAlert from '../components/CustomAlert';
+import { useCustomAlert } from '../hooks/useCustomAlert';
 
 export default function Settings() {
   const { logout } = useAuthStore();
   const insets = useSafeAreaInsets();
-  const [language, setLanguage] = useState('English');
-  const [theme, setTheme] = useState('Dark');
-  const [notifications, setNotifications] = useState(true);
+  const customAlert = useCustomAlert();
+  const colors = useColors();
+  const styles = createStyles(colors);
+  
+  // Get settings from store
+  const {
+    theme,
+    language,
+    notifications,
+    privacy,
+    setTheme,
+    setLanguage,
+    updateNotifications,
+    updatePrivacy,
+    toggleDarkMode
+  } = useSettingsStore();
 
   const handleAccountSettings = () => {
     router.push('/edit-profile');
   };
 
   const handlePrivacySecurity = () => {
-    Alert.alert('Privacy & Security', 'Privacy settings will be implemented soon.');
+    customAlert.show({
+      title: 'Privacy & Security',
+      message: 'Configure your privacy and security preferences',
+      type: 'info',
+      verticalButtons: true,
+      buttons: [
+        { 
+          text: 'Profile Visibility', 
+          onPress: () => {
+            customAlert.show({
+              title: 'Profile Visibility',
+              message: 'Choose who can see your profile',
+              type: 'info',
+              verticalButtons: true,
+              buttons: [
+                { text: 'Public', onPress: () => {
+                  updatePrivacy({ profileVisibility: 'public' });
+                  customAlert.show({
+                    title: 'Profile Visibility Updated',
+                    message: 'Your profile is now visible to everyone',
+                    type: 'success'
+                  });
+                }},
+                { text: 'Friends Only', onPress: () => {
+                  updatePrivacy({ profileVisibility: 'friends' });
+                  customAlert.show({
+                    title: 'Profile Visibility Updated',
+                    message: 'Your profile is now visible to friends only',
+                    type: 'success'
+                  });
+                }},
+                { text: 'Private', onPress: () => {
+                  updatePrivacy({ profileVisibility: 'private' });
+                  customAlert.show({
+                    title: 'Profile Visibility Updated',
+                    message: 'Your profile is now private',
+                    type: 'success'
+                  });
+                }},
+                { text: 'Cancel', style: 'cancel' }
+              ]
+            });
+          }
+        },
+        { 
+          text: 'Data Settings', 
+          onPress: () => {
+            customAlert.show({
+              title: 'Data Collection',
+              message: 'Manage your data preferences',
+              type: 'warning',
+              verticalButtons: true,
+              buttons: [
+                { 
+                  text: 'Disable Analytics', 
+                  onPress: () => {
+                    updatePrivacy({ analytics: false });
+                    customAlert.show({
+                      title: 'Analytics Disabled',
+                      message: 'Analytics tracking has been turned off',
+                      type: 'success'
+                    });
+                  }
+                },
+                { 
+                  text: 'Delete Data', 
+                  style: 'destructive',
+                  onPress: () => {
+                    customAlert.show({
+                      title: 'Delete All Data',
+                      message: 'This will permanently delete all your data. This action cannot be undone.',
+                      type: 'error',
+                      verticalButtons: true,
+                      buttons: [
+                        { text: 'Cancel', style: 'cancel' },
+                        { 
+                          text: 'Delete', 
+                          style: 'destructive',
+                          onPress: () => {
+                            customAlert.show({
+                              title: 'Data Deleted',
+                              message: 'All your data has been permanently deleted',
+                              type: 'success'
+                            });
+                          }
+                        }
+                      ]
+                    });
+                  }
+                },
+                { text: 'Cancel', style: 'cancel' }
+              ]
+            });
+          }
+        },
+        { text: 'Cancel', style: 'cancel' }
+      ]
+    });
   };
 
   const handleNotifications = () => {
-    Alert.alert('Notifications', 'Notification settings will be implemented soon.');
+    customAlert.show({
+      title: 'Notification Settings',
+      message: 'Configure your notification preferences',
+      type: 'info',
+      verticalButtons: true,
+      buttons: [
+        { 
+          text: 'Push Notifications', 
+          onPress: () => {
+            customAlert.show({
+              title: 'Push Notifications',
+              message: 'Manage push notification settings',
+              type: 'info',
+              verticalButtons: true,
+              buttons: [
+                { text: 'Enable All', onPress: () => {
+                  updateNotifications({ push: true, likes: true, comments: true, followers: true });
+                  customAlert.show({
+                    title: 'Push Notifications Enabled',
+                    message: 'All push notifications have been enabled',
+                    type: 'success'
+                  });
+                }},
+                { text: 'Disable All', onPress: () => {
+                  updateNotifications({ push: false, likes: false, comments: false, followers: false });
+                  customAlert.show({
+                    title: 'Push Notifications Disabled',
+                    message: 'All push notifications have been disabled',
+                    type: 'info'
+                  });
+                }},
+                { text: 'Customize', onPress: () => {
+                  customAlert.show({
+                    title: 'Customize Notifications',
+                    message: 'Choose which notifications you want to receive',
+                    type: 'info',
+                    verticalButtons: true,
+                    buttons: [
+                      { text: 'Likes & Comments', onPress: () => {
+                        updateNotifications({ likes: true, comments: true });
+                        customAlert.show({
+                          title: 'Enabled',
+                          message: 'You will receive notifications for likes and comments',
+                          type: 'success'
+                        });
+                      }},
+                      { text: 'New Followers', onPress: () => {
+                        updateNotifications({ followers: true });
+                        customAlert.show({
+                          title: 'Enabled',
+                          message: 'You will receive notifications for new followers',
+                          type: 'success'
+                        });
+                      }},
+                      { text: 'Cancel', style: 'cancel' }
+                    ]
+                  });
+                }},
+                { text: 'Cancel', style: 'cancel' }
+              ]
+            });
+          }
+        },
+        { 
+          text: 'Email Notifications', 
+          onPress: () => {
+            customAlert.show({
+              title: 'Email Notifications',
+              message: 'Manage email notification preferences',
+              type: 'info',
+              verticalButtons: true,
+              buttons: [
+                { text: 'Enable', onPress: () => {
+                  updateNotifications({ email: true });
+                  customAlert.show({
+                    title: 'Email Notifications Enabled',
+                    message: 'You will receive important updates via email',
+                    type: 'success'
+                  });
+                }},
+                { text: 'Disable', onPress: () => {
+                  updateNotifications({ email: false });
+                  customAlert.show({
+                    title: 'Email Notifications Disabled',
+                    message: 'You will no longer receive email notifications',
+                    type: 'info'
+                  });
+                }},
+                { text: 'Cancel', style: 'cancel' }
+              ]
+            });
+          }
+        },
+        { text: 'Cancel', style: 'cancel' }
+      ]
+    });
   };
 
   const handleLanguage = () => {
-    Alert.alert(
-      'Language',
-      'Select your preferred language',
-      [
-        { text: 'English', onPress: () => setLanguage('English') },
-        { text: 'Spanish', onPress: () => setLanguage('Spanish') },
-        { text: 'French', onPress: () => setLanguage('French') },
+    customAlert.show({
+      title: 'Language',
+      message: 'Select your preferred language',
+      type: 'info',
+      verticalButtons: true,
+      buttons: [
+        { text: 'English', onPress: () => {
+          setLanguage('English');
+          customAlert.show({
+            title: 'Language Changed',
+            message: 'Language has been changed to English',
+            type: 'success'
+          });
+        }},
+        { text: 'Spanish', onPress: () => {
+          setLanguage('Spanish');
+          customAlert.show({
+            title: 'Language Changed',
+            message: 'Language has been changed to Spanish',
+            type: 'success'
+          });
+        }},
+        { text: 'French', onPress: () => {
+          setLanguage('French');
+          customAlert.show({
+            title: 'Language Changed',
+            message: 'Language has been changed to French',
+            type: 'success'
+          });
+        }},
         { text: 'Cancel', style: 'cancel' }
       ]
-    );
+    });
   };
 
   const handleTheme = () => {
-    Alert.alert(
-      'Theme',
-      'Select your preferred theme',
-      [
-        { text: 'Dark', onPress: () => setTheme('Dark') },
-        { text: 'Light', onPress: () => setTheme('Light') },
-        { text: 'System', onPress: () => setTheme('System') },
+    customAlert.show({
+      title: 'Theme',
+      message: 'Select your preferred theme',
+      type: 'info',
+      verticalButtons: true,
+      buttons: [
+        { text: 'Dark', onPress: () => {
+          setTheme('dark');
+          customAlert.show({
+            title: 'Theme Changed',
+            message: 'Theme has been changed to Dark mode',
+            type: 'success'
+          });
+        }},
+        { text: 'Light', onPress: () => {
+          setTheme('light');
+          customAlert.show({
+            title: 'Theme Changed',
+            message: 'Theme has been changed to Light mode',
+            type: 'success'
+          });
+        }},
+        { text: 'System', onPress: () => {
+          setTheme('system');
+          customAlert.show({
+            title: 'Theme Changed',
+            message: 'Theme has been set to follow system settings',
+            type: 'success'
+          });
+        }},
         { text: 'Cancel', style: 'cancel' }
       ]
-    );
+    });
   };
 
   const handleAdminMode = () => {
@@ -56,18 +310,112 @@ export default function Settings() {
   };
 
   const handleHelpSupport = () => {
-    Alert.alert('Help & Support', 'Support options will be implemented soon.');
+    customAlert.show({
+      title: 'Help & Support',
+      message: 'Get help and support for your Streamora experience',
+      type: 'info',
+      verticalButtons: true,
+      buttons: [
+        { 
+          text: 'Contact Support', 
+          onPress: () => {
+            customAlert.show({
+              title: 'Contact Support',
+              message: 'Choose how you would like to contact our support team',
+              type: 'info',
+              verticalButtons: true,
+              buttons: [
+                { 
+                  text: 'Email Support', 
+                  onPress: () => {
+                    Linking.openURL('mailto:support@streamora.com?subject=Support Request&body=Please describe your issue...');
+                  }
+                },
+                { 
+                  text: 'Live Chat', 
+                  onPress: () => {
+                    customAlert.show({
+                      title: 'Live Chat',
+                      message: 'Live chat is currently unavailable. Please use email support.',
+                      type: 'warning'
+                    });
+                  }
+                },
+                { text: 'Cancel', style: 'cancel' }
+              ]
+            });
+          }
+        },
+        { 
+          text: 'FAQ', 
+          onPress: () => {
+            customAlert.show({
+              title: 'Frequently Asked Questions',
+              message: 'Common questions and answers',
+              type: 'info',
+              verticalButtons: true,
+              buttons: [
+                { 
+                  text: 'Account Issues', 
+                  onPress: () => {
+                    customAlert.show({
+                      title: 'Account Issues',
+                      message: 'Q: How do I reset my password?\nA: Go to login page and tap "Forgot Password" to reset via email.\n\nQ: How do I delete my account?\nA: Contact support at support@streamora.com',
+                      type: 'info'
+                    });
+                  }
+                },
+                { 
+                  text: 'Video Upload', 
+                  onPress: () => {
+                    customAlert.show({
+                      title: 'Video Upload',
+                      message: 'Q: What video formats are supported?\nA: MP4, MOV, AVI formats are supported.\n\nQ: What is the maximum file size?\nA: Videos up to 100MB are supported.',
+                      type: 'info'
+                    });
+                  }
+                },
+                { text: 'Cancel', style: 'cancel' }
+              ]
+            });
+          }
+        },
+        { 
+          text: 'Report Bug', 
+          onPress: () => {
+            customAlert.show({
+              title: 'Report Bug',
+              message: 'Help us improve Streamora by reporting bugs',
+              type: 'warning',
+              verticalButtons: true,
+              buttons: [
+                { text: 'Cancel', style: 'cancel' },
+                { 
+                  text: 'Submit Report', 
+                  onPress: () => {
+                    Linking.openURL('mailto:bugs@streamora.com?subject=Bug Report&body=Please describe the bug you encountered...');
+                  }
+                }
+              ]
+            });
+          }
+        },
+        { text: 'Cancel', style: 'cancel' }
+      ]
+    });
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Log Out',
-      'Are you sure you want to log out?',
-      [
+    customAlert.show({
+      title: 'Log Out',
+      message: 'Are you sure you want to log out?',
+      type: 'warning',
+      verticalButtons: true,
+      buttons: [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Log Out', style: 'destructive', onPress: logout }
       ]
-    );
+    });
   };
 
   const renderSettingItem = (
@@ -82,6 +430,7 @@ export default function Settings() {
     <TouchableOpacity
       style={[
         styles.settingItem,
+        { backgroundColor: colors.background.secondary },
         isHighlighted && styles.highlightedItem
       ]}
       onPress={onPress}
@@ -95,11 +444,11 @@ export default function Settings() {
           />
         </View>
         <View style={styles.textContainer}>
-          <Text style={[styles.settingTitle, isHighlighted && styles.highlightedText]}>
+          <Text style={[styles.settingTitle, { color: colors.text.primary }, isHighlighted && styles.highlightedText]}>
             {title}
           </Text>
           {subtitle && (
-            <Text style={[styles.settingSubtitle, isHighlighted && styles.highlightedSubtitle]}>
+            <Text style={[styles.settingSubtitle, { color: colors.text.secondary }, isHighlighted && styles.highlightedSubtitle]}>
               {subtitle}
             </Text>
           )}
@@ -131,7 +480,7 @@ export default function Settings() {
           >
             <MaterialIcons name="arrow-back" size={24} color={colors.text.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Settings</Text>
+          <Text style={[styles.headerTitle, { color: colors.text.primary }]}>Settings</Text>
           <View style={styles.headerSpacer} />
         </View>
 
@@ -168,7 +517,7 @@ export default function Settings() {
             undefined,
             false,
             false,
-            <Text style={styles.rightText}>{language}</Text>
+            <Text style={[styles.rightText, { color: colors.text.secondary }]}>{language}</Text>
           )}
 
           {renderSettingItem(
@@ -178,7 +527,7 @@ export default function Settings() {
             undefined,
             false,
             false,
-            <Text style={styles.rightText}>{theme}</Text>
+            <Text style={[styles.rightText, { color: colors.text.secondary }]}>{theme}</Text>
           )}
 
           {renderSettingItem(
@@ -203,11 +552,23 @@ export default function Settings() {
           )}
         </ScrollView>
       </View>
+      
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={customAlert.visible}
+        title={customAlert.config.title}
+        message={customAlert.config.message}
+        buttons={customAlert.config.buttons}
+        type={customAlert.config.type}
+        icon={customAlert.config.icon}
+        verticalButtons={customAlert.config.verticalButtons}
+        onClose={customAlert.hide}
+      />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.primary,

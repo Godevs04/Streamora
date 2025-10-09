@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, FlatList, Alert, ActivityIndicator, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, FlatList, ActivityIndicator, StyleSheet, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -12,14 +12,19 @@ import useAuthStore from '../../store/useAuthStore';
 import { getDummyVideos } from '../../services/dummyData';
 import { getUserStats } from '../../services/user';
 import { Video } from '../../types';
-import colors from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import { formatCount } from '../../utils/formatDate';
 import { uploadImage } from '../../services/upload';
+import CustomAlert from '../../components/CustomAlert';
+import { useCustomAlert } from '../../hooks/useCustomAlert';
 
 export default function Profile() {
   const { user, logout, updateUser } = useAuthStore();
   const [videos, setVideos] = useState<Video[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const customAlert = useCustomAlert();
+  const colors = useColors();
+  const styles = createStyles(colors);
   const [activeTab, setActiveTab] = useState<'videos' | 'liked'>('videos');
   const [profileStats, setProfileStats] = useState({
     followers: 0,
@@ -117,10 +122,12 @@ export default function Profile() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (status !== 'granted') {
-      Alert.alert(
-        'Permission Required',
-        'Please allow access to your media library to change your avatar.'
-      );
+      customAlert.show({
+        title: 'Permission Required',
+        message: 'Please allow access to your media library to change your avatar.',
+        type: 'warning',
+        icon: 'warning'
+      });
       return;
     }
     
@@ -157,15 +164,30 @@ export default function Profile() {
             updatedAt: new Date().toISOString(),
           });
           
-          Alert.alert('Success', 'Avatar updated successfully');
+          customAlert.show({
+            title: 'Success',
+            message: 'Avatar updated successfully',
+            type: 'success',
+            icon: 'check-circle'
+          });
         } catch (uploadError) {
           console.error('Error uploading avatar:', uploadError);
-          Alert.alert('Error', 'Failed to upload avatar. Please try again.');
+          customAlert.show({
+            title: 'Error',
+            message: 'Failed to upload avatar. Please try again.',
+            type: 'error',
+            icon: 'error-outline'
+          });
         }
       }
     } catch (error) {
       console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick image');
+      customAlert.show({
+        title: 'Error',
+        message: 'Failed to pick image',
+        type: 'error',
+        icon: 'error-outline'
+      });
     }
   };
   
@@ -326,24 +348,37 @@ export default function Profile() {
   return (
     <AuthRequiredWrapper>
       {(showAuthModal) => (
-        <SafeAreaView style={styles.container} edges={['top']}>
-          <View style={styles.safeArea}>
-            {renderHeader()}
-            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-              {renderProfileCard()}
-              {renderStats()}
-              {renderActionButtons()}
-              {renderTabs()}
-              {renderVideoGrid(showAuthModal)}
-            </ScrollView>
-          </View>
-        </SafeAreaView>
+        <>
+          <SafeAreaView style={styles.container} edges={['top']}>
+            <View style={styles.safeArea}>
+              {renderHeader()}
+              <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+                {renderProfileCard()}
+                {renderStats()}
+                {renderActionButtons()}
+                {renderTabs()}
+                {renderVideoGrid(showAuthModal)}
+              </ScrollView>
+            </View>
+          </SafeAreaView>
+          
+          {/* Custom Alert */}
+          <CustomAlert
+            visible={customAlert.visible}
+            title={customAlert.config.title}
+            message={customAlert.config.message}
+            buttons={customAlert.config.buttons}
+            type={customAlert.config.type}
+            icon={customAlert.config.icon}
+            onClose={customAlert.hide}
+          />
+        </>
       )}
     </AuthRequiredWrapper>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.primary,

@@ -9,7 +9,7 @@ import {
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { Video as VideoType } from '../types';
-import colors from '../constants/colors';
+import { useColors } from '../hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface ShortsPlayerProps {
@@ -39,6 +39,8 @@ export default function ShortsPlayer({
   const [isSubscribedState, setIsSubscribedState] = useState(isSubscribed);
   const videoRef = useRef<Video>(null);
   const insets = useSafeAreaInsets();
+  const colors = useColors();
+  const styles = createStyles(colors);
   
   // Calculate available height considering safe area
   const availableHeight = screenHeight - insets.top - insets.bottom;
@@ -176,7 +178,7 @@ export default function ShortsPlayer({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     width: screenWidth,
     height: screenHeight,

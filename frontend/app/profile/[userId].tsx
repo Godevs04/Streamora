@@ -9,7 +9,7 @@ import useAuthStore from '../../store/useAuthStore';
 import { getUserProfile, getPublicUserStats, subscribeToUser as apiSubscribe, unsubscribeFromUser as apiUnsubscribe } from '../../services/user';
 import { getVideos } from '../../services/videos';
 import { Video, User } from '../../types';
-import colors from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import config from '../../constants/config';
 import { formatCount } from '../../utils/formatDate';
 
@@ -17,6 +17,8 @@ export default function ProfileView() {
   const { userId } = useLocalSearchParams<{ userId: string }>();
   const { user: currentUser } = useAuthStore();
   const insets = useSafeAreaInsets();
+  const colors = useColors();
+  const styles = createStyles(colors);
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -350,7 +352,7 @@ export default function ProfileView() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.primary,

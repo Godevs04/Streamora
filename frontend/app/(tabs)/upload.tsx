@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, Alert, Image, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, Image, StyleSheet, Dimensions, ActivityIndicator, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -11,8 +11,11 @@ import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import Button from '../../components/Button';
 import AuthRequiredWrapper from '../../components/AuthRequiredWrapper';
 import { uploadVideo } from '../../services/videos';
-import colors from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import config from '../../constants/config';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import CustomAlert from '../../components/CustomAlert';
+import { useCustomAlert } from '../../hooks/useCustomAlert';
 
 export default function Upload() {
   const [title, setTitle] = useState('');
@@ -26,6 +29,30 @@ export default function Upload() {
   const [videoType, setVideoType] = useState<'normal' | 'shorts'>('normal');
   const [isLoading, setIsLoading] = useState(false);
   const [thumbnailGenerating, setThumbnailGenerating] = useState(false);
+  const [isScheduled, setIsScheduled] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(12, 0, 0, 0); // Set to 12:00 PM tomorrow
+    return tomorrow;
+  });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const customAlert = useCustomAlert();
+  const colors = useColors();
+  const styles = createStyles(colors);
+
+  // Initialize date/time pickers when scheduled is enabled
+  const handleScheduleToggle = () => {
+    if (!isScheduled) {
+      // When enabling schedule, set to tomorrow at 12 PM
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(12, 0, 0, 0);
+      setScheduledDate(tomorrow);
+    }
+    setIsScheduled(!isScheduled);
+  };
   
   const screenWidth = Dimensions.get('window').width;
   
@@ -54,10 +81,12 @@ export default function Upload() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (status !== 'granted') {
-      Alert.alert(
-        'Permission Required',
-        'Please allow access to your media library to upload videos.'
-      );
+      customAlert.show({
+        title: 'Permission Required',
+        message: 'Please allow access to your media library to upload videos.',
+        type: 'warning',
+        icon: 'warning'
+      });
       return;
     }
     
@@ -74,10 +103,12 @@ export default function Upload() {
         
         // Check file size
         if (asset.fileSize && asset.fileSize > config.UPLOAD.MAX_VIDEO_SIZE) {
-          Alert.alert(
-            'File Too Large',
-            `Video size should be less than ${config.UPLOAD.MAX_VIDEO_SIZE / (1024 * 1024)}MB`
-          );
+          customAlert.show({
+            title: 'File Too Large',
+            message: `Video size should be less than ${config.UPLOAD.MAX_VIDEO_SIZE / (1024 * 1024)}MB`,
+            type: 'error',
+            icon: 'error-outline'
+          });
           return;
         }
         
@@ -93,7 +124,12 @@ export default function Upload() {
       }
     } catch (error) {
       console.error('Error picking video:', error);
-      Alert.alert('Error', 'Failed to select video. Please try again.');
+      customAlert.show({
+        title: 'Error',
+        message: 'Failed to select video. Please try again.',
+        type: 'error',
+        icon: 'error-outline'
+      });
     }
   };
   
@@ -102,10 +138,12 @@ export default function Upload() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (status !== 'granted') {
-      Alert.alert(
-        'Permission Required',
-        'Please allow access to your media library to select a thumbnail.'
-      );
+      customAlert.show({
+        title: 'Permission Required',
+        message: 'Please allow access to your media library to select a thumbnail.',
+        type: 'warning',
+        icon: 'warning'
+      });
       return;
     }
     
@@ -123,24 +161,63 @@ export default function Upload() {
       }
     } catch (error) {
       console.error('Error picking thumbnail:', error);
-      Alert.alert('Error', 'Failed to select thumbnail. Please try again.');
+      customAlert.show({
+        title: 'Error',
+        message: 'Failed to select thumbnail. Please try again.',
+        type: 'error',
+        icon: 'error-outline'
+      });
     }
   };
   
   const handleUpload = async () => {
     if (!title.trim()) {
-      Alert.alert('Error', 'Please enter a title for your video');
+customAlert.show({
+  title: 'Error',
+  message: 'Please enter a title for your video',
+  type: 'error',
+  icon: 'error-outline',
+  verticalButtons: true
+});
       return;
     }
     
     if (!videoUri) {
-      Alert.alert('Error', 'Please select a video to upload');
+customAlert.show({
+  title: 'Error',
+  message: 'Please select a video to upload',
+  type: 'error',
+  icon: 'error-outline',
+  verticalButtons: true
+});
       return;
     }
     
     if (videoType === 'normal' && !thumbnailUri) {
-      Alert.alert('Error', 'Please select or generate a thumbnail for normal videos');
+customAlert.show({
+  title: 'Error',
+  message: 'Please select or generate a thumbnail for normal videos',
+  type: 'error',
+  icon: 'error-outline',
+  verticalButtons: true
+});
       return;
+    }
+    
+    // For shorts, auto-generate thumbnail if not provided
+    if (videoType === 'shorts' && !thumbnailUri && videoUri) {
+      try {
+        const { uri } = await VideoThumbnails.getThumbnailAsync(
+          videoUri,
+          {
+            time: 1000,
+            quality: 0.8,
+          }
+        );
+        setThumbnailUri(uri);
+      } catch (e) {
+        console.warn('Cannot generate thumbnail for shorts', e);
+      }
     }
     
     setIsLoading(true);
@@ -156,36 +233,49 @@ export default function Upload() {
         description,
         tags: tagsArray,
         videoUri,
-        thumbnailUri: videoType === 'shorts' ? undefined : (thumbnailUri || undefined),
-        thumbnailAspectRatio: videoType === 'shorts' ? undefined : aspectRatio,
+        thumbnailUri: thumbnailUri || undefined, // Include thumbnail for both shorts and normal videos
+        thumbnailAspectRatio: videoType === 'shorts' ? '9:16' : aspectRatio,
         duration: videoDuration,
         type: videoType
       });
       
-      Alert.alert(
-        'Upload Successful',
-        'Your video has been uploaded successfully!',
-        [
+      customAlert.show({
+        title: 'Upload Successful',
+        message: 'Your video has been uploaded successfully!',
+        type: 'success',
+        icon: 'check-circle',
+        verticalButtons: true,
+        buttons: [
           {
-            text: 'OK',
+            text: 'View Content',
             onPress: () => {
-              // Reset form and navigate to home
-              setTitle('');
-              setDescription('');
-              setTags('');
-              setVideoUri(null);
-              setThumbnailUri(null);
-              setVideoDuration(0);
+              // Navigate to admin content page
+              router.push('/admin/content');
+            },
+          },
+          {
+            text: 'Upload Another',
+            onPress: () => {
+              resetForm();
+            },
+          },
+          {
+            text: 'Go Home',
+            onPress: () => {
+              resetForm();
               router.push('/(tabs)/home');
             },
           },
         ]
-      );
+      });
     } catch (error: any) {
-      Alert.alert(
-        'Upload Failed',
-        error.message || 'Failed to upload video. Please try again.'
-      );
+      customAlert.show({
+        title: 'Upload Failed',
+        message: error.message || 'Failed to upload video. Please try again.',
+        type: 'error',
+        icon: 'error-outline',
+        verticalButtons: true
+      });
     } finally {
       setIsLoading(false);
     }
@@ -226,29 +316,46 @@ export default function Upload() {
     return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
   };
   
+  // Helper function to reset form
+  const resetForm = () => {
+    setTitle('');
+    setDescription('');
+    setTags('');
+    setVideoUri(null);
+    setThumbnailUri(null);
+    setVideoDuration(0);
+    setVideoType('normal');
+    setAspectRatio('16:9');
+    setIsScheduled(false);
+    setIsCustomThumbnail(false);
+    setThumbnailGenerating(false);
+    setShowDatePicker(false);
+    setShowTimePicker(false);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(12, 0, 0, 0);
+    setScheduledDate(tomorrow);
+  };
+
   const handleCancel = () => {
-    Alert.alert(
-      'Cancel Upload',
-      'Are you sure you want to cancel? All progress will be lost.',
-      [
+    customAlert.show({
+      title: 'Cancel Upload',
+      message: 'Are you sure you want to cancel? All progress will be lost.',
+      type: 'warning',
+      icon: 'warning',
+      verticalButtons: true,
+      buttons: [
         { text: 'Keep Editing', style: 'cancel' },
         { 
           text: 'Cancel', 
           style: 'destructive',
           onPress: () => {
-            // Reset form and navigate back
-            setTitle('');
-            setDescription('');
-            setTags('');
-            setVideoUri(null);
-            setThumbnailUri(null);
-            setVideoDuration(0);
-            setVideoType('normal');
+            resetForm();
             router.back();
           }
         }
       ]
-    );
+    });
   };
   
   const handleVideoTypeChange = (type: 'normal' | 'shorts') => {
@@ -267,19 +374,20 @@ export default function Upload() {
   return (
     <AuthRequiredWrapper>
       {(showAuthModal) => (
-        <LinearGradient
-          colors={[colors.gradientStart, colors.gradientEnd]}
-          style={styles.container}
-        >
-          <SafeAreaView style={styles.safeArea}>
-            {/* Header with Back Button */}
-            <View style={styles.header}>
-              <TouchableOpacity onPress={handleCancel} style={styles.backButton}>
-                <Ionicons name="arrow-back" size={24} color="white" />
-              </TouchableOpacity>
-              <Text style={styles.headerTitle}>Upload Video</Text>
-              <View style={styles.headerSpacer} />
-            </View>
+        <>
+          <LinearGradient
+            colors={[colors.gradientStart, colors.gradientEnd]}
+            style={styles.container}
+          >
+            <SafeAreaView style={styles.safeArea} edges={Platform.OS === 'ios' ? ['top'] : []}>
+              {/* Header with Back Button */}
+              <View style={styles.header}>
+                <TouchableOpacity onPress={handleCancel} style={styles.backButton}>
+                  <Ionicons name="arrow-back" size={24} color="white" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Upload Video</Text>
+                <View style={styles.headerSpacer} />
+              </View>
             
             <ScrollView
               contentContainerStyle={styles.scrollContent}
@@ -332,7 +440,7 @@ export default function Upload() {
                       style={[styles.videoTypeButton, videoType === 'normal' && styles.videoTypeButtonActive]}
                       onPress={() => handleVideoTypeChange('normal')}
                     >
-                      <Ionicons name="play-circle-outline" size={20} color={videoType === 'normal' ? '#FFFFFF' : colors.gray} />
+                      <Ionicons name="play-circle-outline" size={20} color={videoType === 'normal' ? colors.text.primary : colors.text.secondary} />
                       <Text style={[styles.videoTypeText, videoType === 'normal' && styles.videoTypeTextActive]}>
                         Normal Video
                       </Text>
@@ -342,7 +450,7 @@ export default function Upload() {
                       style={[styles.videoTypeButton, videoType === 'shorts' && styles.videoTypeButtonActive]}
                       onPress={() => handleVideoTypeChange('shorts')}
                     >
-                      <Ionicons name="play-circle" size={20} color={videoType === 'shorts' ? '#FFFFFF' : colors.gray} />
+                      <Ionicons name="play-circle" size={20} color={videoType === 'shorts' ? colors.text.primary : colors.text.secondary} />
                       <Text style={[styles.videoTypeText, videoType === 'shorts' && styles.videoTypeTextActive]}>
                         Shorts
                       </Text>
@@ -431,7 +539,7 @@ export default function Upload() {
                   <TextInput
                     style={styles.textInput}
                     placeholder="Enter video title"
-                    placeholderTextColor={colors.gray}
+                    placeholderTextColor={colors.text.secondary}
                     value={title}
                     onChangeText={setTitle}
                     maxLength={100}
@@ -443,7 +551,7 @@ export default function Upload() {
                   <TextInput
                     style={[styles.textInput, styles.textAreaInput]}
                     placeholder="Enter video description"
-                    placeholderTextColor={colors.gray}
+                    placeholderTextColor={colors.text.secondary}
                     value={description}
                     onChangeText={setDescription}
                     multiline
@@ -458,10 +566,63 @@ export default function Upload() {
                   <TextInput
                     style={styles.textInput}
                     placeholder="e.g. music, tutorial, vlog"
-                    placeholderTextColor={colors.gray}
+                    placeholderTextColor={colors.text.secondary}
                     value={tags}
                     onChangeText={setTags}
                   />
+                </View>
+
+                {/* Schedule Options */}
+                <View style={styles.inputContainer}>
+                  <View style={styles.scheduleHeader}>
+                    <Text style={styles.inputLabel}>Schedule</Text>
+                    <TouchableOpacity 
+                      style={styles.scheduleToggle}
+                      onPress={handleScheduleToggle}
+                    >
+                      <View style={[styles.toggleSwitch, isScheduled && styles.toggleSwitchActive]}>
+                        <View style={[styles.toggleThumb, isScheduled && styles.toggleThumbActive]} />
+                      </View>
+                      <Text style={styles.toggleLabel}>
+                        {isScheduled ? 'Scheduled' : 'Publish Now'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  {isScheduled && (
+                    <View style={styles.scheduleInputs}>
+                      <TouchableOpacity 
+                        style={styles.dateTimeButton}
+                        onPress={() => setShowDatePicker(true)}
+                      >
+                        <MaterialIcons name="calendar-today" size={20} color={colors.text.primary} />
+                        <Text style={styles.dateTimeText}>
+                          {scheduledDate.toLocaleDateString('en-US', { 
+                            weekday: 'short', 
+                            year: 'numeric', 
+                            month: 'short', 
+                            day: 'numeric' 
+                          })}
+                        </Text>
+                        <MaterialIcons name="keyboard-arrow-down" size={20} color={colors.text.secondary} />
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity 
+                        style={styles.dateTimeButton}
+                        onPress={() => setShowTimePicker(true)}
+                      >
+                        <MaterialIcons name="access-time" size={20} color={colors.text.primary} />
+                        <Text style={styles.dateTimeText}>
+                          {scheduledDate.toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit',
+                            hour12: true 
+                          })}
+                        </Text>
+                        <MaterialIcons name="keyboard-arrow-down" size={20} color={colors.text.secondary} />
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
               </View>
               
@@ -475,12 +636,62 @@ export default function Upload() {
             </ScrollView>
           </SafeAreaView>
         </LinearGradient>
+        
+        {/* Date Picker */}
+        {showDatePicker && (
+          <DateTimePicker
+            value={scheduledDate}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={(event: any, selectedDate?: Date) => {
+              if (Platform.OS === 'android') {
+                setShowDatePicker(false);
+              }
+              if (selectedDate) {
+                setScheduledDate(selectedDate);
+              }
+            }}
+            minimumDate={new Date()}
+          />
+        )}
+        
+        {/* Time Picker */}
+        {showTimePicker && (
+          <DateTimePicker
+            value={scheduledDate}
+            mode="time"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={(event: any, selectedTime?: Date) => {
+              if (Platform.OS === 'android') {
+                setShowTimePicker(false);
+              }
+              if (selectedTime) {
+                const newDate = new Date(scheduledDate);
+                newDate.setHours(selectedTime.getHours());
+                newDate.setMinutes(selectedTime.getMinutes());
+                setScheduledDate(newDate);
+              }
+            }}
+          />
+        )}
+        
+        {/* Custom Alert */}
+        <CustomAlert
+          visible={customAlert.visible}
+          title={customAlert.config.title}
+          message={customAlert.config.message}
+          buttons={customAlert.config.buttons}
+          type={customAlert.config.type}
+          icon={customAlert.config.icon}
+          onClose={customAlert.hide}
+        />
+        </>
       )}
     </AuthRequiredWrapper>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -498,7 +709,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   videoPickerContainer: {
-    backgroundColor: '#1F2937',
+    backgroundColor: colors.background.secondary,
     borderRadius: 8,
     overflow: 'hidden',
     marginBottom: 24,
@@ -550,12 +761,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   uploadPromptText: {
-    color: 'white',
+    color: colors.text.primary,
     marginTop: 8,
     fontWeight: '500',
   },
   uploadLimitText: {
-    color: '#9CA3AF',
+    color: colors.text.secondary,
     fontSize: 14,
     marginTop: 4,
   },
@@ -569,7 +780,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    color: 'white',
+    color: colors.text.primary,
     fontSize: 16,
     fontWeight: '500',
   },
@@ -581,21 +792,21 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 4,
     marginLeft: 8,
-    backgroundColor: '#374151',
+    backgroundColor: colors.background.tertiary,
   },
   aspectRatioButtonActive: {
     backgroundColor: colors.primary,
   },
   aspectRatioText: {
-    color: '#9CA3AF',
+    color: colors.text.secondary,
     fontSize: 12,
     fontWeight: '500',
   },
   aspectRatioTextActive: {
-    color: 'white',
+    color: colors.text.primary,
   },
   thumbnailContainer: {
-    backgroundColor: '#1F2937',
+    backgroundColor: colors.background.secondary,
     borderRadius: 8,
     overflow: 'hidden',
     position: 'relative',
@@ -605,10 +816,10 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1F2937',
+    backgroundColor: colors.background.secondary,
   },
   thumbnailGeneratingText: {
-    color: 'white',
+    color: colors.text.primary,
     marginTop: 12,
   },
   thumbnailPlaceholder: {
@@ -616,10 +827,10 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1F2937',
+    backgroundColor: colors.background.secondary,
   },
   thumbnailPlaceholderText: {
-    color: '#9CA3AF',
+    color: colors.text.secondary,
     marginTop: 8,
   },
   thumbnailActions: {
@@ -650,12 +861,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   inputLabel: {
-    color: 'white',
+    color: colors.text.primary,
     marginBottom: 4,
   },
   textInput: {
-    backgroundColor: '#1F2937',
-    color: 'white',
+    backgroundColor: colors.background.secondary,
+    color: colors.text.primary,
     padding: 12,
     borderRadius: 8,
   },
@@ -677,26 +888,26 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     marginHorizontal: 4,
-    backgroundColor: '#374151',
+    backgroundColor: colors.background.tertiary,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#4B5563',
+    borderColor: colors.background.secondary,
   },
   videoTypeButtonActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
   videoTypeText: {
-    color: colors.gray,
+    color: colors.text.secondary,
     marginLeft: 8,
     fontSize: 14,
     fontWeight: '500',
   },
   videoTypeTextActive: {
-    color: '#FFFFFF',
+    color: colors.text.primary,
   },
   videoTypeDescription: {
-    color: '#9CA3AF',
+    color: colors.text.secondary,
     fontSize: 12,
     lineHeight: 16,
     textAlign: 'center',
@@ -719,6 +930,64 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   headerSpacer: {
-    width: 40, // Same width as back button to center the title
+    width: 40, // Same width as the back button to maintain balance
+  },
+  // Schedule styles
+  scheduleHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  scheduleToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  toggleSwitch: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.background.tertiary,
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  toggleSwitchActive: {
+    backgroundColor: colors.primary,
+  },
+  toggleThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'white',
+    alignSelf: 'flex-start',
+  },
+  toggleThumbActive: {
+    alignSelf: 'flex-end',
+  },
+  toggleLabel: {
+    color: colors.text.primary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  scheduleInputs: {
+    marginTop: 8,
+    gap: 8,
+  },
+  dateTimeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background.tertiary,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: colors.background.secondary,
+    gap: 8,
+  },
+  dateTimeText: {
+    color: colors.text.primary,
+    fontSize: 14,
+    fontWeight: '500',
   },
 });

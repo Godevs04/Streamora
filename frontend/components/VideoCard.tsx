@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity, Dimensions, StyleSheet, Share, Alert, Platform } from 'react-native';
+import { View, Text, Image, TouchableOpacity, Dimensions, StyleSheet, Share, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import Avatar from './Avatar';
@@ -10,7 +10,9 @@ import useAuthStore from '../store/useAuthStore';
 import { toggleLikeVideo } from '../services/videos';
 import { subscribeToUser as apiSubscribe, unsubscribeFromUser as apiUnsubscribe, checkSubscriptionStatus } from '../services/user';
 import { APP_ICONS } from '../utils/iconLoader';
-import colors from '../constants/colors';
+import { useColors } from '../hooks/useColors';
+import CustomAlert from './CustomAlert';
+import { useCustomAlert } from '../hooks/useCustomAlert';
 
 interface VideoCardProps {
   video: Video;
@@ -25,6 +27,9 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
   const [likesCount, setLikesCount] = useState(video.likesCount || 0);
   const [subscribed, setSubscribed] = useState(false);
   const [imageLoadError, setImageLoadError] = useState(false);
+  const customAlert = useCustomAlert();
+  const colors = useColors();
+  const styles = createStyles(colors);
   
   // Check subscription status when component loads
   useEffect(() => {
@@ -159,7 +164,12 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
       setLiked(false);
       setLikesCount(Math.max(0, likesCount - 1));
     }
-    Alert.alert('Feedback', 'Thanks for your feedback');
+    customAlert.show({
+      title: 'Feedback',
+      message: 'Thanks for your feedback',
+      type: 'success',
+      icon: 'check-circle'
+    });
   };
   
   // Handle share press
@@ -185,7 +195,12 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
       }
     } catch (error) {
       console.error('Error sharing video:', error);
-      Alert.alert('Error', 'Could not share the video');
+      customAlert.show({
+        title: 'Error',
+        message: 'Could not share the video',
+        type: 'error',
+        icon: 'error-outline'
+      });
     }
   };
   
@@ -201,22 +216,57 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
     try {
       const { token } = useAuthStore.getState();
       if (!token) {
-        Alert.alert('Error', 'Authentication token not found');
+        customAlert.show({
+          title: 'Error',
+          message: 'Authentication token not found',
+          type: 'error',
+          icon: 'error-outline'
+        });
         return;
       }
+      
+      console.log('Subscription attempt:', {
+        currentUserId: user._id,
+        targetUserId: video.owner._id,
+        subscribed: subscribed
+      });
       
       if (subscribed) {
         await apiUnsubscribe(video.owner._id, token);
         setSubscribed(false);
-        Alert.alert('Unsubscribed', `You have unsubscribed from ${video.owner.name}`);
+        customAlert.show({
+          title: 'Unsubscribed',
+          message: `You have unsubscribed from ${video.owner.name}`,
+          type: 'success',
+          icon: 'check-circle'
+        });
       } else {
         await apiSubscribe(video.owner._id, token);
         setSubscribed(true);
-        Alert.alert('Subscribed', `You have subscribed to ${video.owner.name}`);
+        customAlert.show({
+          title: 'Subscribed',
+          message: `You have subscribed to ${video.owner.name}`,
+          type: 'success',
+          icon: 'check-circle'
+        });
       }
     } catch (error: any) {
       console.error('Subscription error:', error);
-      Alert.alert('Error', error.message || 'Failed to update subscription');
+      
+      // Extract specific error message from API response
+      let errorMessage = 'Failed to update subscription';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      customAlert.show({
+        title: 'Subscription Error',
+        message: errorMessage,
+        type: 'error',
+        icon: 'error-outline'
+      });
     }
   };
   
@@ -242,7 +292,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
             />
           ) : (
             <View style={[{ width, height }, styles.placeholderContainer]}>
-              <MaterialIcons name="image" size={48} color="#666" />
+              <MaterialIcons name="image" size={48} color={colors.text.secondary} />
               <Text style={styles.placeholderText}>No thumbnail</Text>
             </View>
           )}
@@ -322,7 +372,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
             </TouchableOpacity>
 
             {/* Subscribe */}
-            {variant === 'default' && (
+            {variant === 'default' && user && user._id !== video.owner._id && (
               <TouchableOpacity
                 onPress={handleSubscribePress}
                 style={[styles.subscribeButton, subscribed && styles.subscribedButton]}
@@ -333,11 +383,22 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
           </View>
         </View>
       </View>
+      
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={customAlert.visible}
+        title={customAlert.config.title}
+        message={customAlert.config.message}
+        buttons={customAlert.config.buttons}
+        type={customAlert.config.type}
+        icon={customAlert.config.icon}
+        onClose={customAlert.hide}
+      />
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     marginBottom: 16,
     width: '100%',
@@ -345,10 +406,10 @@ const styles = StyleSheet.create({
   thumbnailContainer: {
     borderRadius: 0, // YouTube doesn't use rounded corners
     overflow: 'hidden',
-    backgroundColor: colors.background.primary,
+    backgroundColor: colors.background.secondary,
   },
   placeholderContainer: {
-    backgroundColor: colors.background.secondary,
+    backgroundColor: colors.background.tertiary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -457,7 +518,7 @@ const styles = StyleSheet.create({
   actionDivider: {
     width: 1,
     height: '60%',
-    backgroundColor: colors.darkGray,
+    backgroundColor: colors.background.secondary,
   },
   commentContainer: {
     flexDirection: 'row',
@@ -475,7 +536,7 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
   },
   subscribeButton: {
-    backgroundColor: colors.primary, // Dark blue instead of red
+    backgroundColor: colors.primary,
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 18,

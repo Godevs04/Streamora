@@ -9,6 +9,9 @@ export default {
         ME: '/auth/me',
         VERIFY_EMAIL: '/auth/verify-email',
         RESEND_OTP: '/auth/resend-otp',
+        FORGOT_PASSWORD: '/auth/forgot-password',
+        VERIFY_FORGOT_OTP: '/auth/verify-forgot-otp',
+        RESET_PASSWORD: '/auth/reset-password',
       },
       USERS: {
         GET_BY_ID: (id: string) => `/users/${id}`,

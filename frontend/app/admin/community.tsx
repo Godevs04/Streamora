@@ -1,14 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
-import colors from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import { fetchCommunity } from '../../services/admin';
 import { CommunityData, ModerationComment, ReportedComment, CommunityPost } from '../../types';
+import AdminLayout from '../../components/AdminLayout';
 
 export default function AdminCommunity() {
+  const colors = useColors();
+  const styles = createStyles(colors);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<CommunityData | null>(null);
@@ -35,44 +36,8 @@ export default function AdminCommunity() {
   const communityPosts = useMemo<CommunityPost[]>(() => data?.communityPosts || [], [data]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <AdminLayout title="Community" subtitle="Moderation & Engagement">
       <Stack.Screen options={{ headerShown: false }} />
-      <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.gradient}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <MaterialIcons name="arrow-back" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.title}>Creator Studio</Text>
-            <Text style={styles.subtitle}>Admin Mode</Text>
-          </View>
-          <View style={{ width: 40 }} />
-        </View>
-
-        {/* Tabs header mimic */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsRow}>
-          {['Dashboard','Analytics','Monetization','Content','Community','Settings'].map((tab, index) => (
-            <TouchableOpacity
-              key={`community-tab-${tab}-${index}`}
-              style={[styles.tab, tab === 'Community' && styles.tabActive]}
-              onPress={() => {
-                if (tab === 'Dashboard') router.push('/admin');
-                if (tab === 'Analytics') router.push('/admin/analytics');
-                if (tab === 'Monetization') router.push('/admin/monetization');
-                if (tab === 'Content') router.push('/admin/content');
-                if (tab === 'Settings') router.push('/admin/settings');
-              }}
-            >
-              <Text style={[styles.tabText, tab === 'Community' && styles.tabTextActive]}>{tab}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Progress bar */}
-        <View style={styles.progressBarBg}>
-          <View style={[styles.progressBarFill, { width: '80%' }]} />
-        </View>
 
         {loading ? (
           <View style={styles.centerWrap}>
@@ -90,10 +55,10 @@ export default function AdminCommunity() {
         ) : (
           <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 40 }}>
             {/* Comment Moderation */}
-            <SectionHeader key="community-comment-moderation" title="Comment Moderation" />
+            <SectionHeader key="community-comment-moderation" title="Comment Moderation" colors={colors} styles={styles} />
             <View style={styles.card}>
               {moderationComments.slice(0, 3).map((comment) => (
-                <ModerationCommentItem key={comment._id} comment={comment} />
+                <ModerationCommentItem key={comment._id} comment={comment} colors={colors} styles={styles} />
               ))}
               {moderationComments.length > 3 && (
                 <TouchableOpacity style={styles.showMoreBtn}>
@@ -103,28 +68,27 @@ export default function AdminCommunity() {
             </View>
 
             {/* Reported Comments */}
-            <SectionHeader key="community-reported-comments" title="Reported Comments" />
+            <SectionHeader key="community-reported-comments" title="Reported Comments" colors={colors} styles={styles} />
             <View style={styles.card}>
               {reportedComments.map((comment) => (
-                <ReportedCommentItem key={comment._id} comment={comment} />
+                <ReportedCommentItem key={comment._id} comment={comment} colors={colors} styles={styles} />
               ))}
             </View>
 
             {/* Community Posts */}
-            <SectionHeader key="community-posts-section" title="Community Posts" />
+            <SectionHeader key="community-posts-section" title="Community Posts" colors={colors} styles={styles} />
             <View style={styles.card}>
               {communityPosts.map((post) => (
-                <CommunityPostItem key={post._id} post={post} />
+                <CommunityPostItem key={post._id} post={post} colors={colors} styles={styles} />
               ))}
             </View>
           </ScrollView>
         )}
-      </LinearGradient>
-    </SafeAreaView>
+    </AdminLayout>
   );
 }
 
-function SectionHeader({ title }: { title: string }) {
+function SectionHeader({ title, colors, styles }: { title: string; colors: any; styles: any }) {
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -133,7 +97,7 @@ function SectionHeader({ title }: { title: string }) {
   );
 }
 
-function ModerationCommentItem({ comment }: { comment: ModerationComment }) {
+function ModerationCommentItem({ comment, colors, styles }: { comment: ModerationComment; colors: any; styles: any }) {
   return (
     <View style={styles.commentItem}>
       <View style={styles.commentHeader}>
@@ -157,7 +121,7 @@ function ModerationCommentItem({ comment }: { comment: ModerationComment }) {
   );
 }
 
-function ReportedCommentItem({ comment }: { comment: ReportedComment }) {
+function ReportedCommentItem({ comment, colors, styles }: { comment: ReportedComment; colors: any; styles: any }) {
   return (
     <View style={styles.reportedItem}>
       <View style={styles.reportedHeader}>
@@ -175,7 +139,7 @@ function ReportedCommentItem({ comment }: { comment: ReportedComment }) {
   );
 }
 
-function CommunityPostItem({ post }: { post: CommunityPost }) {
+function CommunityPostItem({ post, colors, styles }: { post: CommunityPost; colors: any; styles: any }) {
   return (
     <View style={styles.postItem}>
       <Text style={styles.postTitle}>{post.title}</Text>
@@ -187,20 +151,7 @@ function CommunityPostItem({ post }: { post: CommunityPost }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  gradient: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8 },
-  backButton: { padding: 8 },
-  title: { color: colors.text.primary, fontSize: 20, fontWeight: '700' },
-  subtitle: { color: colors.text.secondary, fontSize: 13, marginTop: 2 },
-  tabsRow: { paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
-  tab: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.08)' },
-  tabActive: { backgroundColor: 'rgba(255,255,255,0.2)' },
-  tabText: { color: colors.text.secondary, fontWeight: '600' },
-  tabTextActive: { color: colors.text.primary },
-  progressBarBg: { height: 8, backgroundColor: '#ffffff', opacity: 0.6, marginHorizontal: 16, borderRadius: 4, marginTop: 6 },
-  progressBarFill: { height: 8, backgroundColor: colors.primary, borderRadius: 4 },
+const createStyles = (colors: any) => StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 16 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 8 },
   sectionTitle: { color: colors.text.primary, fontSize: 16, fontWeight: '700' },

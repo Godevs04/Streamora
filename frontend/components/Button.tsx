@@ -1,7 +1,7 @@
 import React from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, TouchableOpacityProps } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import colors from '../constants/colors';
+import { useColors } from '../hooks/useColors';
 
 interface ButtonProps extends TouchableOpacityProps {
   title: string;
@@ -23,6 +23,7 @@ const Button: React.FC<ButtonProps> = ({
   icon,
   ...rest
 }) => {
+  const colors = useColors();
   // Size styles
   const sizeStyles = {
     sm: { paddingVertical: 8, paddingHorizontal: 12 },

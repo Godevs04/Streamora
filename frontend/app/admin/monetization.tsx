@@ -1,15 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
-import colors from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import { fetchMonetization } from '../../services/admin';
 import { MonetizationData, PayoutRecord } from '../../types';
 import { formatCount } from '../../utils/formatDate';
+import AdminLayout from '../../components/AdminLayout';
 
 export default function AdminMonetization() {
+  const colors = useColors();
+  const styles = createStyles(colors);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<MonetizationData | null>(null);
@@ -34,44 +35,8 @@ export default function AdminMonetization() {
   const payouts = useMemo<PayoutRecord[]>(() => data?.payouts || [], [data]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <AdminLayout title="Monetization" subtitle="Revenue & Earnings">
       <Stack.Screen options={{ headerShown: false }} />
-      <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.gradient}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <MaterialIcons name="arrow-back" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.title}>Creator Studio</Text>
-            <Text style={styles.subtitle}>Admin Mode</Text>
-          </View>
-          <View style={{ width: 40 }} />
-        </View>
-
-        {/* Tabs header mimic */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsRow}>
-          {['Dashboard','Analytics','Monetization','Content','Community','Settings'].map((tab, index) => (
-            <TouchableOpacity
-              key={`monetization-tab-${tab}-${index}`}
-              style={[styles.tab, tab === 'Monetization' && styles.tabActive]}
-              onPress={() => {
-                if (tab === 'Dashboard') router.push('/admin');
-                if (tab === 'Analytics') router.push('/admin/analytics');
-                if (tab === 'Content') router.push('/admin/content');
-                if (tab === 'Community') router.push('/admin/community');
-                if (tab === 'Settings') router.push('/admin/settings');
-              }}
-            >
-              <Text style={[styles.tabText, tab === 'Monetization' && styles.tabTextActive]}>{tab}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Progress bar */}
-        <View style={styles.progressBarBg}>
-          <View style={[styles.progressBarFill, { width: '60%' }]} />
-        </View>
 
         {loading ? (
           <View style={styles.centerWrap}>
@@ -89,26 +54,32 @@ export default function AdminMonetization() {
         ) : (
           <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 40 }}>
             {/* Monetization Eligibility */}
-            <SectionHeader key="monetization-eligibility-section" title="Monetization Eligibility" />
+            <SectionHeader key="monetization-eligibility-section" title="Monetization Eligibility" colors={colors} styles={styles} />
             <View style={styles.eligibilityCard}>
               <View style={styles.eligibilityRow}>
                 <EligibilityPill 
                   key="subscribers"
                   label="1K+ Subscribers" 
                   value={formatCount(data?.eligibility?.subscribers || 0)} 
-                  met={(data?.eligibility?.subscribers || 0) >= 1000} 
+                  met={(data?.eligibility?.subscribers || 0) >= 1000}
+                  colors={colors}
+                  styles={styles}
                 />
                 <EligibilityPill 
                   key="watchHours"
                   label="4K+ Watch Hours" 
                   value={formatCount(data?.eligibility?.watchHours || 0)} 
-                  met={(data?.eligibility?.watchHours || 0) >= 4000} 
+                  met={(data?.eligibility?.watchHours || 0) >= 4000}
+                  colors={colors}
+                  styles={styles}
                 />
                 <EligibilityPill 
                   key="policy"
                   label="Policy Compliance" 
                   value="Yes" 
-                  met={data?.eligibility?.policyCompliance || false} 
+                  met={data?.eligibility?.policyCompliance || false}
+                  colors={colors}
+                  styles={styles}
                 />
               </View>
               <View style={styles.approvalRow}>
@@ -129,27 +100,33 @@ export default function AdminMonetization() {
             </View>
 
             {/* Earnings Overview */}
-            <SectionHeader key="monetization-earnings-overview" title="Earnings Overview" />
+            <SectionHeader key="monetization-earnings-overview" title="Earnings Overview" colors={colors} styles={styles} />
             <View style={styles.earningsCard}>
               <View style={styles.earningsRow}>
                 <EarningsMetric 
                   key="revenue"
                   label="ESTIMATED REVENUE" 
-                  value={`$${(data?.earnings?.estimatedRevenue || 0).toFixed(2)}`} 
+                  value={`$${(data?.earnings?.estimatedRevenue || 0).toFixed(2)}`}
+                  colors={colors}
+                  styles={styles}
                 />
                 <EarningsMetric 
                   key="cpm"
                   label="CPM" 
-                  value={`$${(data?.earnings?.cpm || 0).toFixed(2)}`} 
+                  value={`$${(data?.earnings?.cpm || 0).toFixed(2)}`}
+                  colors={colors}
+                  styles={styles}
                 />
                 <EarningsMetric 
                   key="rpm"
                   label="RPM" 
-                  value={`$${(data?.earnings?.rpm || 0).toFixed(2)}`} 
+                  value={`$${(data?.earnings?.rpm || 0).toFixed(2)}`}
+                  colors={colors}
+                  styles={styles}
                 />
               </View>
               <View style={styles.chartContainer}>
-                <EarningsChart data={data?.earningsHistory?.map(h => h.revenue) || []} />
+                <EarningsChart data={data?.earningsHistory?.map(h => h.revenue) || []} colors={colors} styles={styles} />
               </View>
             </View>
 
@@ -171,7 +148,7 @@ export default function AdminMonetization() {
                 
                 <Text style={styles.recentPayoutsTitle}>Recent payouts</Text>
                 {payouts.slice(0, 3).map((payout, index) => (
-                  <PayoutItem key={`${payout.date}-${index}`} payout={payout} />
+                  <PayoutItem key={`${payout.date}-${index}`} payout={payout} colors={colors} styles={styles} />
                 ))}
               </View>
 
@@ -182,37 +159,44 @@ export default function AdminMonetization() {
                     key="ads"
                     icon="play-circle-filled" 
                     label="Ads" 
-                    value={`$${(data?.revenueBreakdown?.ads || 0).toFixed(0)}`} 
+                    value={`$${(data?.revenueBreakdown?.ads || 0).toFixed(0)}`}
+                    colors={colors}
+                    styles={styles}
                   />
                   <RevenueItem 
                     key="shorts"
                     icon="video-library" 
                     label="Shorts Fund" 
-                    value={`$${(data?.revenueBreakdown?.shorts || 0).toFixed(0)}`} 
+                    value={`$${(data?.revenueBreakdown?.shorts || 0).toFixed(0)}`}
+                    colors={colors}
+                    styles={styles}
                   />
                   <RevenueItem 
                     key="memberships"
                     icon="people" 
                     label="Memberships" 
-                    value={`$${(data?.revenueBreakdown?.memberships || 0).toFixed(0)}`} 
+                    value={`$${(data?.revenueBreakdown?.memberships || 0).toFixed(0)}`}
+                    colors={colors}
+                    styles={styles}
                   />
                   <RevenueItem 
                     key="superChat"
                     icon="attach-money" 
                     label="Super Chat" 
-                    value={`$${(data?.revenueBreakdown?.superChat || 0).toFixed(0)}`} 
+                    value={`$${(data?.revenueBreakdown?.superChat || 0).toFixed(0)}`}
+                    colors={colors}
+                    styles={styles}
                   />
                 </View>
               </View>
             </View>
           </ScrollView>
         )}
-      </LinearGradient>
-    </SafeAreaView>
+    </AdminLayout>
   );
 }
 
-function SectionHeader({ title }: { title: string }) {
+function SectionHeader({ title, colors, styles }: { title: string; colors: any; styles: any }) {
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -221,7 +205,7 @@ function SectionHeader({ title }: { title: string }) {
   );
 }
 
-function EligibilityPill({ label, value, met }: { label: string; value: string; met: boolean }) {
+function EligibilityPill({ label, value, met, colors, styles }: { label: string; value: string; met: boolean; colors: any; styles: any }) {
   return (
     <View style={[styles.eligibilityPill, met && styles.eligibilityPillMet]}>
       <Text style={[styles.eligibilityLabel, met && styles.eligibilityLabelMet]}>{label}</Text>
@@ -230,7 +214,7 @@ function EligibilityPill({ label, value, met }: { label: string; value: string; 
   );
 }
 
-function EarningsMetric({ label, value }: { label: string; value: string }) {
+function EarningsMetric({ label, value, colors, styles }: { label: string; value: string; colors: any; styles: any }) {
   return (
     <View style={styles.earningsMetric}>
       <Text style={styles.earningsLabel}>{label}</Text>
@@ -239,7 +223,7 @@ function EarningsMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function EarningsChart({ data }: { data: number[] }) {
+function EarningsChart({ data, colors, styles }: { data: number[]; colors: any; styles: any }) {
   const max = Math.max(1, ...data);
   return (
     <View style={styles.chartWrapper}>
@@ -250,7 +234,7 @@ function EarningsChart({ data }: { data: number[] }) {
   );
 }
 
-function PayoutItem({ payout }: { payout: PayoutRecord }) {
+function PayoutItem({ payout, colors, styles }: { payout: PayoutRecord; colors: any; styles: any }) {
   return (
     <View style={styles.payoutItem}>
       <Text style={styles.payoutAmount}>Paid ${payout.amount.toFixed(2)}</Text>
@@ -260,7 +244,7 @@ function PayoutItem({ payout }: { payout: PayoutRecord }) {
   );
 }
 
-function RevenueItem({ icon, label, value }: { icon: any; label: string; value: string }) {
+function RevenueItem({ icon, label, value, colors, styles }: { icon: any; label: string; value: string; colors: any; styles: any }) {
   return (
     <View style={styles.revenueItem}>
       <MaterialIcons name={icon} size={16} color={colors.text.primary} />
@@ -270,20 +254,7 @@ function RevenueItem({ icon, label, value }: { icon: any; label: string; value: 
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  gradient: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8 },
-  backButton: { padding: 8 },
-  title: { color: colors.text.primary, fontSize: 20, fontWeight: '700' },
-  subtitle: { color: colors.text.secondary, fontSize: 13, marginTop: 2 },
-  tabsRow: { paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
-  tab: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.08)' },
-  tabActive: { backgroundColor: 'rgba(255,255,255,0.2)' },
-  tabText: { color: colors.text.secondary, fontWeight: '600' },
-  tabTextActive: { color: colors.text.primary },
-  progressBarBg: { height: 8, backgroundColor: '#ffffff', opacity: 0.6, marginHorizontal: 16, borderRadius: 4, marginTop: 6 },
-  progressBarFill: { height: 8, backgroundColor: colors.primary, borderRadius: 4 },
+const createStyles = (colors: any) => StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 16 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 8 },
   sectionTitle: { color: colors.text.primary, fontSize: 16, fontWeight: '700' },
