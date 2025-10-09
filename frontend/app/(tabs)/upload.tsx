@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, Image, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, Image, StyleSheet, Dimensions, ActivityIndicator, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -250,37 +250,13 @@ export default function Upload() {
           {
             text: 'Upload Another',
             onPress: () => {
-              // Reset form for another upload
-              setTitle('');
-              setDescription('');
-              setTags('');
-              setVideoUri(null);
-              setThumbnailUri(null);
-              setVideoDuration(0);
-              setVideoType('normal');
-              setAspectRatio('16:9');
-              setIsScheduled(false);
-              const tomorrow = new Date();
-              tomorrow.setDate(tomorrow.getDate() + 1);
-              tomorrow.setHours(12, 0, 0, 0);
-              setScheduledDate(tomorrow);
+              resetForm();
             },
           },
           {
             text: 'Go Home',
             onPress: () => {
-              // Reset form and navigate to home
-              setTitle('');
-              setDescription('');
-              setTags('');
-              setVideoUri(null);
-              setThumbnailUri(null);
-              setVideoDuration(0);
-              setIsScheduled(false);
-              const tomorrow = new Date();
-              tomorrow.setDate(tomorrow.getDate() + 1);
-              tomorrow.setHours(12, 0, 0, 0);
-              setScheduledDate(tomorrow);
+              resetForm();
               router.push('/(tabs)/home');
             },
           },
@@ -333,6 +309,27 @@ export default function Upload() {
     return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
   };
   
+  // Helper function to reset form
+  const resetForm = () => {
+    setTitle('');
+    setDescription('');
+    setTags('');
+    setVideoUri(null);
+    setThumbnailUri(null);
+    setVideoDuration(0);
+    setVideoType('normal');
+    setAspectRatio('16:9');
+    setIsScheduled(false);
+    setIsCustomThumbnail(false);
+    setThumbnailGenerating(false);
+    setShowDatePicker(false);
+    setShowTimePicker(false);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(12, 0, 0, 0);
+    setScheduledDate(tomorrow);
+  };
+
   const handleCancel = () => {
     customAlert.show({
       title: 'Cancel Upload',
@@ -345,19 +342,7 @@ export default function Upload() {
           text: 'Cancel', 
           style: 'destructive',
           onPress: () => {
-            // Reset form and navigate back
-            setTitle('');
-            setDescription('');
-            setTags('');
-            setVideoUri(null);
-            setThumbnailUri(null);
-            setVideoDuration(0);
-            setVideoType('normal');
-            setIsScheduled(false);
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            tomorrow.setHours(12, 0, 0, 0);
-            setScheduledDate(tomorrow);
+            resetForm();
             router.back();
           }
         }
@@ -386,16 +371,14 @@ export default function Upload() {
             colors={[colors.gradientStart, colors.gradientEnd]}
             style={styles.container}
           >
-            <SafeAreaView style={styles.safeArea}>
+            <SafeAreaView style={styles.safeArea} edges={Platform.OS === 'ios' ? ['top'] : []}>
               {/* Header with Back Button */}
               <View style={styles.header}>
                 <TouchableOpacity onPress={handleCancel} style={styles.backButton}>
                   <Ionicons name="arrow-back" size={24} color="white" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Upload Video</Text>
-                <TouchableOpacity onPress={() => router.push('/admin')} style={styles.adminButton}>
-                  <MaterialIcons name="admin-panel-settings" size={20} color="white" />
-                </TouchableOpacity>
+                <View style={styles.headerSpacer} />
               </View>
             
             <ScrollView
@@ -651,9 +634,11 @@ export default function Upload() {
           <DateTimePicker
             value={scheduledDate}
             mode="date"
-            display="default"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
             onChange={(event: any, selectedDate?: Date) => {
-              setShowDatePicker(false);
+              if (Platform.OS === 'android') {
+                setShowDatePicker(false);
+              }
               if (selectedDate) {
                 setScheduledDate(selectedDate);
               }
@@ -667,9 +652,11 @@ export default function Upload() {
           <DateTimePicker
             value={scheduledDate}
             mode="time"
-            display="default"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
             onChange={(event: any, selectedTime?: Date) => {
-              setShowTimePicker(false);
+              if (Platform.OS === 'android') {
+                setShowTimePicker(false);
+              }
               if (selectedTime) {
                 const newDate = new Date(scheduledDate);
                 newDate.setHours(selectedTime.getHours());
@@ -934,10 +921,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  adminButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+  headerSpacer: {
+    width: 40, // Same width as the back button to maintain balance
   },
   // Schedule styles
   scheduleHeader: {

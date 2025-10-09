@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity, RefreshControl, Dimensions, Modal, TextInput, ScrollView } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity, RefreshControl, Dimensions, Modal, TextInput, ScrollView, Platform } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import ShortsPlayer from '../../components/ShortsPlayer';
@@ -294,7 +294,7 @@ export default function Shorts() {
   };
   
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={Platform.OS === 'ios' ? ['top'] : []}>
       <View style={styles.safeArea}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Shorts</Text>
@@ -355,6 +355,8 @@ export default function Shorts() {
         transparent
         animationType="slide"
         onRequestClose={() => setCommentsVisible(false)}
+        statusBarTranslucent={Platform.OS === 'android'}
+        hardwareAccelerated={Platform.OS === 'android'}
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.commentsModal}>
