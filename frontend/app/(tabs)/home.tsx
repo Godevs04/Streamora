@@ -10,7 +10,7 @@ import AuthRequiredWrapper from '../../components/AuthRequiredWrapper';
 import { getVideos } from '../../services/videos';
 import { Video, VideosApiResponse } from '../../types';
 import { useFocusEffect } from 'expo-router';
-import colors from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import CustomAlert from '../../components/CustomAlert';
 import { useCustomAlert } from '../../hooks/useCustomAlert';
 
@@ -21,6 +21,8 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState('Trending');
   const [searchQuery, setSearchQuery] = useState('');
   const customAlert = useCustomAlert();
+  const colors = useColors();
+  const styles = createStyles(colors);
 
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -291,7 +293,7 @@ export default function Home() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.primary,

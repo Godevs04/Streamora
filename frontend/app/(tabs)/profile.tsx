@@ -12,7 +12,7 @@ import useAuthStore from '../../store/useAuthStore';
 import { getDummyVideos } from '../../services/dummyData';
 import { getUserStats } from '../../services/user';
 import { Video } from '../../types';
-import colors from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import { formatCount } from '../../utils/formatDate';
 import { uploadImage } from '../../services/upload';
 import CustomAlert from '../../components/CustomAlert';
@@ -23,6 +23,8 @@ export default function Profile() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const customAlert = useCustomAlert();
+  const colors = useColors();
+  const styles = createStyles(colors);
   const [activeTab, setActiveTab] = useState<'videos' | 'liked'>('videos');
   const [profileStats, setProfileStats] = useState({
     followers: 0,
@@ -376,7 +378,7 @@ export default function Profile() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.primary,

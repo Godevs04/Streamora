@@ -10,7 +10,7 @@ import useAuthStore from '../store/useAuthStore';
 import { toggleLikeVideo } from '../services/videos';
 import { subscribeToUser as apiSubscribe, unsubscribeFromUser as apiUnsubscribe, checkSubscriptionStatus } from '../services/user';
 import { APP_ICONS } from '../utils/iconLoader';
-import colors from '../constants/colors';
+import { useColors } from '../hooks/useColors';
 import CustomAlert from './CustomAlert';
 import { useCustomAlert } from '../hooks/useCustomAlert';
 
@@ -28,6 +28,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
   const [subscribed, setSubscribed] = useState(false);
   const [imageLoadError, setImageLoadError] = useState(false);
   const customAlert = useCustomAlert();
+  const colors = useColors();
   
   // Check subscription status when component loads
   useEffect(() => {
@@ -389,15 +390,15 @@ const styles = StyleSheet.create({
   thumbnailContainer: {
     borderRadius: 0, // YouTube doesn't use rounded corners
     overflow: 'hidden',
-    backgroundColor: colors.background.primary,
+    backgroundColor: '#0F0F23', // Dark background
   },
   placeholderContainer: {
-    backgroundColor: colors.background.secondary,
+    backgroundColor: '#1E1B4B', // Secondary background
     justifyContent: 'center',
     alignItems: 'center',
   },
   placeholderText: {
-    color: colors.text.secondary,
+    color: '#A1A1AA', // Secondary text
     marginTop: 8,
     fontSize: 12,
   },
@@ -441,7 +442,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   titleText: {
-    color: colors.text.primary,
+    color: '#FFFFFF', // Primary text
     fontWeight: '500',
     fontSize: 15,
     lineHeight: 20,
@@ -452,16 +453,16 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   channelText: {
-    color: colors.text.secondary,
+    color: '#A1A1AA', // Secondary text
     fontSize: 13,
   },
   dotSeparator: {
-    color: colors.text.secondary,
+    color: '#A1A1AA', // Secondary text
     fontSize: 13,
     marginHorizontal: 4,
   },
   timeText: {
-    color: colors.text.secondary,
+    color: '#A1A1AA', // Secondary text
     fontSize: 13,
   },
   actionsContainer: {
@@ -487,7 +488,7 @@ const styles = StyleSheet.create({
   likeDislikeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background.tertiary,
+    backgroundColor: '#312E81', // Tertiary background
     borderRadius: 18,
     overflow: 'hidden',
     marginRight: 6,
@@ -501,7 +502,7 @@ const styles = StyleSheet.create({
   actionDivider: {
     width: 1,
     height: '60%',
-    backgroundColor: colors.darkGray,
+    backgroundColor: '#374151', // Dark gray
   },
   commentContainer: {
     flexDirection: 'row',
@@ -510,25 +511,25 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   actionText: {
-    color: colors.text.secondary,
+    color: '#A1A1AA', // Secondary text
     fontSize: 13,
     marginLeft: 6,
     fontWeight: '500',
   },
   likedText: {
-    color: colors.text.primary,
+    color: '#FFFFFF', // Primary text
   },
   subscribeButton: {
-    backgroundColor: colors.primary, // Dark blue instead of red
+    backgroundColor: '#6366F1', // Primary color
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 18,
   },
   subscribedButton: {
-    backgroundColor: colors.background.tertiary,
+    backgroundColor: '#312E81', // Tertiary background
   },
   subscribeText: {
-    color: colors.text.primary,
+    color: '#FFFFFF', // Primary text
     fontSize: 14,
     fontWeight: '500',
   },

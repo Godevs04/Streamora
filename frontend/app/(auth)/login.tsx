@@ -7,7 +7,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import useAuthStore from '../../store/useAuthStore';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
-import colors from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import { getEmailError, getPasswordError } from '../../utils/validators';
 import CustomAlert from '../../components/CustomAlert';
 import { useCustomAlert } from '../../hooks/useCustomAlert';
@@ -20,6 +20,7 @@ export default function Login() {
     password: '',
   });
   const customAlert = useCustomAlert();
+  const colors = useColors();
   
   const { login, isLoading } = useAuthStore();
   

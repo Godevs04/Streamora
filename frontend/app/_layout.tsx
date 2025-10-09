@@ -18,12 +18,103 @@ import {
 import { preloadIcons } from '../utils/iconLoader';
 import { Ionicons } from '@expo/vector-icons';
 import ErrorBoundary from '../components/ErrorBoundary';
-import colors from '../constants/colors';
+import { ThemeProvider } from '../contexts/ThemeContext';
+import { useColors } from '../hooks/useColors';
 
 // Prevent auto-hiding splash screen
 SplashScreen.preventAutoHideAsync().catch(err => {
   console.warn("Error preventing splash screen hide:", err);
 });
+
+// Component that uses theme-aware colors
+function ThemedStack() {
+  const colors = useColors();
+  
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false, // Disable headers globally - each screen handles its own
+        headerStyle: {
+          backgroundColor: colors.background.primary,
+        },
+        headerTintColor: colors.text.primary,
+        headerTitleStyle: {
+          fontWeight: 'bold',
+          fontSize: 18,
+        },
+        contentStyle: {
+          backgroundColor: colors.background.primary,
+        },
+        headerShadowVisible: false,
+      }}
+    >
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="(auth)/login"
+        options={{
+          title: 'Login',
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="(auth)/register"
+        options={{
+          title: 'Register',
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="(tabs)"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="profile/[userId]"
+        options={{
+          title: 'Profile',
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="video/[id]"
+        options={{
+          title: 'Video',
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="edit-profile"
+        options={{
+          title: 'Edit Profile',
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="settings"
+        options={{
+          title: 'Settings',
+          headerShown: false,
+        }}
+      />
+    </Stack>
+  );
+}
+
+// Component that uses theme-aware colors for loading screen
+function ThemedLoadingScreen() {
+  const colors = useColors();
+  
+  return (
+    <LinearGradient
+      colors={[colors.gradientStart, colors.gradientEnd]}
+      style={styles.container}
+    >
+      <ActivityIndicator size="large" color={colors.text.primary} />
+      <Text style={{ color: colors.text.primary, marginTop: 20 }}>Loading Streamora...</Text>
+    </LinearGradient>
+  );
+}
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -144,84 +235,14 @@ export default function RootLayout() {
     <ErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
-          <StatusBar style="light" />
-          {(!fontsLoaded || isLoading) && !forceRender ? (
-            <LinearGradient
-              colors={[colors.gradientStart || '#2563eb', colors.gradientEnd || '#000000']}
-              style={styles.container}
-            >
-              <ActivityIndicator size="large" color="#FFFFFF" />
-              <Text style={{ color: 'white', marginTop: 20 }}>Loading Streamora...</Text>
-            </LinearGradient>
-          ) : (
-            <Stack
-              screenOptions={{
-                headerShown: false, // Disable headers globally - each screen handles its own
-                headerStyle: {
-                  backgroundColor: colors.background.primary,
-                },
-                headerTintColor: colors.text.primary,
-                headerTitleStyle: {
-                  fontWeight: 'bold',
-                  fontSize: 18,
-                },
-                contentStyle: {
-                  backgroundColor: colors.background.primary,
-                },
-                headerShadowVisible: false,
-              }}
-            >
-              <Stack.Screen name="index" options={{ headerShown: false }} />
-              <Stack.Screen
-                name="(auth)/login"
-                options={{
-                  title: 'Login',
-                  headerShown: false,
-                }}
-              />
-              <Stack.Screen
-                name="(auth)/register"
-                options={{
-                  title: 'Register',
-                  headerShown: false,
-                }}
-              />
-              <Stack.Screen
-                name="(tabs)"
-                options={{
-                  headerShown: false,
-                }}
-              />
-              <Stack.Screen
-                name="profile/[userId]"
-                options={{
-                  title: 'Profile',
-                  headerShown: false,
-                }}
-              />
-              <Stack.Screen
-                name="video/[id]"
-                options={{
-                  title: 'Video',
-                  headerShown: false,
-                }}
-              />
-              <Stack.Screen
-                name="edit-profile"
-                options={{
-                  title: 'Edit Profile',
-                  headerShown: false,
-                }}
-              />
-              <Stack.Screen
-                name="settings"
-                options={{
-                  title: 'Settings',
-                  headerShown: false,
-                }}
-              />
-            </Stack>
-          )}
+          <ThemeProvider>
+            <StatusBar style="light" />
+            {(!fontsLoaded || isLoading) && !forceRender ? (
+              <ThemedLoadingScreen />
+            ) : (
+              <ThemedStack />
+            )}
+          </ThemeProvider>
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </ErrorBoundary>

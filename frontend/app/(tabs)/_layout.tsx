@@ -6,7 +6,7 @@ import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { APP_ICONS } from '../../utils/iconLoader';
-import colors from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import useAuthStore from '../../store/useAuthStore';
 import LoginPromptModal from '../../components/LoginPromptModal';
 
@@ -15,6 +15,7 @@ export default function TabsLayout() {
   const [modalVisible, setModalVisible] = useState(false);
   const [currentIntent, setCurrentIntent] = useState<{ type: 'post' | 'profile' }>({ type: 'post' });
   const insets = useSafeAreaInsets();
+  const colors = useColors();
   
   // Icons are now preloaded in the app's root layout
 

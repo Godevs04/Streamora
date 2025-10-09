@@ -11,7 +11,7 @@ import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import Button from '../../components/Button';
 import AuthRequiredWrapper from '../../components/AuthRequiredWrapper';
 import { uploadVideo } from '../../services/videos';
-import colors from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import config from '../../constants/config';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import CustomAlert from '../../components/CustomAlert';
@@ -39,6 +39,8 @@ export default function Upload() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const customAlert = useCustomAlert();
+  const colors = useColors();
+  const styles = createStyles(colors);
 
   // Initialize date/time pickers when scheduled is enabled
   const handleScheduleToggle = () => {
@@ -170,32 +172,35 @@ export default function Upload() {
   
   const handleUpload = async () => {
     if (!title.trim()) {
-      customAlert.show({
-        title: 'Error',
-        message: 'Please enter a title for your video',
-        type: 'error',
-        icon: 'error-outline'
-      });
+customAlert.show({
+  title: 'Error',
+  message: 'Please enter a title for your video',
+  type: 'error',
+  icon: 'error-outline',
+  verticalButtons: true
+});
       return;
     }
     
     if (!videoUri) {
-      customAlert.show({
-        title: 'Error',
-        message: 'Please select a video to upload',
-        type: 'error',
-        icon: 'error-outline'
-      });
+customAlert.show({
+  title: 'Error',
+  message: 'Please select a video to upload',
+  type: 'error',
+  icon: 'error-outline',
+  verticalButtons: true
+});
       return;
     }
     
     if (videoType === 'normal' && !thumbnailUri) {
-      customAlert.show({
-        title: 'Error',
-        message: 'Please select or generate a thumbnail for normal videos',
-        type: 'error',
-        icon: 'error-outline'
-      });
+customAlert.show({
+  title: 'Error',
+  message: 'Please select or generate a thumbnail for normal videos',
+  type: 'error',
+  icon: 'error-outline',
+  verticalButtons: true
+});
       return;
     }
     
@@ -239,6 +244,7 @@ export default function Upload() {
         message: 'Your video has been uploaded successfully!',
         type: 'success',
         icon: 'check-circle',
+        verticalButtons: true,
         buttons: [
           {
             text: 'View Content',
@@ -267,7 +273,8 @@ export default function Upload() {
         title: 'Upload Failed',
         message: error.message || 'Failed to upload video. Please try again.',
         type: 'error',
-        icon: 'error-outline'
+        icon: 'error-outline',
+        verticalButtons: true
       });
     } finally {
       setIsLoading(false);
@@ -336,6 +343,7 @@ export default function Upload() {
       message: 'Are you sure you want to cancel? All progress will be lost.',
       type: 'warning',
       icon: 'warning',
+      verticalButtons: true,
       buttons: [
         { text: 'Keep Editing', style: 'cancel' },
         { 
@@ -683,7 +691,7 @@ export default function Upload() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
   },

@@ -15,7 +15,7 @@ import { getVideoById, incrementVideoView, toggleLikeVideo } from '../../service
 import { checkSubscriptionStatus, subscribeToUser, unsubscribeFromUser } from '../../services/user';
 import { formatCount, formatRelativeTime, formatDuration } from '../../utils/formatDate';
 import { Video as VideoType } from '../../types';
-import colors from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import config from '../../constants/config';
 import useAuthStore from '../../store/useAuthStore';
 import CustomAlert from '../../components/CustomAlert';
@@ -26,6 +26,8 @@ export default function VideoPlayer() {
   const router = useRouter();
   const videoRef = useRef<Video>(null);
   const customAlert = useCustomAlert();
+  const colors = useColors();
+  const styles = createStyles(colors);
   const { user } = useAuthStore();
   const [video, setVideo] = useState<VideoType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -415,7 +417,8 @@ export default function VideoPlayer() {
       customAlert.show({
         title: 'Download',
         message: 'Opening video URL...',
-        type: 'info'
+        type: 'info',
+        verticalButtons: true
       });
     }
   };
@@ -760,7 +763,8 @@ export default function VideoPlayer() {
                           customAlert.show({
   title: 'Login Required',
   message: 'Please login to subscribe to channels',
-  type: 'warning'
+  type: 'warning',
+  verticalButtons: true
 });
                           return;
                         }
@@ -772,7 +776,8 @@ export default function VideoPlayer() {
                             customAlert.show({
   title: 'Error',
   message: 'Authentication token not found',
-  type: 'error'
+  type: 'error',
+  verticalButtons: true
 });
                             return;
                           }
@@ -827,7 +832,8 @@ export default function VideoPlayer() {
                           customAlert.show({
   title: 'Login Required',
   message: 'Please login to subscribe to channels',
-  type: 'warning'
+  type: 'warning',
+  verticalButtons: true
 });
                           return;
                         }
@@ -839,7 +845,8 @@ export default function VideoPlayer() {
                             customAlert.show({
   title: 'Error',
   message: 'Authentication token not found',
-  type: 'error'
+  type: 'error',
+  verticalButtons: true
 });
                             return;
                           }
@@ -1323,7 +1330,7 @@ export default function VideoPlayer() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
   },

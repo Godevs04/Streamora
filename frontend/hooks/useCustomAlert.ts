@@ -12,6 +12,7 @@ interface AlertOptions {
   buttons?: AlertButton[];
   type?: 'success' | 'error' | 'warning' | 'info';
   icon?: string;
+  verticalButtons?: boolean;
 }
 
 export function useCustomAlert() {
@@ -21,6 +22,7 @@ export function useCustomAlert() {
     message: '',
     buttons: [{ text: 'OK' }],
     type: 'info',
+    verticalButtons: false,
   });
 
   const showAlert = (config: AlertOptions) => {

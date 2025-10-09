@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet, Dimensions, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import colors from '../constants/colors';
+import { useColors } from '../hooks/useColors';
 
 interface AlertButton {
   text: string;
@@ -18,6 +18,7 @@ interface CustomAlertProps {
   onClose: () => void;
   type?: 'success' | 'error' | 'warning' | 'info';
   icon?: string;
+  verticalButtons?: boolean;
 }
 
 const { width } = Dimensions.get('window');
@@ -29,8 +30,10 @@ export default function CustomAlert({
   buttons = [{ text: 'OK' }],
   onClose,
   type = 'info',
-  icon
+  icon,
+  verticalButtons = false
 }: CustomAlertProps) {
+  const colors = useColors();
   const getTypeConfig = () => {
     switch (type) {
       case 'success':
@@ -116,20 +119,24 @@ export default function CustomAlert({
               </View>
             </View>
             
-            <Text style={styles.title}>{title}</Text>
+            <Text style={[styles.title, { color: colors.text.primary }]}>{title}</Text>
             
             {message && (
-              <Text style={styles.message}>{message}</Text>
+              <Text style={[styles.message, { color: colors.text.secondary }]}>{message}</Text>
             )}
             
-            <View style={styles.buttonContainer}>
+            <View style={[
+              styles.buttonContainer,
+              verticalButtons && styles.verticalButtonContainer
+            ]}>
               {buttons.map((button, index) => (
                 <TouchableOpacity
                   key={index}
                   style={[
                     styles.button,
                     getButtonStyle(button.style),
-                    buttons.length === 1 && styles.singleButton
+                    buttons.length === 1 && styles.singleButton,
+                    verticalButtons && styles.verticalButton
                   ]}
                   onPress={() => handleButtonPress(button)}
                 >
@@ -193,6 +200,10 @@ const styles = StyleSheet.create({
     gap: 12,
     width: '100%',
   },
+  verticalButtonContainer: {
+    flexDirection: 'column',
+    gap: 8,
+  },
   button: {
     flex: 1,
     paddingVertical: 12,
@@ -200,12 +211,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
   },
+  verticalButton: {
+    flex: 0,
+    width: '100%',
+    marginBottom: 4,
+  },
   singleButton: {
     flex: 0,
     minWidth: 120,
   },
   defaultButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: '#6366F1', // Primary color
   },
   cancelButton: {
     backgroundColor: 'rgba(255,255,255,0.2)',

@@ -6,7 +6,7 @@ import ShortsPlayer from '../../components/ShortsPlayer';
 import { getVideos, toggleLikeVideo, getVideoComments, addComment } from '../../services/videos';
 import { subscribeToUser, unsubscribeFromUser, checkSubscriptionStatus } from '../../services/user';
 import { Video, Comment } from '../../types';
-import colors from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import useAuthStore from '../../store/useAuthStore';
 import Avatar from '../../components/Avatar';
 import CustomAlert from '../../components/CustomAlert';
@@ -21,6 +21,8 @@ export default function Shorts() {
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [currentVideoId, setCurrentVideoId] = useState<string | null>(null);
   const customAlert = useCustomAlert();
+  const colors = useColors();
+  const styles = createStyles(colors);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -436,7 +438,7 @@ export default function Shorts() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.primary,
