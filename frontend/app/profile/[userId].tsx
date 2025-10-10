@@ -7,7 +7,7 @@ import Avatar from '../../components/Avatar';
 import VideoCard from '../../components/VideoCard';
 import useAuthStore from '../../store/useAuthStore';
 import { getUserProfile, getPublicUserStats, subscribeToUser as apiSubscribe, unsubscribeFromUser as apiUnsubscribe } from '../../services/user';
-import { getVideos } from '../../services/videos';
+import { getVideos, getLikedVideos } from '../../services/videos';
 import { Video, User } from '../../types';
 import { useColors } from '../../hooks/useColors';
 import config from '../../constants/config';
@@ -21,8 +21,10 @@ export default function ProfileView() {
   const styles = createStyles(colors);
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
+  const [likedVideos, setLikedVideos] = useState<Video[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isVideosLoading, setIsVideosLoading] = useState(true);
+  const [isLoadingLiked, setIsLoadingLiked] = useState(false);
   const [activeTab, setActiveTab] = useState<'videos' | 'liked'>('videos');
   const [profileStats, setProfileStats] = useState({
     followers: 0,
@@ -41,6 +43,28 @@ export default function ProfileView() {
       fetchStats();
     }
   }, [userId]);
+
+  // Fetch liked videos when tab changes
+  useEffect(() => {
+    if (activeTab === 'liked' && isOwnProfile) {
+      fetchLikedVideos();
+    }
+  }, [activeTab]);
+
+  const fetchLikedVideos = async () => {
+    setIsLoadingLiked(true);
+    
+    try {
+      const response = await getLikedVideos();
+      setLikedVideos(response.data.videos || []);
+    } catch (error) {
+      console.error('Error fetching liked videos:', error);
+      setLikedVideos([]);
+    } finally {
+      setIsLoadingLiked(false);
+    }
+  };
+
   const fetchStats = async () => {
     try {
       const { token } = useAuthStore.getState();
@@ -90,18 +114,8 @@ export default function ProfileView() {
           }
         } catch (apiError) {
           console.error('API error:', apiError);
-          // Fallback to dummy data for demo purposes
-          setProfileUser({
-            _id: userId || '',
-            name: 'Demo User',
-            username: 'demouser',
-            email: 'demo@example.com',
-            avatarUrl: '',
-            bio: 'Content creator & filmmaker. Exploring premium mobile experiences and visual storytelling.',
-            roles: ['user'],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          });
+          // Show error state instead of dummy data
+          setProfileUser(null);
         }
       }
     } catch (error) {
@@ -278,7 +292,10 @@ export default function ProfileView() {
   );
 
   const renderVideoGrid = () => {
-    if (isVideosLoading) {
+    const currentVideos = activeTab === 'videos' ? videos : likedVideos;
+    const currentLoading = activeTab === 'videos' ? isVideosLoading : isLoadingLiked;
+
+    if (currentLoading) {
       return (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -286,13 +303,22 @@ export default function ProfileView() {
       );
     }
 
-    if (videos.length === 0) {
+    if (currentVideos.length === 0) {
       return (
         <View style={styles.emptyContainer}>
-          <MaterialIcons name="videocam" size={48} color={colors.text.secondary} />
-          <Text style={styles.emptyTitle}>No videos yet</Text>
+          <MaterialIcons 
+            name={activeTab === 'videos' ? 'videocam' : 'favorite-border'} 
+            size={48} 
+            color={colors.text.secondary} 
+          />
+          <Text style={styles.emptyTitle}>
+            {activeTab === 'videos' ? 'No videos yet' : 'No liked videos'}
+          </Text>
           <Text style={styles.emptySubtitle}>
-            {isOwnProfile ? 'Upload your first video to get started' : 'This user hasn\'t uploaded any videos yet'}
+            {activeTab === 'videos' 
+              ? (isOwnProfile ? 'Upload your first video to get started' : 'This user hasn\'t uploaded any videos yet')
+              : 'Videos you like will appear here'
+            }
           </Text>
         </View>
       );
@@ -300,7 +326,7 @@ export default function ProfileView() {
 
     return (
       <FlatList
-        data={videos}
+        data={currentVideos}
         keyExtractor={(item, index) => item._id || `user-video-${index}`}
         renderItem={({ item }) => (
           <VideoCard 

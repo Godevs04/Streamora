@@ -1135,7 +1135,7 @@ export default function VideoPlayer() {
                   <TouchableOpacity style={styles.sheetRow} onPress={() => {
                     customAlert.show({
                       title: 'Video Info',
-                      message: `Title: ${video?.title}\nDuration: ${video?.duration}s\nViews: ${video?.views || 0}`,
+                      message: `Title: ${video?.title}\nDuration: ${formatDuration(typeof video?.duration === 'number' && video?.duration > 1000 ? Math.round(video?.duration / 1000) : (video?.duration || 0))}\nViews: ${video?.views || 0}`,
                       type: 'info'
                     });
                   }}>

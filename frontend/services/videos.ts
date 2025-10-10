@@ -127,6 +127,27 @@ export const publishScheduledVideo = async (id: string): Promise<ApiResponse<Vid
 };
 
 /**
+ * Get videos by user ID
+ * @param userId - User ID
+ * @param params - Pagination parameters
+ * @returns Promise with user videos response
+ */
+export const getUserVideos = async (userId: string, params: PaginationParams = {}): Promise<VideosApiResponse> => {
+  const { page = config.PAGINATION.DEFAULT_PAGE, limit = config.PAGINATION.DEFAULT_LIMIT } = params;
+  return api.get(`/users/${userId}/videos`, { params: { page, limit } });
+};
+
+/**
+ * Get liked videos by current user
+ * @param params - Pagination parameters
+ * @returns Promise with liked videos response
+ */
+export const getLikedVideos = async (params: PaginationParams = {}): Promise<VideosApiResponse> => {
+  const { page = config.PAGINATION.DEFAULT_PAGE, limit = config.PAGINATION.DEFAULT_LIMIT } = params;
+  return api.get('/users/me/liked-videos', { params: { page, limit } });
+};
+
+/**
  * Increment video view count
  * @param id - Video ID
  * @returns Promise with view response

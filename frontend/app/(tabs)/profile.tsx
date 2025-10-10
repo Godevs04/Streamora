@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, FlatList, ActivityIndicator, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, FlatList, ActivityIndicator, StyleSheet, Dimensions, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -9,11 +9,11 @@ import VideoCard from '../../components/VideoCard';
 import Button from '../../components/Button';
 import AuthRequiredWrapper from '../../components/AuthRequiredWrapper';
 import useAuthStore from '../../store/useAuthStore';
-import { getDummyVideos } from '../../services/dummyData';
+import { getUserVideos, getLikedVideos } from '../../services/videos';
 import { getUserStats } from '../../services/user';
 import { Video } from '../../types';
 import { useColors } from '../../hooks/useColors';
-import { formatCount } from '../../utils/formatDate';
+import { formatCount, formatDuration } from '../../utils/formatDate';
 import { uploadImage } from '../../services/upload';
 import CustomAlert from '../../components/CustomAlert';
 import { useCustomAlert } from '../../hooks/useCustomAlert';
@@ -21,7 +21,9 @@ import { useCustomAlert } from '../../hooks/useCustomAlert';
 export default function Profile() {
   const { user, logout, updateUser } = useAuthStore();
   const [videos, setVideos] = useState<Video[]>([]);
+  const [likedVideos, setLikedVideos] = useState<Video[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingLiked, setIsLoadingLiked] = useState(false);
   const customAlert = useCustomAlert();
   const colors = useColors();
   const styles = createStyles(colors);
@@ -43,6 +45,13 @@ export default function Profile() {
       fetchUserVideos();
     }
   }, [user]);
+
+  // Fetch liked videos when tab changes
+  useEffect(() => {
+    if (activeTab === 'liked') {
+      fetchLikedVideos();
+    }
+  }, [activeTab]);
   
   const fetchUserVideos = async () => {
     if (!user) return;
@@ -50,57 +59,72 @@ export default function Profile() {
     setIsLoading(true);
     
     try {
-      // Get dummy videos and filter by the current user
-      const allVideos = getDummyVideos();
-      const userVideos = allVideos.filter(video => video.owner._id === user._id);
-      
-      // Calculate real statistics from user's videos
-      const totalLikes = userVideos.reduce((sum, video) => sum + (video.likesCount || 0), 0);
-      const totalViews = userVideos.reduce((sum, video) => sum + (video.views || 0), 0);
-      
-      setVideos(userVideos);
+      // Fetch user's uploaded videos from API
+      const response = await getUserVideos(user._id);
+      setVideos(response.data.videos || []);
 
       // Fetch real stats from API
       try {
         const { token } = useAuthStore.getState();
         if (token) {
-          const response = await getUserStats(token);
-          if (response?.success) {
-            const data = response.data;
+          const statsResponse = await getUserStats(token);
+          if (statsResponse?.success) {
+            const data = statsResponse.data;
             setProfileStats({
               followers: data.followers || 0,
               following: data.following || 0,
-              likes: totalLikes,
-              uploads: data.totalVideos ?? userVideos.length,
+              likes: data.totalLikes || 0,
+              uploads: data.totalVideos || 0,
             });
           } else {
+            // Fallback to calculated stats
+            const totalLikes = response.data.videos?.reduce((sum, video) => sum + (video.likesCount || 0), 0) || 0;
             setProfileStats({
               followers: 0,
               following: 0,
               likes: totalLikes,
-              uploads: userVideos.length,
+              uploads: response.data.videos?.length || 0,
             });
           }
         } else {
+          // Fallback to calculated stats
+          const totalLikes = response.data.videos?.reduce((sum, video) => sum + (video.likesCount || 0), 0) || 0;
           setProfileStats({
             followers: 0,
             following: 0,
             likes: totalLikes,
-            uploads: userVideos.length,
+            uploads: response.data.videos?.length || 0,
           });
         }
       } catch (e) {
+        // Fallback to calculated stats
+        const totalLikes = response.data.videos?.reduce((sum, video) => sum + (video.likesCount || 0), 0) || 0;
         setProfileStats({
           followers: 0,
           following: 0,
           likes: totalLikes,
-          uploads: userVideos.length,
+          uploads: response.data.videos?.length || 0,
         });
       }
     } catch (error) {
       console.error('Error fetching user videos:', error);
+      setVideos([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchLikedVideos = async () => {
+    setIsLoadingLiked(true);
+    
+    try {
+      const response = await getLikedVideos();
+      setLikedVideos(response.data.videos || []);
+    } catch (error) {
+      console.error('Error fetching liked videos:', error);
+      setLikedVideos([]);
+    } finally {
+      setIsLoadingLiked(false);
     }
   };
   
@@ -302,7 +326,10 @@ export default function Profile() {
   );
 
   const renderVideoGrid = (showAuthModal: any) => {
-    if (isLoading) {
+    const currentVideos = activeTab === 'videos' ? videos : likedVideos;
+    const currentLoading = activeTab === 'videos' ? isLoading : isLoadingLiked;
+
+    if (currentLoading) {
       return (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -310,38 +337,68 @@ export default function Profile() {
       );
     }
 
-    if (videos.length === 0) {
+    if (currentVideos.length === 0) {
       return (
         <View style={styles.emptyContainer}>
-          <MaterialIcons name="videocam" size={48} color={colors.text.secondary} />
-          <Text style={styles.emptyTitle}>No videos yet</Text>
-          <Text style={styles.emptySubtitle}>Upload your first video to get started</Text>
-          <TouchableOpacity
-            style={styles.uploadButton}
-            onPress={() => router.push('/(tabs)/upload')}
-          >
-            <Text style={styles.uploadButtonText}>Upload Video</Text>
-          </TouchableOpacity>
+          <MaterialIcons 
+            name={activeTab === 'videos' ? 'videocam' : 'favorite-border'} 
+            size={48} 
+            color={colors.text.secondary} 
+          />
+          <Text style={styles.emptyTitle}>
+            {activeTab === 'videos' ? 'No videos yet' : 'No liked videos'}
+          </Text>
+          <Text style={styles.emptySubtitle}>
+            {activeTab === 'videos' 
+              ? 'Upload your first video to get started' 
+              : 'Videos you like will appear here'
+            }
+          </Text>
+          {activeTab === 'videos' && (
+            <TouchableOpacity
+              style={styles.uploadButton}
+              onPress={() => router.push('/(tabs)/upload')}
+            >
+              <Text style={styles.uploadButtonText}>Upload Video</Text>
+            </TouchableOpacity>
+          )}
         </View>
       );
     }
 
     return (
-      <FlatList
-        data={videos}
-        keyExtractor={(item, index) => item._id || `profile-video-${index}`}
-        renderItem={({ item }) => (
-          <VideoCard 
-            video={item} 
-            variant="compact" 
-            showAuthModal={(intent) => Boolean(showAuthModal(intent))} 
-          />
-        )}
-        numColumns={2}
-        scrollEnabled={false}
-        contentContainerStyle={styles.videoGrid}
-        columnWrapperStyle={styles.videoRow}
-      />
+      <View style={styles.videoGridContainer}>
+        {currentVideos.map((video, index) => (
+          <TouchableOpacity
+            key={video._id || `video-${index}`}
+            style={styles.videoGridItem}
+            onPress={() => {
+              if (video.type === 'shorts') {
+                router.push(`/(tabs)/explore?videoId=${video._id}`);
+              } else {
+                router.push(`/video/${video._id}`);
+              }
+            }}
+          >
+            <Image
+              source={{ uri: video.thumbnailUrl }}
+              style={styles.videoThumbnail}
+              resizeMode="cover"
+            />
+            <View style={styles.videoOverlay}>
+              <View style={styles.videoStats}>
+                <MaterialIcons name="play-arrow" size={16} color="white" />
+                <Text style={styles.videoViews}>{formatCount(video.views || 0)}</Text>
+              </View>
+              <View style={styles.videoDuration}>
+                <Text style={styles.durationText}>
+                  {formatDuration(typeof video.duration === 'number' && video.duration > 1000 ? Math.round(video.duration / 1000) : (video.duration || 0))}
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
     );
   };
 
@@ -598,12 +655,56 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   
   // Video Grid Styles
-  videoGrid: {
-    paddingHorizontal: 16,
+  videoGridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 8,
     paddingBottom: 80,
-  },
-  videoRow: {
     justifyContent: 'space-between',
+  },
+  videoGridItem: {
+    width: '48%',
+    aspectRatio: 9/16,
+    marginBottom: 8,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: colors.background.secondary,
+  },
+  videoThumbnail: {
+    width: '100%',
+    height: '100%',
+  },
+  videoOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    padding: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  videoStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  videoViews: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  videoDuration: {
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  durationText: {
+    color: 'white',
+    fontSize: 11,
+    fontWeight: '500',
   },
   
   // Loading and Empty States

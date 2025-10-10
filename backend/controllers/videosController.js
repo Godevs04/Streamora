@@ -28,8 +28,8 @@ const createVideo = async (req, res, next) => {
         
         videoUrl = videoResult.secure_url;
         
-        // Get video duration from Cloudinary response
-        const videoDuration = videoResult.duration || 0;
+        // Get video duration from Cloudinary response (convert to milliseconds to match frontend)
+        const videoDuration = videoResult.duration ? Math.round(videoResult.duration * 1000) : 0;
         
         // Delete local video file after upload
         fs.unlinkSync(req.files.video[0].path);
@@ -103,7 +103,7 @@ const createVideo = async (req, res, next) => {
       videoUrl,
       thumbnailUrl,
       thumbnailAspectRatio: type === 'shorts' ? '9:16' : (thumbnailAspectRatio || '16:9'),
-      duration: duration || 0,
+      duration: duration || videoDuration || 0,
       tags: tags ? JSON.parse(tags) : [],
       type: type || 'normal',
       status: videoStatus,

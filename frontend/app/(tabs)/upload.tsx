@@ -117,7 +117,7 @@ export default function Upload() {
         
         setVideoUri(asset.uri);
         
-        // Set video duration if available
+        // Set video duration if available (keep in milliseconds to match backend)
         if (asset.duration) {
           setVideoDuration(Math.round(asset.duration));
         }

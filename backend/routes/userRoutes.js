@@ -8,6 +8,7 @@ const {
   updateUserAvatar,
   getUserStats,
   getUserVideos,
+  getLikedVideos,
   subscribeToUser,
   unsubscribeFromUser,
   getPublicUserStats,
@@ -69,8 +70,11 @@ router.put('/profile', updateProfileValidation, updateUserProfile);
 // PUT /api/user/avatar - Update user avatar
 router.put('/avatar', updateAvatarValidation, updateUserAvatar);
 
-// GET /api/user/:userId/videos - Get user videos
-router.get('/:userId/videos', getUserVideos);
+// GET /api/user/me/liked-videos - Get liked videos by current user
+router.get('/me/liked-videos', protect, getLikedVideos);
+
+// GET /api/user/:id/videos - Get user videos
+router.get('/:id/videos', getUserVideos);
 
 // POST /api/user/:userId/subscribe - Subscribe to a user
 router.post('/:userId/subscribe', subscribeToUser);

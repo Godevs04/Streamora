@@ -118,8 +118,12 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
   
   // Handle video press
   const handlePress = () => {
-    // Navigate to video player
-    router.push(`/video/${video._id}`);
+    // Navigate to video player or explore page for shorts
+    if (video.type === 'shorts') {
+      router.push(`/(tabs)/explore?videoId=${video._id}`);
+    } else {
+      router.push(`/video/${video._id}`);
+    }
   };
   
   // Handle profile press
@@ -356,7 +360,13 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
               </View>
 
               {/* Comments */}
-              <TouchableOpacity style={styles.commentContainer} onPress={() => router.push({ pathname: `/video/${video._id}`, params: { focus: 'comments' } as any })}>
+              <TouchableOpacity style={styles.commentContainer} onPress={() => {
+                if (video.type === 'shorts') {
+                  router.push(`/(tabs)/explore?videoId=${video._id}`);
+                } else {
+                  router.push({ pathname: `/video/${video._id}`, params: { focus: 'comments' } as any });
+                }
+              }}>
                 <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.text.secondary} />
                 <Text style={styles.actionText}>
                   {formatCount(
