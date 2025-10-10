@@ -303,6 +303,78 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
+/**
+ * Send admin reset OTP
+ * @route POST /api/auth/admin/reset-otp
+ * @access Public
+ */
+const sendAdminResetOTP = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    // Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return sendErrorResponse(res, 404, 'User not found');
+    }
+
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Store OTP in user document (you might want to use a separate collection for OTPs)
+    user.adminResetOTP = otp;
+    user.adminResetOTPExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    await user.save();
+
+    // Send OTP email
+    await sendOTPEmail(email, otp, 'Admin Access Reset');
+
+    sendSuccessResponse(res, 200, { message: 'Admin reset OTP sent successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Verify admin reset OTP
+ * @route POST /api/auth/admin/verify-reset-otp
+ * @access Public
+ */
+const verifyAdminResetOTP = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+
+    // Find user
+    const user = await User.findOne({ email });
+    if (!user) {
+      return sendErrorResponse(res, 404, 'User not found');
+    }
+
+    // Check if OTP exists and is not expired
+    if (!user.adminResetOTP || !user.adminResetOTPExpiry) {
+      return sendErrorResponse(res, 400, 'No reset OTP found');
+    }
+
+    if (new Date() > user.adminResetOTPExpiry) {
+      return sendErrorResponse(res, 400, 'Reset OTP has expired');
+    }
+
+    // Verify OTP
+    if (user.adminResetOTP !== otp) {
+      return sendErrorResponse(res, 400, 'Invalid OTP');
+    }
+
+    // Clear OTP
+    user.adminResetOTP = undefined;
+    user.adminResetOTPExpiry = undefined;
+    await user.save();
+
+    sendSuccessResponse(res, 200, { message: 'Admin reset OTP verified successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -311,5 +383,7 @@ module.exports = {
   resendOTP,
   forgotPassword,
   verifyForgotOTP,
-  resetPassword
+  resetPassword,
+  sendAdminResetOTP,
+  verifyAdminResetOTP
 };

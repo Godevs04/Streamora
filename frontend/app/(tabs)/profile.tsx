@@ -299,7 +299,10 @@ export default function Profile() {
 
   const renderActionButtons = () => (
     <View style={styles.actionButtonsContainer}>
-      <TouchableOpacity style={styles.subscribeButton}>
+      <TouchableOpacity 
+        style={styles.subscribeButton}
+        onPress={() => router.push('/admin')}
+      >
         <Text style={styles.subscribeButtonText}>Creator Studio</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.shareButton}>

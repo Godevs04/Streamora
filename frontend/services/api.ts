@@ -33,8 +33,13 @@ api.interceptors.response.use(
     return response.data;
   },
   (error) => {
-    // Use console.warn to avoid triggering RedBox in development for handled 4xx/5xx
-    console.warn('API Warning:', error?.response?.status, error?.response?.data?.message || error?.message);
+    // Don't log warnings for admin authentication endpoints to avoid console spam
+    const isAdminAuthEndpoint = error?.config?.url?.includes('/admin-auth/');
+    
+    if (!isAdminAuthEndpoint) {
+      // Use console.warn to avoid triggering RedBox in development for handled 4xx/5xx
+      console.warn('API Warning:', error?.response?.status, error?.response?.data?.message || error?.message);
+    }
     
     // Handle network errors
     if (!error.response) {

@@ -20,6 +20,7 @@ const commentRoutes = require('./routes/commentRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const adminAuthRoutes = require('./routes/adminAuthRoutes');
 
 // Import middleware
 const errorHandler = require('./middlewares/errorHandler');
@@ -75,6 +76,7 @@ app.use('/api', commentRoutes); // Using /api prefix for nested routes
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin-auth', adminAuthRoutes);
 
 // Health check route - accessible without auth
 app.get('/health', (req, res) => {
