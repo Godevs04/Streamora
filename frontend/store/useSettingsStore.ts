@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface SettingsState {
   // Theme settings
@@ -92,6 +93,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'settings-storage',
+      storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         theme: state.theme,
         language: state.language,

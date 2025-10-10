@@ -84,13 +84,22 @@ const Button: React.FC<ButtonProps> = ({
     >
       {variant === 'primary' ? (
         <LinearGradient
-          colors={[colors.gradientStart, colors.gradientEnd]}
+          colors={['#818CF8', '#6366F1']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={[
             getButtonStyle(),
             sizeStyles[size],
-            { alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }
+            { 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              flexDirection: 'row',
+              shadowColor: '#818CF8',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 6,
+            }
           ]}
         >
           {isLoading ? (
@@ -100,7 +109,7 @@ const Button: React.FC<ButtonProps> = ({
               {icon && <>{icon}</>}
               <Text style={[
                 textSizeStyles[size],
-                { color: getTextColor(), fontWeight: '500' },
+                { color: getTextColor(), fontWeight: '600' },
                 icon ? { marginLeft: 8 } : {}
               ]}>
                 {title}
@@ -127,7 +136,7 @@ const Button: React.FC<ButtonProps> = ({
               {icon && <>{icon}</>}
               <Text style={[
                 textSizeStyles[size],
-                { color: getTextColor(), fontWeight: '500' },
+                { color: getTextColor(), fontWeight: '600' },
                 icon ? { marginLeft: 8 } : {}
               ]}>
                 {title}

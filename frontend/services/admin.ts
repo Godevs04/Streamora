@@ -161,6 +161,7 @@ export const fetchContent = async (): Promise<ContentData> => {
   } catch (error) {
     console.warn('Content endpoint not available, using video data fallback');
     const videos = await fetchLatestVideos();
+    const scheduledVideos = await fetchScheduledVideos();
     return {
       uploads: videos.map(v => ({
         _id: v._id,
@@ -175,8 +176,27 @@ export const fetchContent = async (): Promise<ContentData> => {
         thumbnailUrl: videos[i]?.thumbnailUrl,
         status: videos[i] ? 'uploaded' as const : 'empty' as const,
       })),
-      scheduledPosts: [],
+      scheduledPosts: scheduledVideos.map(v => ({
+        _id: v._id,
+        title: v.title,
+        scheduledFor: v.scheduledDate,
+        thumbnailUrl: v.thumbnailUrl,
+        type: v.type,
+      })),
     };
+  }
+};
+
+/**
+ * Fetch scheduled videos
+ */
+export const fetchScheduledVideos = async () => {
+  try {
+    const res = await api.get(config.API.ENDPOINTS.VIDEOS.SCHEDULED);
+    return res.data.videos || [];
+  } catch (error) {
+    console.error('Error fetching scheduled videos:', error);
+    return [];
   }
 };
 

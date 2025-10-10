@@ -1,6 +1,6 @@
 const express = require('express');
 const { check } = require('express-validator');
-const { register, login, getMe, verifyEmail, resendOTP, forgotPassword, verifyForgotOTP, resetPassword } = require('../controllers/authController');
+const { register, login, getMe, verifyEmail, resendOTP, forgotPassword, verifyForgotOTP, resetPassword, sendAdminResetOTP, verifyAdminResetOTP } = require('../controllers/authController');
 const { protect } = require('../middlewares/auth');
 const validate = require('../middlewares/validate');
 
@@ -118,5 +118,34 @@ router.post(
  * @access Private
  */
 router.get('/me', protect, getMe);
+
+/**
+ * @route POST /api/auth/admin/reset-otp
+ * @desc Send admin reset OTP
+ * @access Public
+ */
+router.post(
+  '/admin/reset-otp',
+  [
+    check('email', 'Please include a valid email').isEmail()
+  ],
+  validate,
+  sendAdminResetOTP
+);
+
+/**
+ * @route POST /api/auth/admin/verify-reset-otp
+ * @desc Verify admin reset OTP
+ * @access Public
+ */
+router.post(
+  '/admin/verify-reset-otp',
+  [
+    check('email', 'Please include a valid email').isEmail(),
+    check('otp', 'OTP is required').notEmpty().isLength({ min: 6, max: 6 })
+  ],
+  validate,
+  verifyAdminResetOTP
+);
 
 module.exports = router;

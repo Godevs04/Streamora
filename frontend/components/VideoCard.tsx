@@ -118,8 +118,12 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
   
   // Handle video press
   const handlePress = () => {
-    // Navigate to video player
-    router.push(`/video/${video._id}`);
+    // Navigate to video player or explore page for shorts
+    if (video.type === 'shorts') {
+      router.push(`/(tabs)/explore?videoId=${video._id}`);
+    } else {
+      router.push(`/video/${video._id}`);
+    }
   };
   
   // Handle profile press
@@ -340,38 +344,47 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, variant = 'default', showA
             </Text>
           </View>
           
-          <View style={[styles.actionsRow, variant === 'compact' && styles.actionsRowCompact]}>
-            {/* Like/Dislike */}
-            <View style={styles.likeDislikeContainer}>
-              <TouchableOpacity style={styles.actionButton} onPress={handleLikePress}>
-                <Ionicons name={liked ? 'heart' : 'heart-outline'} size={18} color={liked ? colors.text.primary : colors.text.secondary} />
-                <Text style={[styles.actionText, liked && styles.likedText]}>{formatCount(typeof likesCount === 'number' ? likesCount : 0)}</Text>
+          <View style={styles.actionsContainer}>
+            {/* Action buttons */}
+            <View style={[styles.actionsRow, variant === 'compact' && styles.actionsRowCompact]}>
+              {/* Like/Dislike */}
+              <View style={styles.likeDislikeContainer}>
+                <TouchableOpacity style={styles.actionButton} onPress={handleLikePress}>
+                  <Ionicons name={liked ? 'heart' : 'heart-outline'} size={18} color={liked ? colors.text.primary : colors.text.secondary} />
+                  <Text style={[styles.actionText, liked && styles.likedText]}>{formatCount(typeof likesCount === 'number' ? likesCount : 0)}</Text>
+                </TouchableOpacity>
+                <View style={styles.actionDivider} />
+                <TouchableOpacity style={styles.actionButton} onPress={handleDislikePress}>
+                  <Ionicons name="thumbs-down-outline" size={18} color={colors.text.secondary} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Comments */}
+              <TouchableOpacity style={styles.commentContainer} onPress={() => {
+                if (video.type === 'shorts') {
+                  router.push(`/(tabs)/explore?videoId=${video._id}`);
+                } else {
+                  router.push({ pathname: `/video/${video._id}`, params: { focus: 'comments' } as any });
+                }
+              }}>
+                <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.text.secondary} />
+                <Text style={styles.actionText}>
+                  {formatCount(
+                    typeof (video as any).commentsCount === 'number'
+                      ? (video as any).commentsCount
+                      : (Array.isArray(video.comments) ? video.comments.length : 0)
+                  )}
+                </Text>
               </TouchableOpacity>
-              <View style={styles.actionDivider} />
-              <TouchableOpacity style={styles.actionButton} onPress={handleDislikePress}>
-                <Ionicons name="thumbs-down-outline" size={18} color={colors.text.secondary} />
+
+              {/* Share */}
+              <TouchableOpacity style={styles.commentContainer} onPress={handleSharePress}>
+                <Ionicons name="share-social-outline" size={18} color={colors.text.secondary} />
+                <Text style={styles.actionText}></Text>
               </TouchableOpacity>
             </View>
 
-            {/* Comments */}
-            <TouchableOpacity style={styles.commentContainer} onPress={() => router.push({ pathname: `/video/${video._id}`, params: { focus: 'comments' } as any })}>
-              <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.text.secondary} />
-              <Text style={styles.actionText}>
-                {formatCount(
-                  typeof (video as any).commentsCount === 'number'
-                    ? (video as any).commentsCount
-                    : (Array.isArray(video.comments) ? video.comments.length : 0)
-                )}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Share */}
-            <TouchableOpacity style={styles.commentContainer} onPress={handleSharePress}>
-              <Ionicons name="share-social-outline" size={18} color={colors.text.secondary} />
-              <Text style={styles.actionText}>Share</Text>
-            </TouchableOpacity>
-
-            {/* Subscribe */}
+            {/* Subscribe button - positioned absolutely */}
             {variant === 'default' && user && user._id !== video.owner._id && (
               <TouchableOpacity
                 onPress={handleSubscribePress}
@@ -482,20 +495,23 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 13,
   },
   actionsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 16,
-    justifyContent: 'flex-end',
+    position: 'relative',
+    marginTop: 12,
+    paddingHorizontal: 4,
   },
   actionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
-    justifyContent: 'center',
-    paddingHorizontal: 4,
+    justifyContent: 'flex-start',
+    marginRight: 120, // Reserve space for subscribe button
   },
   actionsRowCompact: {
     justifyContent: 'flex-start',
+  },
+  leftActionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
   },
   statsContainer: {
     flexDirection: 'row',
@@ -508,6 +524,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 18,
     overflow: 'hidden',
     marginRight: 6,
+    flexShrink: 0,
   },
   actionButton: {
     flexDirection: 'row',
@@ -525,6 +542,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     marginLeft: 8,
     marginRight: 6,
+    flexShrink: 0,
   },
   actionText: {
     color: colors.text.secondary,
@@ -536,6 +554,9 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.text.primary,
   },
   subscribeButton: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
     backgroundColor: colors.primary,
     paddingVertical: 8,
     paddingHorizontal: 16,

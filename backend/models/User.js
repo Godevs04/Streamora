@@ -96,6 +96,14 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     select: false
   },
+  adminResetOTP: {
+    type: String,
+    select: false
+  },
+  adminResetOTPExpiry: {
+    type: Date,
+    select: false
+  },
   createdAt: {
     type: Date,
     default: Date.now

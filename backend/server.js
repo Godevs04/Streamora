@@ -20,9 +20,13 @@ const commentRoutes = require('./routes/commentRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const adminAuthRoutes = require('./routes/adminAuthRoutes');
 
 // Import middleware
 const errorHandler = require('./middlewares/errorHandler');
+
+// Import scheduler service
+const { initializeScheduler } = require('./services/schedulerService');
 
 // Initialize Express app
 const app = express();
@@ -72,6 +76,7 @@ app.use('/api', commentRoutes); // Using /api prefix for nested routes
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin-auth', adminAuthRoutes);
 
 // Health check route - accessible without auth
 app.get('/health', (req, res) => {
@@ -130,7 +135,10 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`Accessible at: http://localhost:${PORT} or http://192.168.1.9:${PORT}`);
+  console.log(`Accessible at: http://localhost:${PORT} or http://192.168.1.23:${PORT}`);
+  
+  // Initialize the scheduler for automatic video publishing
+  initializeScheduler();
 });
 
 // Handle unhandled promise rejections

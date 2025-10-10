@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity, RefreshControl, Dimensions, Modal, TextInput, ScrollView, Platform } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import ShortsPlayer from '../../components/ShortsPlayer';
 import { getVideos, toggleLikeVideo, getVideoComments, addComment } from '../../services/videos';
@@ -13,13 +14,14 @@ import CustomAlert from '../../components/CustomAlert';
 import { useCustomAlert } from '../../hooks/useCustomAlert';
 
 export default function Shorts() {
+  const { videoId } = useLocalSearchParams<{ videoId?: string }>();
   const [videos, setVideos] = useState<Video[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [likedVideos, setLikedVideos] = useState<Set<string>>(new Set());
   const [subscribedUsers, setSubscribedUsers] = useState<Set<string>>(new Set());
   const [commentsVisible, setCommentsVisible] = useState(false);
-  const [currentVideoId, setCurrentVideoId] = useState<string | null>(null);
+  const [currentVideoId, setCurrentVideoId] = useState<string | null>(videoId || null);
   const customAlert = useCustomAlert();
   const colors = useColors();
   const styles = createStyles(colors);
@@ -83,6 +85,30 @@ export default function Shorts() {
   useEffect(() => {
     fetchShorts();
   }, []);
+
+  // Set current video when videoId parameter changes or videos are loaded
+  const flatListRef = useRef<FlatList>(null);
+  const [initialScrollIndex, setInitialScrollIndex] = useState<number | undefined>(undefined);
+  
+  useEffect(() => {
+    if (videoId && videos.length > 0) {
+      const targetVideoIndex = videos.findIndex(video => video._id === videoId);
+      if (targetVideoIndex !== -1) {
+        setCurrentVideoId(videoId);
+        setInitialScrollIndex(targetVideoIndex);
+        
+        // Scroll to the target video after a short delay to ensure FlatList is ready
+        setTimeout(() => {
+          if (flatListRef.current) {
+            flatListRef.current.scrollToIndex({
+              index: targetVideoIndex,
+              animated: false
+            });
+          }
+        }, 100);
+      }
+    }
+  }, [videoId, videos]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -299,6 +325,12 @@ export default function Shorts() {
     <SafeAreaView style={styles.container} edges={Platform.OS === 'ios' ? ['top'] : []}>
       <View style={styles.safeArea}>
         <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.headerButton} 
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>Shorts</Text>
           <TouchableOpacity style={styles.headerButton}>
             <Ionicons name="search" size={24} color={colors.text.primary} />
@@ -312,6 +344,7 @@ export default function Shorts() {
           </View>
         ) : (
           <FlatList
+            ref={flatListRef}
             data={videos}
             keyExtractor={(item, index) => item._id || `short-${index}`}
             renderItem={({ item }) => (
@@ -330,6 +363,24 @@ export default function Shorts() {
             snapToInterval={availableHeight}
             snapToAlignment="start"
             decelerationRate="fast"
+            initialScrollIndex={initialScrollIndex}
+            getItemLayout={(data, index) => ({
+              length: availableHeight,
+              offset: availableHeight * index,
+              index,
+            })}
+            onScrollToIndexFailed={(info) => {
+              // Fallback: scroll to a nearby index
+              const wait = new Promise(resolve => setTimeout(resolve, 500));
+              wait.then(() => {
+                if (flatListRef.current) {
+                  flatListRef.current.scrollToIndex({
+                    index: Math.min(info.index, videos.length - 1),
+                    animated: false
+                  });
+                }
+              });
+            }}
             ListEmptyComponent={renderEmpty}
             refreshControl={
               <RefreshControl
@@ -338,11 +389,6 @@ export default function Shorts() {
                 tintColor={colors.primary}
               />
             }
-            getItemLayout={(data, index) => ({
-              length: availableHeight,
-              offset: availableHeight * index,
-              index,
-            })}
             initialNumToRender={3}
             maxToRenderPerBatch={3}
             windowSize={5}

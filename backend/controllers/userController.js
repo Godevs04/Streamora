@@ -319,15 +319,53 @@ const getUserVideos = async (req, res, next) => {
     const limit = parseInt(req.query.limit, 10) || 20;
     const skip = (page - 1) * limit;
 
-    // Get videos by user ID
-    const videos = await Video.find({ owner: id })
+    // Get videos by user ID (only published videos)
+    const videos = await Video.find({ owner: id, status: 'published' })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate('owner', 'name avatarUrl username');
+
+    // Get total count (only published videos)
+    const total = await Video.countDocuments({ owner: id, status: 'published' });
+
+    sendSuccessResponse(res, 200, { videos }, {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get liked videos by current user
+ * @route GET /api/users/me/liked-videos
+ * @access Private
+ */
+const getLikedVideos = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 20;
+    const skip = (page - 1) * limit;
+
+    // Get videos liked by current user
+    const videos = await Video.find({ 
+      likes: req.user._id,
+      status: 'published' // Only show published videos
+    })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .populate('owner', 'name avatarUrl username');
 
     // Get total count
-    const total = await Video.countDocuments({ owner: id });
+    const total = await Video.countDocuments({ 
+      likes: req.user._id,
+      status: 'published'
+    });
 
     sendSuccessResponse(res, 200, { videos }, {
       page,
@@ -347,6 +385,7 @@ module.exports = {
   updateUserAvatar,
   getUserStats,
   getUserVideos,
+  getLikedVideos,
   subscribeToUser,
   unsubscribeFromUser,
   getPublicUserStats,

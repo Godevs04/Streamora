@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, Image, StyleSheet, Dimensions, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, Image, StyleSheet, Dimensions, ActivityIndicator, Platform, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -38,6 +38,9 @@ export default function Upload() {
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [showProgress, setShowProgress] = useState(false);
   const customAlert = useCustomAlert();
   const colors = useColors();
   const styles = createStyles(colors);
@@ -114,7 +117,7 @@ export default function Upload() {
         
         setVideoUri(asset.uri);
         
-        // Set video duration if available
+        // Set video duration if available (keep in milliseconds to match backend)
         if (asset.duration) {
           setVideoDuration(Math.round(asset.duration));
         }
@@ -221,12 +224,25 @@ customAlert.show({
     }
     
     setIsLoading(true);
+    setShowProgress(true);
+    setUploadProgress(0);
     
     try {
       const tagsArray = tags
         .split(',')
         .map((tag) => tag.trim())
         .filter((tag) => tag.length > 0);
+      
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + Math.random() * 20;
+        });
+      }, 200);
       
       await uploadVideo({
         title,
@@ -236,39 +252,24 @@ customAlert.show({
         thumbnailUri: thumbnailUri || undefined, // Include thumbnail for both shorts and normal videos
         thumbnailAspectRatio: videoType === 'shorts' ? '9:16' : aspectRatio,
         duration: videoDuration,
-        type: videoType
+        type: videoType,
+        isScheduled,
+        scheduledDate: isScheduled ? scheduledDate : undefined
       });
       
-      customAlert.show({
-        title: 'Upload Successful',
-        message: 'Your video has been uploaded successfully!',
-        type: 'success',
-        icon: 'check-circle',
-        verticalButtons: true,
-        buttons: [
-          {
-            text: 'View Content',
-            onPress: () => {
-              // Navigate to admin content page
-              router.push('/admin/content');
-            },
-          },
-          {
-            text: 'Upload Another',
-            onPress: () => {
-              resetForm();
-            },
-          },
-          {
-            text: 'Go Home',
-            onPress: () => {
-              resetForm();
-              router.push('/(tabs)/home');
-            },
-          },
-        ]
-      });
+      // Complete progress
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+      
+      // Wait a moment then redirect
+      setTimeout(() => {
+        setShowProgress(false);
+        resetForm();
+        router.push('/(tabs)/home');
+      }, 1000);
+      
     } catch (error: any) {
+      setShowProgress(false);
       customAlert.show({
         title: 'Upload Failed',
         message: error.message || 'Failed to upload video. Please try again.',
@@ -537,11 +538,13 @@ customAlert.show({
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Title *</Text>
                   <TextInput
-                    style={styles.textInput}
+                    style={[styles.textInput, focusedInput === 'title' && styles.textInputFocused]}
                     placeholder="Enter video title"
                     placeholderTextColor={colors.text.secondary}
                     value={title}
                     onChangeText={setTitle}
+                    onFocus={() => setFocusedInput('title')}
+                    onBlur={() => setFocusedInput(null)}
                     maxLength={100}
                   />
                 </View>
@@ -549,11 +552,13 @@ customAlert.show({
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Description</Text>
                   <TextInput
-                    style={[styles.textInput, styles.textAreaInput]}
+                    style={[styles.textInput, styles.textAreaInput, focusedInput === 'description' && styles.textInputFocused]}
                     placeholder="Enter video description"
                     placeholderTextColor={colors.text.secondary}
                     value={description}
                     onChangeText={setDescription}
+                    onFocus={() => setFocusedInput('description')}
+                    onBlur={() => setFocusedInput(null)}
                     multiline
                     numberOfLines={4}
                     textAlignVertical="top"
@@ -564,11 +569,13 @@ customAlert.show({
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Tags (comma-separated)</Text>
                   <TextInput
-                    style={styles.textInput}
+                    style={[styles.textInput, focusedInput === 'tags' && styles.textInputFocused]}
                     placeholder="e.g. music, tutorial, vlog"
                     placeholderTextColor={colors.text.secondary}
                     value={tags}
                     onChangeText={setTags}
+                    onFocus={() => setFocusedInput('tags')}
+                    onBlur={() => setFocusedInput(null)}
                   />
                 </View>
 
@@ -639,42 +646,121 @@ customAlert.show({
         
         {/* Date Picker */}
         {showDatePicker && (
-          <DateTimePicker
-            value={scheduledDate}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={(event: any, selectedDate?: Date) => {
-              if (Platform.OS === 'android') {
-                setShowDatePicker(false);
-              }
-              if (selectedDate) {
-                setScheduledDate(selectedDate);
-              }
-            }}
-            minimumDate={new Date()}
-          />
+          <View style={styles.datePickerOverlay}>
+            <View style={styles.datePickerContainer}>
+              <View style={styles.datePickerHeader}>
+                <Text style={styles.datePickerTitle}>Select Date</Text>
+                <TouchableOpacity 
+                  onPress={() => setShowDatePicker(false)}
+                  style={styles.datePickerCloseButton}
+                >
+                  <MaterialIcons name="close" size={24} color={colors.text.primary} />
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                value={scheduledDate}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(event: any, selectedDate?: Date) => {
+                  if (Platform.OS === 'android') {
+                    setShowDatePicker(false);
+                  }
+                  if (selectedDate) {
+                    setScheduledDate(selectedDate);
+                    if (Platform.OS === 'ios') {
+                      setShowDatePicker(false);
+                    }
+                  }
+                }}
+                minimumDate={new Date()}
+                textColor={colors.text.primary}
+                accentColor={colors.primary}
+                themeVariant="dark"
+              />
+            </View>
+          </View>
         )}
         
         {/* Time Picker */}
         {showTimePicker && (
-          <DateTimePicker
-            value={scheduledDate}
-            mode="time"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={(event: any, selectedTime?: Date) => {
-              if (Platform.OS === 'android') {
-                setShowTimePicker(false);
-              }
-              if (selectedTime) {
-                const newDate = new Date(scheduledDate);
-                newDate.setHours(selectedTime.getHours());
-                newDate.setMinutes(selectedTime.getMinutes());
-                setScheduledDate(newDate);
-              }
-            }}
-          />
+          <View style={styles.datePickerOverlay}>
+            <View style={styles.datePickerContainer}>
+              <View style={styles.datePickerHeader}>
+                <Text style={styles.datePickerTitle}>Select Time</Text>
+                <TouchableOpacity 
+                  onPress={() => setShowTimePicker(false)}
+                  style={styles.datePickerCloseButton}
+                >
+                  <MaterialIcons name="close" size={24} color={colors.text.primary} />
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                value={scheduledDate}
+                mode="time"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(event: any, selectedTime?: Date) => {
+                  if (Platform.OS === 'android') {
+                    setShowTimePicker(false);
+                  }
+                  if (selectedTime) {
+                    const newDate = new Date(scheduledDate);
+                    newDate.setHours(selectedTime.getHours());
+                    newDate.setMinutes(selectedTime.getMinutes());
+                    setScheduledDate(newDate);
+                    if (Platform.OS === 'ios') {
+                      setShowTimePicker(false);
+                    }
+                  }
+                }}
+                textColor={colors.text.primary}
+                accentColor={colors.primary}
+                themeVariant="dark"
+              />
+            </View>
+          </View>
         )}
         
+        {/* Upload Progress Modal */}
+        <Modal
+          visible={showProgress}
+          transparent
+          animationType="fade"
+          statusBarTranslucent={Platform.OS === 'android'}
+        >
+          <View style={styles.progressBackdrop}>
+            <View style={styles.progressContainer}>
+              <View style={styles.progressIconContainer}>
+                <MaterialIcons name="cloud-upload" size={48} color={colors.primary} />
+              </View>
+              
+              <Text style={styles.progressTitle}>
+                {isScheduled ? 'Scheduling Video' : 'Uploading Video'}
+              </Text>
+              
+              <Text style={styles.progressMessage}>
+                {isScheduled 
+                  ? 'Your video is being scheduled...' 
+                  : 'Please wait while your video uploads...'
+                }
+              </Text>
+              
+              <View style={styles.progressBarContainer}>
+                <View style={styles.progressBar}>
+                  <View 
+                    style={[
+                      styles.progressBarFill, 
+                      { width: `${uploadProgress}%` }
+                    ]} 
+                  />
+                </View>
+                <Text style={styles.progressText}>
+                  {Math.round(uploadProgress)}%
+                </Text>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
         {/* Custom Alert */}
         <CustomAlert
           visible={customAlert.visible}
@@ -862,13 +948,27 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   inputLabel: {
     color: colors.text.primary,
-    marginBottom: 4,
+    marginBottom: 8,
+    fontSize: 14,
+    fontWeight: '600',
   },
   textInput: {
-    backgroundColor: colors.background.secondary,
+    backgroundColor: colors.background.tertiary,
     color: colors.text.primary,
-    padding: 12,
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.border,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  textInputFocused: {
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   textAreaInput: {
     minHeight: 100,
@@ -989,5 +1089,115 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.text.primary,
     fontSize: 14,
     fontWeight: '500',
+  },
+  // Date Picker Modal Styles
+  datePickerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  datePickerContainer: {
+    backgroundColor: colors.background.secondary,
+    borderRadius: 16,
+    padding: 20,
+    margin: 20,
+    maxWidth: '90%',
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  datePickerTitle: {
+    color: colors.text.primary,
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  datePickerCloseButton: {
+    padding: 4,
+  },
+  // Progress Modal Styles
+  progressBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  progressContainer: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 20,
+    backgroundColor: colors.background.secondary,
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 16,
+  },
+  progressIconContainer: {
+    marginBottom: 20,
+  },
+  progressTitle: {
+    color: colors.text.primary,
+    fontSize: 22,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  progressMessage: {
+    color: colors.text.secondary,
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+    paddingHorizontal: 8,
+  },
+  progressBarContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  progressBar: {
+    width: '100%',
+    height: 8,
+    backgroundColor: colors.background.tertiary,
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
+    borderRadius: 4,
+  },
+  progressText: {
+    color: colors.text.primary,
+    fontSize: 18,
+    fontWeight: '600',
   },
 });

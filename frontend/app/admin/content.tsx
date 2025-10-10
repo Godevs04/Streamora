@@ -338,7 +338,7 @@ function UploadVideoItem({
   const handleView = () => {
     // Navigate to video based on type
     if ((upload as any).type === 'shorts' || (upload as any).duration && (upload as any).duration <= 60) {
-      router.push('/(tabs)/explore');
+      router.push(`/(tabs)/explore?videoId=${upload._id}`);
     } else {
       router.push(`/video/${upload._id}`);
     }

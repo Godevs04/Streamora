@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, usePathname } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useColors } from '../hooks/useColors';
+import AdminAuthWrapper from './AdminAuthWrapper';
 
 const { width } = Dimensions.get('window');
 
@@ -40,8 +41,9 @@ export default function AdminLayout({ children, title, subtitle = 'Admin Mode' }
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.gradient}>
+    <AdminAuthWrapper>
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+        <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.gradient}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity 
@@ -144,8 +146,9 @@ export default function AdminLayout({ children, title, subtitle = 'Admin Mode' }
         <View style={styles.content}>
           {children}
         </View>
-      </LinearGradient>
-    </SafeAreaView>
+        </LinearGradient>
+      </SafeAreaView>
+    </AdminAuthWrapper>
   );
 }
 

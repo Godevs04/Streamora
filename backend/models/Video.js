@@ -60,6 +60,12 @@ const VideoSchema = new mongoose.Schema({
     enum: ['draft', 'published', 'scheduled'],
     default: 'published'
   },
+  scheduledDate: {
+    type: Date,
+    required: function() {
+      return this.status === 'scheduled';
+    }
+  },
   createdAt: {
     type: Date,
     default: Date.now

@@ -34,40 +34,65 @@ const Input: React.FC<InputProps> = ({
   const getBorderColor = () => {
     if (error) return colors.error;
     if (isFocused) return colors.primary;
-    return '#4B5563'; // gray-300
+    return colors.border;
+  };
+  
+  // Background color based on theme
+  const getBackgroundColor = () => {
+    return colors.background.tertiary;
+  };
+  
+  // Text color based on theme
+  const getTextColor = () => {
+    return colors.text.primary;
+  };
+  
+  // Label color based on theme
+  const getLabelColor = () => {
+    return colors.text.primary;
   };
   
   return (
     <View style={{ marginBottom: 16 }}>
       {label && (
-        <Text style={{ color: 'white', marginBottom: 4, fontSize: 14, fontWeight: '500' }}>{label}</Text>
+        <Text style={{ color: getLabelColor(), marginBottom: 4, fontSize: 14, fontWeight: '500' }}>{label}</Text>
       )}
       
       <View style={{ 
         flexDirection: 'row', 
         alignItems: 'center', 
-        borderWidth: 1, 
+        borderWidth: 2, 
         borderColor: getBorderColor(), 
-        borderRadius: 8, 
-        paddingHorizontal: 12, 
-        paddingVertical: 8, 
-        backgroundColor: '#1F2937' // gray-800
+        borderRadius: 12, 
+        paddingHorizontal: 16, 
+        paddingVertical: 12, 
+        backgroundColor: getBackgroundColor(),
       }}>
         {leftIcon && (
           <Icon 
             name={leftIcon} 
             size={20} 
-            color={isFocused ? colors.primary : colors.gray} 
+            color={isFocused ? colors.primary : colors.text.secondary} 
             style={{ marginRight: 8 }} 
           />
         )}
         
         <TextInput
-          style={{ flex: 1, color: 'white', fontSize: 16 }}
-          placeholderTextColor={colors.gray}
+          style={{ 
+            flex: 1, 
+            color: getTextColor(), 
+            fontSize: 16, 
+            fontWeight: '500',
+            height: 24,
+            paddingVertical: 0,
+            paddingHorizontal: 0,
+          }}
+          placeholderTextColor={colors.text.secondary}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           secureTextEntry={isPassword ? !isPasswordVisible : rest.secureTextEntry}
+          autoCorrect={false}
+          autoCapitalize="none"
           {...rest}
         />
         
@@ -76,12 +101,12 @@ const Input: React.FC<InputProps> = ({
             <Icon
               name={isPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
               size={20}
-              color={colors.gray}
+              color={colors.text.secondary}
             />
           </TouchableOpacity>
         ) : rightIcon ? (
           <TouchableOpacity onPress={onRightIconPress}>
-            <Icon name={rightIcon} size={20} color={colors.gray} />
+            <Icon name={rightIcon} size={20} color={colors.text.secondary} />
           </TouchableOpacity>
         ) : null}
       </View>

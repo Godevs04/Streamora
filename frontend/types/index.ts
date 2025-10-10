@@ -285,6 +285,8 @@ export interface VideoUpload {
   thumbnailAspectRatio?: '16:9' | '4:3' | '1:1' | '9:16';
   duration?: number;
   type?: 'normal' | 'shorts';
+  isScheduled?: boolean;
+  scheduledDate?: Date;
 }
 
 export interface PaginationParams {

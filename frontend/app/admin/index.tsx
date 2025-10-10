@@ -142,7 +142,7 @@ function LatestVideoItem({ video, colors, styles }: { video: Video; colors: any;
   const handleViewVideo = () => {
     // Check if it's a short video and navigate accordingly
     if (video.type === 'shorts' || (video.duration && video.duration <= 60)) {
-      router.push('/(tabs)/explore');
+      router.push(`/(tabs)/explore?videoId=${video._id}`);
     } else {
       router.push(`/video/${video._id}`);
     }
