@@ -24,6 +24,9 @@ const adminRoutes = require('./routes/adminRoutes');
 // Import middleware
 const errorHandler = require('./middlewares/errorHandler');
 
+// Import scheduler service
+const { initializeScheduler } = require('./services/schedulerService');
+
 // Initialize Express app
 const app = express();
 
@@ -130,7 +133,10 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`Accessible at: http://localhost:${PORT} or http://192.168.1.9:${PORT}`);
+  console.log(`Accessible at: http://localhost:${PORT} or http://192.168.1.23:${PORT}`);
+  
+  // Initialize the scheduler for automatic video publishing
+  initializeScheduler();
 });
 
 // Handle unhandled promise rejections

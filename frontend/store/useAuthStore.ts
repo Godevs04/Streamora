@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
+import { router } from 'expo-router';
 import { AuthState, LoginCredentials, PreviousIntent, RegisterCredentials, User, RegisterResponse } from '../types';
 import config from '../constants/config';
 import { login as loginApi, register as registerApi, getMe } from '../services/auth';
@@ -98,6 +99,9 @@ const useAuthStore = create<AuthState>((set, get) => ({
     try {
       await get().setToken(null);
       set({ user: null, isAuthenticated: false, isLoading: false });
+      
+      // Redirect to login page after logout
+      router.replace('/(auth)/login');
     } catch (error) {
       set({ isLoading: false });
       throw error;

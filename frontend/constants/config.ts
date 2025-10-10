@@ -1,7 +1,7 @@
 export default {
   // API endpoints
   API: {
-    BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL || 'http://192.168.1.9:5001/api',
+    BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL || 'http://192.168.1.23:5001/api',
     ENDPOINTS: {
       AUTH: {
         REGISTER: '/auth/register',
@@ -23,6 +23,8 @@ export default {
         CREATE: '/videos',
         LIKE: (id: string) => `/videos/${id}/like`,
         VIEW: (id: string) => `/videos/${id}/view`,
+        SCHEDULED: '/videos/scheduled',
+        PUBLISH: (id: string) => `/videos/${id}/publish`,
         COMMENTS: {
           LIST: (videoId: string) => `/videos/${videoId}/comments`,
           CREATE: (videoId: string) => `/videos/${videoId}/comments`,

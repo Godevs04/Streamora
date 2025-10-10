@@ -62,6 +62,14 @@ export const uploadVideo = async (videoData: VideoUpload): Promise<ApiResponse<V
     formData.append('type', videoData.type);
   }
   
+  // Add scheduling information if provided
+  if (videoData.isScheduled) {
+    formData.append('isScheduled', 'true');
+    if (videoData.scheduledDate) {
+      formData.append('scheduledDate', videoData.scheduledDate.toISOString());
+    }
+  }
+  
   // If we have a video URI (from image picker)
   if (videoData.videoUri) {
     const uriParts = videoData.videoUri.split('.');
@@ -107,6 +115,15 @@ export const uploadVideo = async (videoData: VideoUpload): Promise<ApiResponse<V
  */
 export const toggleLikeVideo = async (id: string): Promise<ApiResponse<{ liked: boolean, likesCount: number }>> => {
   return api.put(config.API.ENDPOINTS.VIDEOS.LIKE(id));
+};
+
+/**
+ * Publish a scheduled video immediately
+ * @param id - Video ID
+ * @returns Promise with publish response
+ */
+export const publishScheduledVideo = async (id: string): Promise<ApiResponse<Video>> => {
+  return api.put(config.API.ENDPOINTS.VIDEOS.PUBLISH(id));
 };
 
 /**

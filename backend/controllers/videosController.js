@@ -12,7 +12,7 @@ const path = require('path');
  */
 const createVideo = async (req, res, next) => {
   try {
-    const { title, description, tags, thumbnailAspectRatio, duration, type } = req.body;
+    const { title, description, tags, thumbnailAspectRatio, duration, type, isScheduled, scheduledDate } = req.body;
     let videoUrl, thumbnailUrl;
 
     // Handle video upload if file is provided
@@ -90,6 +90,11 @@ const createVideo = async (req, res, next) => {
       return sendErrorResponse(res, 400, 'Thumbnail is required for normal videos');
     }
 
+    // Determine video status and scheduled date
+    const isScheduledBool = isScheduled === 'true' || isScheduled === true;
+    const videoStatus = isScheduledBool ? 'scheduled' : 'published';
+    const scheduledDateObj = isScheduledBool && scheduledDate ? new Date(scheduledDate) : undefined;
+
     // Create video
     const video = await Video.create({
       owner: req.user._id,
@@ -100,7 +105,9 @@ const createVideo = async (req, res, next) => {
       thumbnailAspectRatio: type === 'shorts' ? '9:16' : (thumbnailAspectRatio || '16:9'),
       duration: duration || 0,
       tags: tags ? JSON.parse(tags) : [],
-      type: type || 'normal'
+      type: type || 'normal',
+      status: videoStatus,
+      scheduledDate: scheduledDateObj
     });
 
     // Populate owner
@@ -132,7 +139,9 @@ const getVideos = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     // Build filter options
-    let filterOptions = {};
+    let filterOptions = {
+      status: 'published' // Only show published videos, not scheduled ones
+    };
     if (type) {
       filterOptions.type = type;
     }
@@ -270,10 +279,73 @@ const incrementViews = async (req, res, next) => {
   }
 };
 
+/**
+ * Get scheduled videos for admin panel
+ * @route GET /api/videos/scheduled
+ * @access Private (Admin)
+ */
+const getScheduledVideos = async (req, res, next) => {
+  try {
+    const videos = await Video.find({ 
+      status: 'scheduled',
+      owner: req.user._id 
+    })
+      .sort({ scheduledDate: 1 })
+      .populate('owner', 'name avatarUrl');
+
+    sendSuccessResponse(res, 200, { videos });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Publish a scheduled video immediately
+ * @route PUT /api/videos/:id/publish
+ * @access Private
+ */
+const publishScheduledVideo = async (req, res, next) => {
+  try {
+    const video = await Video.findOne({
+      _id: req.params.id,
+      owner: req.user._id,
+      status: 'scheduled'
+    });
+
+    if (!video) {
+      return sendErrorResponse(res, 404, 'Scheduled video not found');
+    }
+
+    // Update video status to published
+    const updatedVideo = await Video.findByIdAndUpdate(
+      video._id,
+      {
+        status: 'published',
+        updatedAt: new Date()
+      },
+      { new: true }
+    ).populate('owner', 'name avatarUrl');
+
+    // Send notification to subscribers (non-blocking)
+    notifyNewVideo(req.user._id, video.title, video._id).catch(error => {
+      console.error('Error sending new video notification:', error);
+    });
+
+    sendSuccessResponse(res, 200, { 
+      message: 'Video published successfully',
+      video: updatedVideo 
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createVideo,
   getVideos,
   getVideoById,
   toggleLike,
-  incrementViews
+  incrementViews,
+  getScheduledVideos,
+  publishScheduledVideo
 };

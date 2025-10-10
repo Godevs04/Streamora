@@ -5,7 +5,9 @@ const {
   getVideos, 
   getVideoById, 
   toggleLike, 
-  incrementViews 
+  incrementViews,
+  getScheduledVideos,
+  publishScheduledVideo
 } = require('../controllers/videosController');
 const { protect } = require('../middlewares/auth');
 const upload = require('../middlewares/upload');
@@ -46,6 +48,13 @@ router.post(
 router.get('/', getVideos);
 
 /**
+ * @route GET /api/videos/scheduled
+ * @desc Get scheduled videos for admin panel
+ * @access Private
+ */
+router.get('/scheduled', protect, getScheduledVideos);
+
+/**
  * @route GET /api/videos/:id
  * @desc Get video by ID
  * @access Public
@@ -65,5 +74,12 @@ router.put('/:id/like', protect, toggleLike);
  * @access Public
  */
 router.put('/:id/view', incrementViews);
+
+/**
+ * @route PUT /api/videos/:id/publish
+ * @desc Publish a scheduled video immediately
+ * @access Private
+ */
+router.put('/:id/publish', protect, publishScheduledVideo);
 
 module.exports = router;
