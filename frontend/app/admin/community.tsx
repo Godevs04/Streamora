@@ -186,6 +186,6 @@ const createStyles = (colors: any) => StyleSheet.create({
   centerWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 40 },
   loadingText: { color: colors.text.secondary, marginTop: 8 },
   errorText: { color: colors.error, marginTop: 8 },
-  retryBtn: { marginTop: 10, backgroundColor: 'rgba(255,255,255,0.12)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
+  retryBtn: { marginTop: 10, backgroundColor: colors.background.secondary, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: colors.border },
   retryText: { color: colors.text.primary, fontWeight: '700' },
 });

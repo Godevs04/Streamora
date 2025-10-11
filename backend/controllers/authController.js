@@ -311,26 +311,35 @@ const resetPassword = async (req, res, next) => {
 const sendAdminResetOTP = async (req, res, next) => {
   try {
     const { email } = req.body;
+    console.log('Send Admin Reset OTP - Email:', email);
 
     // Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
+      console.log('User not found for email:', email);
       return sendErrorResponse(res, 404, 'User not found');
     }
 
+    console.log('User found:', user.email, 'ID:', user._id);
+
     // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log('Generated OTP:', otp);
     
     // Store OTP in user document (you might want to use a separate collection for OTPs)
     user.adminResetOTP = otp;
     user.adminResetOTPExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     await user.save();
+    
+    console.log('OTP stored in user document');
 
     // Send OTP email
-    await sendOTPEmail(email, otp, 'Admin Access Reset');
+    await sendOTPEmail(email, user.name || user.email, otp, 'Admin Access Reset');
+    console.log('OTP email sent successfully');
 
     sendSuccessResponse(res, 200, { message: 'Admin reset OTP sent successfully' });
   } catch (error) {
+    console.error('Send Admin Reset OTP Error:', error);
     next(error);
   }
 };
@@ -343,26 +352,37 @@ const sendAdminResetOTP = async (req, res, next) => {
 const verifyAdminResetOTP = async (req, res, next) => {
   try {
     const { email, otp } = req.body;
+    console.log('Verify Admin Reset OTP - Email:', email, 'OTP:', otp);
 
     // Find user
     const user = await User.findOne({ email });
     if (!user) {
+      console.log('User not found for email:', email);
       return sendErrorResponse(res, 404, 'User not found');
     }
 
+    console.log('User found:', user.email, 'ID:', user._id);
+    console.log('Stored OTP:', user.adminResetOTP);
+    console.log('OTP Expiry:', user.adminResetOTPExpiry);
+
     // Check if OTP exists and is not expired
     if (!user.adminResetOTP || !user.adminResetOTPExpiry) {
+      console.log('No reset OTP found for user');
       return sendErrorResponse(res, 400, 'No reset OTP found');
     }
 
     if (new Date() > user.adminResetOTPExpiry) {
+      console.log('Reset OTP has expired');
       return sendErrorResponse(res, 400, 'Reset OTP has expired');
     }
 
     // Verify OTP
     if (user.adminResetOTP !== otp) {
+      console.log('Invalid OTP - Expected:', user.adminResetOTP, 'Received:', otp);
       return sendErrorResponse(res, 400, 'Invalid OTP');
     }
+
+    console.log('OTP verification successful');
 
     // Clear OTP
     user.adminResetOTP = undefined;
@@ -371,6 +391,7 @@ const verifyAdminResetOTP = async (req, res, next) => {
 
     sendSuccessResponse(res, 200, { message: 'Admin reset OTP verified successfully' });
   } catch (error) {
+    console.error('Verify Admin Reset OTP Error:', error);
     next(error);
   }
 };

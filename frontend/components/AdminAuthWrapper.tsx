@@ -60,8 +60,10 @@ export default function AdminAuthWrapper({ children }: AdminAuthWrapperProps) {
   };
 
   const handleForgotSuccess = () => {
+    console.log('handleForgotSuccess called - hiding forgot, showing login');
     setShowForgot(false);
-    setShowSetup(true); // Go back to setup after reset
+    setShowLogin(true); // Go to login after successful reset
+    console.log('Navigation state updated');
   };
 
   const handleCancel = () => {
