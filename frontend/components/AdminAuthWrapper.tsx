@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
 import { useColors } from '../hooks/useColors';
 import { useAdminAuthStore } from '../store/useAdminAuthStore';
 import AdminAuthSetup from './AdminAuthSetup';
@@ -67,9 +68,12 @@ export default function AdminAuthWrapper({ children }: AdminAuthWrapperProps) {
   };
 
   const handleCancel = () => {
+    console.log('handleCancel called - navigating back to profile settings');
     setShowSetup(false);
     setShowLogin(false);
     setShowForgot(false);
+    // Navigate back to profile settings page
+    router.back();
   };
 
   const handleForgot = () => {

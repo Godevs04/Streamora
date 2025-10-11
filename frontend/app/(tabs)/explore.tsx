@@ -7,6 +7,7 @@ import ShortsPlayer from '../../components/ShortsPlayer';
 import { getVideos, toggleLikeVideo, getVideoComments, addComment } from '../../services/videos';
 import { subscribeToUser, unsubscribeFromUser, checkSubscriptionStatus } from '../../services/user';
 import { Video, Comment } from '../../types';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useColors } from '../../hooks/useColors';
 import useAuthStore from '../../store/useAuthStore';
 import Avatar from '../../components/Avatar';
@@ -23,8 +24,9 @@ export default function Shorts() {
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [currentVideoId, setCurrentVideoId] = useState<string | null>(videoId || null);
   const customAlert = useCustomAlert();
+  const { isDark } = useTheme();
   const colors = useColors();
-  const styles = createStyles(colors);
+  const styles = createStyles(colors, isDark);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -331,7 +333,7 @@ export default function Shorts() {
           >
             <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Shorts</Text>
+          <View style={styles.headerSpacer} />
           <TouchableOpacity style={styles.headerButton}>
             <Ionicons name="search" size={24} color={colors.text.primary} />
           </TouchableOpacity>
@@ -484,7 +486,7 @@ export default function Shorts() {
   );
 }
 
-const createStyles = (colors: any) => StyleSheet.create({
+const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.primary,
@@ -503,7 +505,9 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: isDark ? '#0F0F23' : 'rgba(255,255,255,0.8)',
+    borderBottomWidth: isDark ? 1 : 0,
+    borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'transparent',
   },
   headerTitle: {
     fontSize: 24,
@@ -511,7 +515,16 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.text.primary,
   },
   headerButton: {
-    padding: 8,
+    padding: 10,
+    backgroundColor: isDark ? '#312E81' : 'rgba(0,0,0,0.1)',
+    borderRadius: 22,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerSpacer: {
+    flex: 1,
   },
   loadingContainer: {
     flex: 1,
