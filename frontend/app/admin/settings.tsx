@@ -894,10 +894,12 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: 24,
   },
   retryBtn: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.background.secondary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   retryBtnText: {
     color: colors.text.primary,
@@ -1174,7 +1176,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     padding: 24,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    backgroundColor: 'rgba(99, 102, 241, 0.05)',
+    backgroundColor: colors.background.secondary,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
   },
@@ -1187,7 +1189,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   closeButton: {
     padding: 8,
     borderRadius: 12,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: colors.background.tertiary,
   },
   modalContent: {
     padding: 24,
@@ -1209,7 +1211,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 16,
     backgroundColor: colors.background.secondary,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: colors.border,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -1220,7 +1222,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     elevation: 3,
   },
   methodOptionSelected: {
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    backgroundColor: colors.background.tertiary,
     borderColor: colors.primary,
     shadowColor: colors.primary,
     shadowOpacity: 0.2,
@@ -1244,10 +1246,10 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     marginVertical: 24,
     padding: 20,
-    backgroundColor: 'rgba(99, 102, 241, 0.05)',
+    backgroundColor: colors.background.secondary,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.1)',
+    borderColor: colors.border,
   },
   modalActions: {
     flexDirection: 'row',

@@ -217,7 +217,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     width: 40, 
     height: 40, 
     borderRadius: 20, 
-    backgroundColor: 'rgba(99, 102, 241, 0.2)', 
+    backgroundColor: colors.background.tertiary, 
     alignItems: 'center', 
     justifyContent: 'center', 
     marginBottom: 12 
@@ -252,7 +252,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   progressBarBg: { 
     height: 8, 
-    backgroundColor: 'rgba(255,255,255,0.1)', 
+    backgroundColor: colors.background.tertiary, 
     borderRadius: 4, 
     marginBottom: 8 
   },
@@ -346,7 +346,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 16, 
     backgroundColor: colors.background.secondary,
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.3)',
+    borderColor: colors.border,
   },
   showMoreText: { 
     color: colors.primary, 
@@ -359,9 +359,9 @@ const createStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'center',
     padding: 12,
     borderRadius: 12,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: colors.background.secondary,
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.3)',
+    borderColor: colors.border,
     marginTop: 8,
     gap: 8,
   },
@@ -386,10 +386,12 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   retryBtn: { 
     marginTop: 10, 
-    backgroundColor: 'rgba(255,255,255,0.12)', 
+    backgroundColor: colors.background.secondary, 
     paddingHorizontal: 12, 
     paddingVertical: 8, 
-    borderRadius: 10 
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   retryText: { 
     color: colors.text.primary, 

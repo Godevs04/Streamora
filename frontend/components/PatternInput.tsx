@@ -140,9 +140,11 @@ const createStyles = (colors: any, size: number, dotSize: number, lineWidth: num
     width: size,
     height: size,
     position: 'relative',
-    backgroundColor: 'rgba(99, 102, 241, 0.05)',
+    backgroundColor: colors.background.secondary,
     borderRadius: 20,
     padding: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   dot: {
     position: 'absolute',
@@ -152,7 +154,7 @@ const createStyles = (colors: any, size: number, dotSize: number, lineWidth: num
     backgroundColor: colors.background.primary,
     borderWidth: 3,
     borderColor: colors.border,
-    shadowColor: '#000',
+    shadowColor: colors.text.primary,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -204,7 +206,7 @@ const createStyles = (colors: any, size: number, dotSize: number, lineWidth: num
   resetButton: {
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: colors.background.secondary,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,

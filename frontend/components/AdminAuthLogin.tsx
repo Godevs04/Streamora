@@ -206,6 +206,7 @@ export default function AdminAuthLogin({ visible, onSuccess, onCancel, onForgot 
 const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background.primary,
   },
   gradient: {
     flex: 1,
@@ -216,11 +217,14 @@ const createStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    backgroundColor: colors.background.secondary,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: colors.border,
   },
   closeButton: {
     padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   headerTitle: {
     color: colors.text.primary,
@@ -234,6 +238,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 40,
+    backgroundColor: colors.background.primary,
   },
   iconContainer: {
     alignItems: 'center',
@@ -259,12 +264,14 @@ const createStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     paddingHorizontal: 20,
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    backgroundColor: colors.background.secondary,
     borderRadius: 12,
     marginBottom: 32,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   methodText: {
-    color: colors.primary,
+    color: colors.text.primary,
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,

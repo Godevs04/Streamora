@@ -82,13 +82,52 @@ export default function AdminAuthSetup({ visible, onComplete, onCancel }: AdminA
       // Import the store dynamically to avoid circular imports
       const { useAdminAuthStore } = await import('../store/useAdminAuthStore');
       await useAdminAuthStore.getState().setupAuth(selectedMethod, credential);
-      // Ensure auth is enabled after setup
-      useAdminAuthStore.getState().toggleAuth(true);
-      onComplete();
-    } catch (error) {
+      
+      // Show success message
+      setTimeout(() => {
+        customAlert.show({
+          title: 'Success',
+          message: 'Admin authentication setup successfully!',
+          type: 'success',
+          icon: 'check-circle',
+          buttons: [
+            {
+              text: 'OK',
+              onPress: () => {
+                onComplete();
+              }
+            }
+          ]
+        });
+      }, 100);
+    } catch (error: any) {
+      console.error('Setup error:', error);
+      
+      // Check if it's actually a success message wrapped in an error
+      if (error.message?.includes('successfully') || 
+          error.message?.includes('Admin authentication setup successfully')) {
+        setTimeout(() => {
+          customAlert.show({
+            title: 'Success',
+            message: 'Admin authentication setup successfully!',
+            type: 'success',
+            icon: 'check-circle',
+            buttons: [
+              {
+                text: 'OK',
+                onPress: () => {
+                  onComplete();
+                }
+              }
+            ]
+          });
+        }, 100);
+        return;
+      }
+      
       customAlert.show({
-        title: 'Error',
-        message: 'Failed to setup admin authentication',
+        title: 'Setup Failed',
+        message: error.message || 'Failed to setup admin authentication. Please try again.',
         type: 'error',
         icon: 'error'
       });
@@ -252,6 +291,7 @@ export default function AdminAuthSetup({ visible, onComplete, onCancel }: AdminA
 const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background.primary,
   },
   gradient: {
     flex: 1,
@@ -262,11 +302,14 @@ const createStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    backgroundColor: colors.background.secondary,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: colors.border,
   },
   closeButton: {
     padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   headerTitle: {
     color: colors.text.primary,
@@ -280,6 +323,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 40,
+    backgroundColor: colors.background.primary,
   },
   iconContainer: {
     alignItems: 'center',
@@ -311,12 +355,12 @@ const createStyles = (colors: any) => StyleSheet.create({
     paddingHorizontal: 12,
     marginHorizontal: 4,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: colors.background.secondary,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: colors.border,
   },
   methodOptionSelected: {
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    backgroundColor: colors.background.tertiary,
     borderColor: colors.primary,
   },
   methodText: {

@@ -754,7 +754,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   centerWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 40 },
   loadingText: { color: colors.text.secondary, marginTop: 8 },
   errorText: { color: colors.error, marginTop: 8 },
-  retryBtn: { marginTop: 10, backgroundColor: 'rgba(255,255,255,0.12)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
+  retryBtn: { marginTop: 10, backgroundColor: colors.background.secondary, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: colors.border },
   retryText: { color: colors.text.primary, fontWeight: '700' },
   // Modal styles
   modalBackdrop: {
@@ -806,7 +806,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 14,
     color: colors.text.primary,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: colors.border,
   },
   textArea: {
     height: 80,
@@ -830,9 +830,9 @@ const createStyles = (colors: any) => StyleSheet.create({
     gap: 6,
   },
   cancelBtn: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: colors.background.secondary,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: colors.border,
   },
   saveBtn: {
     backgroundColor: colors.primary,

@@ -357,18 +357,22 @@ const changeAdminCredentials = async (req, res, next) => {
 const sendAdminResetOTP = async (req, res, next) => {
   try {
     const { email } = req.body;
+    console.log('AdminController - Send Admin Reset OTP - Email:', email);
     
-    // First try to find user by email
-    let user = await User.findOne({ email });
+    // First try to find user by email - explicitly select OTP fields
+    let user = await User.findOne({ email }).select('+adminResetOTP +adminResetOTPExpiry');
     
     // If not found by email, try to get current authenticated user
     if (!user && req.user) {
-      user = await User.findById(req.user.id);
+      user = await User.findById(req.user.id).select('+adminResetOTP +adminResetOTPExpiry');
     }
     
     if (!user) {
+      console.log('AdminController - User not found for email:', email);
       return sendErrorResponse(res, 404, 'User not found');
     }
+
+    console.log('AdminController - User found:', user.email, 'ID:', user._id);
 
     let admin = await Admin.findOne({ userId: user._id });
     
@@ -384,11 +388,22 @@ const sendAdminResetOTP = async (req, res, next) => {
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log('AdminController - Generated OTP:', otp);
     
     // Store OTP in user model for now (can be moved to admin model later)
     user.adminResetOTP = otp;
     user.adminResetOTPExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-    await user.save();
+    
+    // Force save and verify the save worked
+    const savedUser = await user.save();
+    console.log('AdminController - OTP stored in user document');
+    console.log('AdminController - Saved user OTP:', savedUser.adminResetOTP);
+    console.log('AdminController - Saved user OTP Expiry:', savedUser.adminResetOTPExpiry);
+    
+    // Double-check by querying the user again
+    const verifyUser = await User.findById(user._id);
+    console.log('AdminController - Verification query - OTP:', verifyUser.adminResetOTP);
+    console.log('AdminController - Verification query - Expiry:', verifyUser.adminResetOTPExpiry);
 
     await sendOTPEmail(email || user.email, user.name || user.email, otp, 'Admin Access Reset');
 
@@ -396,7 +411,7 @@ const sendAdminResetOTP = async (req, res, next) => {
       message: 'Admin reset OTP sent successfully'
     });
   } catch (error) {
-    console.error('Send admin reset OTP error:', error);
+    console.error('AdminController - Send admin reset OTP error:', error);
     next(error);
   }
 };
@@ -405,30 +420,41 @@ const sendAdminResetOTP = async (req, res, next) => {
 const verifyAdminResetOTP = async (req, res, next) => {
   try {
     const { email, otp } = req.body;
+    console.log('AdminController - Verify Admin Reset OTP - Email:', email, 'OTP:', otp);
     
-    // First try to find user by email
-    let user = await User.findOne({ email });
+    // First try to find user by email - explicitly select OTP fields
+    let user = await User.findOne({ email }).select('+adminResetOTP +adminResetOTPExpiry');
     
     // If not found by email, try to get current authenticated user
     if (!user && req.user) {
-      user = await User.findById(req.user.id);
+      user = await User.findById(req.user.id).select('+adminResetOTP +adminResetOTPExpiry');
     }
     
     if (!user) {
+      console.log('AdminController - User not found for email:', email);
       return sendErrorResponse(res, 404, 'User not found');
     }
 
+    console.log('AdminController - User found:', user.email, 'ID:', user._id);
+    console.log('AdminController - Stored OTP:', user.adminResetOTP);
+    console.log('AdminController - OTP Expiry:', user.adminResetOTPExpiry);
+
     if (!user.adminResetOTP || !user.adminResetOTPExpiry) {
+      console.log('AdminController - No reset OTP found for user');
       return sendErrorResponse(res, 400, 'No reset OTP found');
     }
 
     if (new Date() > user.adminResetOTPExpiry) {
+      console.log('AdminController - Reset OTP has expired');
       return sendErrorResponse(res, 400, 'Reset OTP has expired');
     }
 
     if (user.adminResetOTP !== otp) {
+      console.log('AdminController - Invalid OTP - Expected:', user.adminResetOTP, 'Received:', otp);
       return sendErrorResponse(res, 400, 'Invalid OTP');
     }
+
+    console.log('AdminController - OTP verification successful');
 
     // Clear OTP fields
     user.adminResetOTP = undefined;
@@ -448,7 +474,7 @@ const verifyAdminResetOTP = async (req, res, next) => {
       message: 'Admin reset OTP verified successfully'
     });
   } catch (error) {
-    console.error('Verify admin reset OTP error:', error);
+    console.error('AdminController - Verify admin reset OTP error:', error);
     next(error);
   }
 };
